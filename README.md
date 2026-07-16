@@ -14,14 +14,17 @@ Because we tried, and recovering a 79-file base64-on-paper backup took three OCR
 engines and days of manual pixel-verification — and still stalled. The default
 `g1` codec is designed specifically to avoid every failure mode we hit:
 
-- a **confusable-free alphabet** — Crockford Base32, no `0/O`, `1/l/I`, or `U`, so
-  the OCR errors that plagued the base64 recovery cannot occur;
+- a **measured OCR-safe alphabet** — `ABCDHKLMPRTVXY34`, the exact 16-character
+  subset that read back without character errors, inserted lines, or corrupting
+  confusions in the Courier 8pt / 300 DPI / Tesseract 5.4.0 measurement; its
+  4-bit characters pack bytes as pairs of nibbles, with no confusable aliases;
 - a **per-line check** (CRC-16 as 4 safe characters) so a bad line is caught and
   localized *immediately*, without decoding anything downstream;
 - **Reed-Solomon parity** so small OCR errors *self-heal* instead of corrupting
   everything after them;
-- a **per-page hash + page numbers** so missing / out-of-order / corrupt pages are
-  obvious before assembly;
+- **CRC-protected `H`/`T` machine metadata** carrying the authoritative document
+  header, page numbers, and page hashes; the unrestricted `#!glyphive` and
+  `PAGE n/total` prose is only a display aid and is never trusted by restore;
 - **no "repair search"** — correctness is judged only by the CRC and RS, never by a
   proxy like "did more bytes decompress", which was the trap that silently
   corrupted human-verified data last time.
@@ -113,35 +116,56 @@ are loaded only when the selected implementation runs.
 multiple inputs in a directory. QR output and whole-page recovery are planned for
 later (see the design notes).
 
-## Format (so a human can decode a page by hand)
+## Format (so a human can inspect a page by hand)
 
-Every document starts with a single machine-readable header line:
+Every document starts with a human-readable summary:
 
 ```
 #!glyphive v=1 codec=g1 comp=zstd meta=none files=25 bytes=211233 pages=61 sha256=<hex64>
 ```
 
-The `meta` header token records the archive metadata profile. It is `none` by
-default; old v1 headers without the token remain readable.
-
-Each page ends with a footer for out-of-order / missing / corrupt detection:
-
-```
-PAGE 3/61 sha256=<first16hex>
-```
-
-Every data line is fixed-width and self-checking:
+The `meta` token records the archive metadata profile. It is `none` by default;
+old v1 summaries without the token remain parseable. Restore does not trust this
+unrestricted ASCII line. Immediately after it, page 1 carries the authoritative
+header as one or more CRC-protected safe-alphabet frames:
 
 ```
-L00042 <60 Crockford-Base32 chars> #<4 check chars>
+H<5 safe index chars> <up to 60 safe payload chars> #<4 safe CRC chars>
 ```
 
-- `L` = data line, `P` = Reed-Solomon parity line; `00042` = 0-based line index.
-- Payload alphabet: `0123456789ABCDEFGHJKMNPQRSTVWXYZ` (Crockford Base32 — no
-  `I L O U`; on decode, `I/l→1`, `O→0`, case-insensitive).
+Each page ends with a protected footer followed by display-only prose:
+
+```
+T<5 safe index chars> <30 safe payload chars> #<4 safe CRC chars> PAGE 3/61
+```
+
+The `H` envelope carries the exact `codec`, `comp`, metadata profile, file and
+byte counts, total pages, and document SHA-256. The `T` envelope carries the
+0-based page index, total page count, and the first 8 bytes of that page's
+SHA-256. The `PAGE 3/61` suffix is for people; changing it does not change what
+restore reads.
+
+Every data or parity line is fixed-width and self-checking:
+
+```
+L<5 safe index chars> <60 safe payload chars> #<4 safe CRC chars>
+```
+
+- `L` = data line, `P` = Reed-Solomon parity line. Each stream has its own
+  0-based index, encoded as five safe characters with a fixed per-position mask
+  so small indices do not print as repeated glyphs.
+- Payload alphabet: exactly `ABCDHKLMPRTVXY34` (16 symbols, 4 bits per character,
+  case-insensitive). There are deliberately no `I/l→1`, `O→0`, or other aliases:
+  an excluded glyph becomes a detectable erasure for Reed-Solomon correction.
 - `#<check4>` = a 16-bit CRC-16/CCITT (poly `0x1021`, init `0xFFFF`) over the
-  printed `index+payload` characters, written as 4 Crockford chars — recomputable
+  printed `index+payload` characters, written as 4 safe-alphabet chars — recomputable
   by hand to verify a single line in isolation.
+
+The 16-symbol alphabet costs 25% more payload characters than a 5-bit alphabet,
+but avoids the measured silent `Q→O→0` and `J→I→1` corruptions that made
+Crockford Base32 unsafe on this print/OCR channel. Courier 8pt at 300 DPI is the
+measured validation profile; the renderer remains configurable and the CLI
+default is 11pt.
 
 The decoded byte stream is `<compression> ∘ <archive record stream>`; the archive
 stream is a length-prefixed binary format (magic `GLYPHIV1`) of
@@ -160,6 +184,13 @@ extract:  text/scan ──[restore/ocr.py]──▶ lines ──layout.read_page
 Integrity is verified at every level: per-line CRC, per-page hash, and a
 whole-document SHA-256 in the header — a restore never silently produces corrupt
 output; it fails loud and names what/where.
+
+## Verification
+
+The current suite collects **91 tests**. In addition to unit and in-process
+round-trip coverage, real Tesseract 5.4.0 gates render Courier 8pt PDF at 300 DPI,
+OCR the resulting page image, and run `glyphive extract --from-images`; both
+`none` and `zstd` documents restored the fixture tree byte-for-byte.
 
 ## License
 

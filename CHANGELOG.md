@@ -22,15 +22,21 @@ and restore it byte-for-byte.
   `zstd` methods now use the same named lookup contract.
 - **Renderer/OCR registries** (`render/`, `restore/ocr/`): text, PDF, Word, and
   optional OCR providers use explicit registries with lazy backend imports.
-- **Codec `g1`** (`codec/`): confusable-free Crockford-Base32 alphabet, a
-  per-line CRC-16 check (4 safe chars), and document-wide interleaved Reed-Solomon
-  parity. Scattered OCR errors self-heal; correctness is judged only by CRC/RS,
-  never a "did more bytes decompress" proxy. No decode repair-search.
+- **Codec `g1`** (`codec/`): the measured-safe `ABCDHKLMPRTVXY34` alphabet
+  (16 symbols, 4-bit/nibble packing), a per-line CRC-16 check (4 safe chars),
+  masked 5-character indices, and document-wide interleaved Reed-Solomon parity.
+  The alphabet was selected from Courier 8pt / 300 DPI / Tesseract 5.4.0
+  measurements; it uses case-folding only and no confusable aliases. Scattered
+  OCR errors self-heal; correctness is judged only by CRC/RS, never a "did more
+  bytes decompress" proxy. No decode repair-search.
 - **Archive** (`archive.py`): binary-safe length-prefixed record stream (magic
   `GLYPHIV1`) for arbitrary bytes, deterministic ordering, `.gitignore`/`.ignore`
   filtering via `pathspec` (root-level), and `none`/`gzip`/`zstd` compression.
-- **Layout** (`layout.py`): compact single-line `#!glyphive` header, per-page hash
-  footer, pagination tolerant of reordered pages; missing pages fail loud.
+- **Layout** (`layout.py`): authoritative document metadata now uses
+  safe-alphabet, CRC-protected `H` header frames and `T` page-footer frames.
+  Fixed-width index/check fields, bounded payloads, envelope length/digest checks,
+  and protected page hashes make damaged metadata fail loud. The unrestricted
+  `#!glyphive` summary and trailing `PAGE n/total` prose are display-only.
 - **Renderers** (`render/`): plain text, PDF (fpdf2), and Word (python-docx), each
   with selectable font family + size (OCR-tuned monospace defaults). PDF currently
   uses FPDF core fonts only; DOCX accepts arbitrary installed Word font names.
@@ -40,6 +46,8 @@ and restore it byte-for-byte.
 - **CLI** (`cli/`): tar/bsdtar-like `create`/`extract`/`list` on `duho`, split
   into command modules with codec, compression, renderer, metadata, and OCR
   selectors resolved through the named registries.
+- **Verification**: 91 tests pass, and real Tesseract 5.4.0 Courier 8pt / 300 DPI
+  PDF-to-image gates restore both `none` and `zstd` fixture trees byte-for-byte.
 
 ### Known limitations
 - `create` archives a single path (a directory or `.`) in v1.
@@ -47,4 +55,7 @@ and restore it byte-for-byte.
   is not yet applied).
 - A fully lost/unscannable page is reported (fail-loud), not reconstructed;
   whole-page recovery via parity pages is planned.
+- `H`/`T` metadata CRCs provide integrity detection, not correction. Metadata
+  needs Reed-Solomon protection or independently validated duplication before
+  the first release.
 - QR-code output is planned, not yet implemented.
