@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[all,dev]"
+      - name: Run tests
+        run: python -m pytest -q
+
+  build-universal:
+    name: Build universal release assets
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tool
+        run: python -m pip install --upgrade build "duho>=0.2.0"
+      - name: Build sdist and wheel
+        run: python -m build --sdist --wheel --outdir dist
+      - name: Build standalone pyz
+        run: python package.py --out dist/glyphive.pyz
+      - name: Smoke test standalone pyz
+        run: python dist/glyphive.pyz --help
+      - name: Store universal release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-universal
+          path: dist/*
+
+  publish:
+    name: Publish release assets
+    needs: build-universal
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          fail_on_unmatched_files: true
