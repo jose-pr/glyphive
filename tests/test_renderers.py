@@ -100,3 +100,33 @@ def test_render_registry_lists_formats_and_rejects_unknown():
     assert render_mod.get("text") is not render_mod.get("text")
     with pytest.raises(ValueError, match=r"unknown render format 'missing'.*docx"):
         render_mod.get("missing")
+
+
+# --------------------------------------------------------------------------- #
+# Structural frame parsing (Phase 3): layout._looks_like_encoded must agree
+# with codec.g1._parse_line's tolerance for OCR-inserted interior spaces.
+# --------------------------------------------------------------------------- #
+def test_looks_like_encoded_tolerates_captured_ocr_transcript_line():
+    ocr_line = (
+        "L7KDX 8WRG2380000627WB10000000001FYWZQH4 "
+        "6F1IWO0C6DJ64R320015D1J4QP90 #1RBN"
+    )
+    assert layout._looks_like_encoded(ocr_line) is True
+
+
+def test_looks_like_encoded_tolerates_two_interior_spaces():
+    data = bytes(range(40))
+    lines = g1.encode(data)
+    line = next(l for l in lines if l.startswith("L"))
+    label, payload, check = line.split()
+    noisy_payload = payload[:10] + " " + payload[10:20] + " " + payload[20:]
+    noisy_line = f"{label} {noisy_payload} {check}"
+    assert len(noisy_line.split()) == 5
+    assert layout._looks_like_encoded(noisy_line) is True
+
+
+def test_looks_like_encoded_rejects_page_footer():
+    # Starts with "P" (like a parity-line kind) and has 3 tokens, but is not
+    # a real frame -- must not be mistaken for one.
+    footer = "PAGE 1/1 sha256=ea5b07a93a037a43"
+    assert layout._looks_like_encoded(footer) is False

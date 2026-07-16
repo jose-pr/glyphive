@@ -271,6 +271,41 @@ class _ParsedLine(_ty.NamedTuple):
     ok: bool  # True iff the CRC check field matched
 
 
+def split_frame(line: str) -> _ty.Optional[_ty.Tuple[str, str, str]]:
+    """Structurally split a printed line into ``(label, payload, check)``.
+
+    OCR (observed: Tesseract) sometimes inserts a spurious space *inside* the
+    payload (e.g. ``...FYWZQH4 6F1IWO0C...``), which would turn the intended 3
+    whitespace tokens into 4+ and cause a naive ``line.split()`` shape test to
+    discard an otherwise-perfect line. The frame's actual shape is not "exactly
+    3 tokens" -- it is "a label, then a payload, then a ``#check`` field": the
+    label is always the *first* token and ``#check`` is always the *last*
+    token, so the payload is unambiguously everything in between.
+
+    This is deterministic normalization, not guessing: the payload alphabet
+    contains no whitespace, so any interior space is provably OCR noise, and
+    joining the middle tokens with no separator recovers exactly the printed
+    payload characters. The per-line CRC (computed downstream over this
+    recovered payload) is what actually decides correctness -- this function
+    only ensures a noisy-but-readable line reaches that check instead of being
+    silently dropped before it gets the chance.
+
+    Returns ``None`` if the line has fewer than 3 tokens or the last token
+    does not start with ``#`` (i.e. it does not have the frame shape at all --
+    e.g. the ``PAGE 1/1 sha256=...`` footer, which is 3 tokens but whose last
+    token is not a check field).
+    """
+    parts = line.split()
+    if len(parts) < 3:
+        return None
+    label = parts[0]
+    check = parts[-1]
+    if not check.startswith("#"):
+        return None
+    payload = "".join(parts[1:-1])
+    return label, payload, check
+
+
 def _parse_line(line: str) -> _ty.Optional[_ParsedLine]:
     """Parse one framed line. Returns None for blank/foreign lines.
 
@@ -279,16 +314,18 @@ def _parse_line(line: str) -> _ty.Optional[_ParsedLine]:
     (missing fields, bad kind) is treated as a failed check on a best-effort
     index so decode can still localize it; if even the index is unreadable the
     line is skipped (its absence surfaces later as a length/erasure error).
+
+    The line is split via :func:`split_frame`, which anchors the label as the
+    first token and ``#check`` as the last, joining everything between as the
+    payload -- this tolerates OCR-inserted interior spaces (see its docstring).
     """
     stripped = line.strip()
     if not stripped:
         return None
-    parts = stripped.split()
-    if len(parts) != 3:
+    split = split_frame(stripped)
+    if split is None:
         return None
-    label, payload, check = parts
-    if not check.startswith("#"):
-        return None
+    label, payload, check = split
     kind = label[:1]
     if kind not in ("L", "P"):
         return None
