@@ -1,61 +1,67 @@
 # Changelog
 
-All notable changes to this project are documented here. Format loosely follows
-[Keep a Changelog](https://keepachangelog.com/); this project uses semantic
-versioning once it reaches 1.0.
+All notable changes to this project will be documented in this file.
 
-## [0.1.0] — Unreleased
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/).
 
-First working end-to-end release: archive a tree to OCR-friendly printable pages
-and restore it byte-for-byte.
+## [Unreleased]
+
+The first public release provides an end-to-end path from a file tree to
+OCR-friendly printable pages and back to a verified tree.
 
 ### Added
-- **Standalone pyz packaging** (`package.py`): releases now include a
-  universal `glyphive.pyz` with the required runtime dependencies and the core
-  text/none/gzip feature scope, plus explicitly named OS-specific `[all]` pyzs
-  for optional integrations. Lightweight OCR Python shims (`Pillow`,
-  `pytesseract`) are optional; heavyweight OCR engines/models remain external
-  and are not bundled.
-- **Codec registry** (`codec/`): the `g1` implementation now has a typed named
-  lookup; callers select the registered implementation directly.
-- **Compression registry** (`compression/`): `none`, `gzip`, and lazy optional
-  `zstd` methods now use the same named lookup contract.
-- **Renderer/OCR registries** (`render/`, `restore/ocr/`): text, PDF, Word, and
-  optional OCR providers use explicit registries with lazy backend imports.
-- **Codec `g1`** (`codec/`): the measured-safe `ABCDHKLMPRTVXY34` alphabet
-  (16 symbols, 4-bit/nibble packing), a per-line CRC-16 check (4 safe chars),
-  masked 5-character indices, and document-wide interleaved Reed-Solomon parity.
-  The alphabet was selected from Courier 8pt / 300 DPI / Tesseract 5.4.0
-  measurements; it uses case-folding only and no confusable aliases. Scattered
-  OCR errors self-heal; correctness is judged only by CRC/RS, never a "did more
-  bytes decompress" proxy. No decode repair-search.
-- **Archive** (`archive.py`): binary-safe length-prefixed record stream (magic
-  `GLYPHIV1`) for arbitrary bytes, deterministic ordering, `.gitignore`/`.ignore`
-  filtering via `pathspec` (root-level), and `none`/`gzip`/`zstd` compression.
-- **Layout** (`layout.py`): authoritative document metadata now uses
-  safe-alphabet, CRC-protected `H` header frames and `T` page-footer frames.
-  Fixed-width index/check fields, bounded payloads, envelope length/digest checks,
-  and protected page hashes make damaged metadata fail loud. The unrestricted
-  `#!glyphive` summary and trailing `PAGE n/total` prose are display-only.
-- **Renderers** (`render/`): plain text, PDF (fpdf2), and Word (python-docx), each
-  with selectable font family + size (OCR-tuned monospace defaults). PDF currently
-  uses FPDF core fonts only; DOCX accepts arbitrary installed Word font names.
-- **Restore** (`restore/`): text-transcript decode with whole-document SHA-256
-  verification, path-traversal-safe unarchive, and a thin optional multi-engine
-  OCR orchestration layer (Paddle/EasyOCR/Tesseract) for restoring from images.
-- **CLI** (`cli/`): tar/bsdtar-like `create`/`extract`/`list` on `duho`, split
-  into command modules with codec, compression, renderer, metadata, and OCR
-  selectors resolved through the named registries.
-- **Verification**: 91 tests pass, and real Tesseract 5.4.0 Courier 8pt / 300 DPI
-  PDF-to-image gates restore both `none` and `zstd` fixture trees byte-for-byte.
+
+- **Standalone zipapp packaging** (`package.py`): build a universal
+  `glyphive.pyz` containing the required runtime dependencies and the core
+  text/none/gzip feature set, or explicitly named platform-specific artifacts
+  with optional integrations. Lightweight OCR Python shims are optional;
+  heavyweight OCR engines and models remain external.
+- **Codec registry** (`glyphive.codec`): typed named lookup with the built-in
+  `g1` codec.
+- **Compression registry** (`glyphive.compression`): named `none`, `gzip`, and
+  lazy optional `zstd` methods.
+- **Renderer and OCR registries** (`glyphive.render`,
+  `glyphive.restore.ocr`): text, PDF, Word, and optional OCR providers use
+  explicit registries with lazy backend imports.
+- **Codec `g1`**: the measured-safe `ABCDHKLMPRTVXY34` alphabet (16 symbols,
+  4-bit packing), a full CRC-16 per line, masked five-character indices, and
+  document-wide interleaved Reed-Solomon parity. Scattered OCR errors can
+  self-heal; correctness is judged by CRC and parity rather than speculative
+  character substitution.
+- **Binary-safe archive stream** (`glyphive.archive`): length-prefixed records
+  for arbitrary bytes, deterministic ordering, root-level
+  `.gitignore`/`.ignore` filtering, empty-directory records, and `none`, `gzip`,
+  or `zstd` whole-stream compression.
+- **Protected layout metadata** (`glyphive.layout`): safe-alphabet `H` header
+  frames and `T` page-footer frames carry authoritative document metadata,
+  page identities, and hashes. Unrestricted human-readable summaries are
+  display aids only.
+- **Text, PDF, and Word renderers** with selectable font family and size. PDF
+  output uses built-in FPDF font families; Word output accepts installed Word
+  font names.
+- **Verified restore pipeline** (`glyphive.restore`): transcript decode,
+  whole-document SHA-256 validation, path-traversal-safe extraction, and an
+  optional multi-provider OCR layer for image input.
+- **Tar-like CLI**: `create` (`c`), `extract` (`x`), and `list` (`t`) commands
+  with codec, compression, metadata, renderer, and OCR selectors.
+- **Documentation and examples**: task-focused create, restore, wire-format,
+  OCR, benchmark, and API pages plus a runnable create/restore example.
+
+### Changed
+
+- Require `pathlib_next>=0.8.1`, including its Python 3.9 import and local path
+  walking fixes.
 
 ### Known limitations
-- `create` archives a single path (a directory or `.`) in v1.
-- Ignore files are honored at the archived-tree root only (nested `.gitignore`
-  is not yet applied).
-- A fully lost/unscannable page is reported (fail-loud), not reconstructed;
-  whole-page recovery via parity pages is planned.
-- `H`/`T` metadata CRCs provide integrity detection, not correction. Metadata
-  needs Reed-Solomon protection or independently validated duplication before
-  the first release.
-- QR-code output is planned, not yet implemented.
+
+- `create` archives one directory (or `.`) at a time; wrap multiple inputs in a
+  directory.
+- Ignore files are read at the archived-tree root only; nested `.gitignore`
+  files are not applied.
+- A fully lost or unscannable page is detected and reported, not reconstructed.
+- Protected header/footer metadata detects corruption but is not itself
+  Reed-Solomon-corrected.
+- QR-code output is not implemented.
+
+[Unreleased]: https://github.com/jose-pr/glyphive/commits/master
