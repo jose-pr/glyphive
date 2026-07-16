@@ -1,7 +1,10 @@
 """Tests for :mod:`glyphive.codec` — the OCR-safe codec (g1).
 
 Covers round-trip fidelity, single-char RS self-healing, over-budget failure
-naming the failing line, and Crockford confusable decode aliases (I/L->1, O->0).
+naming the failing line, and rejection of out-of-alphabet characters (Design
+Q2: no confusable aliases beyond case-folding -- a rejected char is a CRC
+erasure, recoverable by RS; the prior Crockford aliases silently corrupted
+data via ``Q``->``O``->``0`` and ``J``->``I``->``1`` and are gone).
 """
 
 import random
@@ -9,7 +12,7 @@ import random
 import pytest
 
 from glyphive import codec
-from glyphive.codec.g1 import ALPHABET, CodecError, crockford_decode, crockford_encode
+from glyphive.codec.g1 import ALPHABET, CodecError, nibble_decode, nibble_encode
 
 
 g1 = codec.get("g1")
@@ -31,8 +34,8 @@ def test_roundtrip_sizes(size):
 
 def test_roundtrip_line_width_boundary():
     # line_width default is 60 chars; exercise data exactly one full line wide.
-    # bytes_per_line = (60 * 5) // 8 = 37 bytes.
-    data = bytes(range(37))
+    # bytes_per_line = (60 * 4) // 8 = 30 bytes (4 bits/char, the 16-char alphabet).
+    data = bytes(range(30))
     lines = g1.encode(data)
     assert g1.decode(lines) == data
 
@@ -119,10 +122,12 @@ from glyphive.codec.g1 import _parse_line, split_frame  # noqa: E402
 
 
 def test_parse_line_tolerates_captured_ocr_transcript_line():
-    # Captured Tesseract output: a genuine 3-token line with a spurious space
-    # inserted inside the payload, splitting it into 4 whitespace tokens.
+    # Captured Tesseract output (re-pinned in Phase 2 for the new 5-char index
+    # token -- INDEX_WIDTH grew from 4 to 5 alongside the alphabet's bit-width
+    # change): a genuine 3-token line with a spurious space inserted inside the
+    # payload, splitting it into 4 whitespace tokens.
     ocr_line = (
-        "L7KDX 8WRG2380000627WB10000000001FYWZQH4 "
+        "LMYCVH 8WRG2380000627WB10000000001FYWZQH4 "
         "6F1IWO0C6DJ64R320015D1J4QP90 #1RBN"
     )
     parsed = _parse_line(ocr_line)
@@ -163,6 +168,29 @@ def test_split_frame_anchors_label_first_check_last():
     assert split_frame("no check field here") is None
 
 
+# --------------------------------------------------------------------------- #
+# Index encoding never renders as a uniform run (Design Q1, re-pinned for the
+# 16-char alphabet / 5-char index token in Phase 2)
+# --------------------------------------------------------------------------- #
+from glyphive.codec.g1 import decode_index, encode_index  # noqa: E402
+
+
+def test_encode_index_never_renders_uniform_run():
+    # A run of identical glyphs is the single worst OCR target on the page
+    # (engines reliably insert phantom characters into it) -- the masked
+    # index token exists precisely to avoid this. Check every index actually
+    # used in practice, not just a few samples.
+    for idx in range(0, 5001):
+        token = encode_index(idx)
+        assert len(set(token)) > 1, f"idx {idx} rendered as uniform run {token!r}"
+
+
+def test_encode_decode_index_roundtrip():
+    for idx in (0, 1, 42, 5000, 99999, 1_048_575):
+        token = encode_index(idx)
+        assert decode_index(token) == idx
+
+
 def test_codec_registry_rejects_unknown_names():
     with pytest.raises(ValueError, match=r"unknown codec 'missing'.*g1"):
         codec.get("missing")
@@ -179,62 +207,49 @@ def test_codec_registry_rejects_duplicate_names():
 
 
 # --------------------------------------------------------------------------- #
-# Crockford confusable decode aliases (I/L -> 1, O -> 0)
+# Out-of-alphabet characters are rejected, not aliased (Design Q2)
 # --------------------------------------------------------------------------- #
-def test_crockford_decode_aliases_direct():
-    # crockford_decode maps confusables before decoding. Encode a byte string,
-    # then substitute the printed 1 -> I / L and 0 -> O and confirm the decode
-    # is unaffected (the pure alias behavior, no framing involved).
+def test_nibble_decode_case_insensitive_but_no_confusable_aliases():
+    # nibble_decode is case-insensitive over the 16-char alphabet itself, but
+    # applies NO confusable aliasing: the excluded confusable characters this
+    # alphabet was chosen to avoid (0, 1, O, I, Q, J, ...) must raise rather
+    # than silently resolve to some other value. This is the direct fix for
+    # the prior alphabet's silent-corruption bug (Q->O->alias->0, J->I->alias->1).
     data = bytes([0x01, 0x08, 0x20, 0x00])
-    encoded = crockford_encode(data)
+    encoded = nibble_encode(data)
     n = len(data)
 
-    baseline = crockford_decode(encoded, n)
+    baseline = nibble_decode(encoded, n)
     assert baseline == data
 
-    # Any '1' in the encoded text can be read as 'I' or 'L'; any '0' as 'O'.
-    aliased_I = encoded.replace("1", "I")
-    aliased_L = encoded.replace("1", "L")
-    aliased_O = encoded.replace("0", "O")
-    assert crockford_decode(aliased_I, n) == data
-    assert crockford_decode(aliased_L, n) == data
-    assert crockford_decode(aliased_O, n) == data
-    # Lower-case aliases too (case-insensitive).
-    assert crockford_decode(encoded.replace("0", "o"), n) == data
+    # Lower-case of an in-alphabet letter still decodes fine.
+    assert nibble_decode(encoded.lower(), n) == data
+
+    # Every excluded confusable character is rejected outright -- no alias.
+    for excluded in ("0", "1", "O", "o", "I", "i", "Q", "q", "J", "j"):
+        assert excluded not in ALPHABET
+        noisy = excluded + encoded[1:]
+        with pytest.raises(ValueError):
+            nibble_decode(noisy, n)
 
 
-def test_confusable_substitution_in_framed_line_decodes():
-    # Construct an encoded document, substitute a confusable in one data line's
-    # payload, and confirm the document still decodes to the original bytes.
-    #
-    # NOTE on behavior: the per-line check field (CRC) is computed over the
-    # *printed* payload characters, so substituting a printed '1' for 'I' in a
-    # payload changes the recomputed CRC and the frame's own check REJECTS the
-    # line (it becomes a CRC-failed erasure). The confusable alias then never
-    # reaches crockford_decode for that line — instead RS repairs the erasure.
-    # Either path is acceptable; we assert the document still decodes correctly
-    # (whichever path the implementation takes).
+def test_excluded_confusable_in_framed_line_repairs_via_rs():
+    # Simulate an OCR misread that turns a printed alphabet character into an
+    # EXCLUDED confusable (e.g. '0', which looks like the excluded 'O'). With
+    # no alias in play, the line's own check field (computed over the printed
+    # payload) simply fails, the line becomes a CRC erasure, and RS repairs it
+    # exactly like any other single-line error -- the same recovery path as
+    # test_single_char_error_self_heals, just via an out-of-alphabet char
+    # instead of an in-alphabet one.
     rng = random.Random(99)
     data = bytes(rng.randrange(256) for _ in range(300))
     lines = g1.encode(data)
 
-    # Find a data line whose payload contains a canonical '1' or '0'.
-    target = None
-    for i, line in enumerate(lines):
-        if not line.startswith("L"):
-            continue
-        _label, payload, _check = line.split()
-        if "1" in payload or "0" in payload:
-            target = i
-            break
-    assert target is not None, "no data line with a substitutable char found"
-
-    label, payload, check = lines[target].split()
-    if "1" in payload:
-        payload = payload.replace("1", "I", 1)
-    else:
-        payload = payload.replace("0", "O", 1)
+    idx = _first_data_line_index(lines)
+    label, payload, check = lines[idx].split()
+    assert "0" not in ALPHABET
+    noisy_payload = "0" + payload[1:]
     corrupted = list(lines)
-    corrupted[target] = f"{label} {payload} {check}"
+    corrupted[idx] = f"{label} {noisy_payload} {check}"
 
     assert g1.decode(corrupted) == data
