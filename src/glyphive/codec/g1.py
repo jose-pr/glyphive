@@ -1,47 +1,66 @@
 """glyphive codec ``g1`` — byte stream ↔ OCR-safe printable text lines.
 
-This module is the core of the format. The alphabet is confusable-free, every
-line carries its own CRC check, and Reed-Solomon parity lets small OCR errors be
-corrected rather than silently propagating. It is pure: bytes in, list-of-str
-lines out (and back). No file I/O, no ``pathlib_next``, no ``argparse`` here.
+This module is the core of the format. The alphabet is the **measured-safe**
+16-character set below, every line carries its own CRC check, and Reed-Solomon
+parity lets small OCR errors be corrected rather than silently propagating. It
+is pure: bytes in, list-of-str lines out (and back). No file I/O, no
+``pathlib_next``, no ``argparse`` here.
+
+The alphabet
+------------
+``ALPHABET = "ABCDHKLMPRTVXY34"`` (16 characters -> 4 bits/character). This is
+not hand-picked: it is the exact set measured safe on Courier 8pt @ 300 DPI /
+Tesseract 5.4.0 (``tools/ocr_font_report.py``) — **16/16 characters read back
+with 0% error, 0% line-insertion rate, and zero corrupting confusions** over
+~6,600 sampled characters. The previous 32-character Crockford-Base32 alphabet
+is not safe on this channel: Crockford *keeps* ``Q`` and ``J`` while excluding
+``O``/``I``/``L``/``U``, but ``Q`` is misread as ``O`` (which then alias-maps to
+``0``) and ``J`` is misread as ``I`` (which then alias-maps to ``1``) — both are
+*silent, undetectable data corruption*, not a recoverable erasure. Trading 5
+bits/char for 4 costs 25% more pages; that is the price of a format that
+actually round-trips (see the project plan's Design Q2 for the full derivation
+and the multi-radix measurement table).
 
 Frame grammar (one printed line)
 --------------------------------
 Every printed line has exactly this shape (single ASCII spaces as separators)::
 
-    <kind><idx5> <payload> #<check4>
+    <kind><idx> <payload> #<check>
 
 - ``<kind>``   : ``L`` for a data line, ``P`` for a Reed-Solomon parity line.
-- ``<idx5>``   : the line's 0-based index within its stream (data lines and
+- ``<idx>``    : the line's 0-based index within its stream (data lines and
                  parity lines are indexed independently, each starting at 0),
-                 base-10, zero-padded to 5 digits (``00000``..``99999``). The
-                 digits ``0``-``9`` are all in the safe alphabet.
-- ``<payload>``: exactly ``line_width`` Crockford-Base32 characters, EXCEPT the
-                 last data line, which may be shorter (it carries the remainder).
+                 rendered as ``INDEX_WIDTH`` (5) alphabet characters with a
+                 fixed per-position XOR mask applied before rendering (see
+                 ``encode_index``) so the token never prints as a run of
+                 identical glyphs.
+- ``<payload>``: exactly ``line_width`` alphabet characters, EXCEPT the last
+                 data line, which may be shorter (it carries the remainder).
                  Parity lines are always exactly ``line_width`` wide.
 - ``#``        : a literal ``#`` marking the start of the check field.
-- ``<check4>`` : 4 Crockford-Base32 characters (20 bits) encoding a 16-bit
-                 CRC-16/CCITT (poly 0x1021, init 0xFFFF) computed over the bytes
-                 ``f"{idx:05d}".encode() + payload.encode()`` — i.e. over the
-                 *printed* index digits and the *printed* payload characters, so
-                 a human can recompute it from the page by hand.
+- ``<check>``  : ``CHECK_WIDTH`` (4) alphabet characters (16 bits) encoding a
+                 16-bit CRC-16/CCITT (poly 0x1021, init 0xFFFF) computed over
+                 the bytes ``idx_token.encode() + payload.encode()`` — i.e.
+                 over the *printed* index token and the *printed* payload
+                 characters, so a human can recompute it from the page by hand.
 
-Why 4 check characters (not 2)
-------------------------------
-A CRC-16 is a 16-bit value (0..65535). Crockford-Base32 carries 5 bits per
-character, so 2 characters hold only 10 bits (1024 values) — far too few to
-represent a 16-bit CRC without collisions/loss. 4 characters hold 20 bits, which
-comfortably contains the full 16-bit CRC with no truncation. We therefore use a
-**CRC-16/CCITT rendered as 4 Crockford characters** (the top 4 bits of the
-20-bit field are always zero). This detects any single-character OCR substitution
-in a line and localizes it to exactly that one line without decoding anything
-downstream; the embedded ``idx5`` catches OCR line-merge / line-drop.
+Why 4 check characters (not 2), and why 4 is exact now
+-------------------------------------------------------
+A CRC-16 is a 16-bit value (0..65535). At 4 bits/character (this alphabet),
+2 characters would hold only 8 bits (256 values) — far too few. 4 characters
+hold exactly 16 bits: ``CHECK_WIDTH(4) * 4 bits/char = 16 bits``, which is the
+*exact* width of a CRC-16 with zero waste and, critically, no truncation. (The
+prior 5-bit/char alphabet needed 4 characters too, but only used 16 of the 20
+bits it spent — this alphabet spends exactly what it needs.) This detects any
+single-character OCR substitution in a line and localizes it to exactly that
+one line without decoding anything downstream; the embedded index token catches
+OCR line-merge / line-drop.
 
 Header layout of the encoded stream
 -----------------------------------
 The very first bytes of a group's payload carry an 8-byte binary header so decode
-can reconstruct the exact original byte length (Crockford bit-packing pads the
-final 5-bit group, so the raw length must be carried, never guessed):
+can reconstruct the exact original byte length (nibble bit-packing pads the
+final 4-bit group, so the raw length must be carried, never guessed):
 
     b"G1" | version:u8 | nsym:u8 | orig_len:u32-big-endian
 
@@ -78,27 +97,38 @@ __all__ = [
     "ALPHABET",
     "CodecError",
     "G1Codec",
-    "crockford_encode",
-    "crockford_decode",
+    "nibble_encode",
+    "nibble_decode",
 ]
 
 # ---------------------------------------------------------------------------
-# Crockford Base32 alphabet
+# The measured-safe 16-character alphabet (4 bits/char)
 # ---------------------------------------------------------------------------
 
-#: Crockford Base32 encode alphabet — excludes I, L, O, U to avoid confusables.
-ALPHABET: _ty.Final[str] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+#: OCR-verified alphabet: measured safe 16/16 (0% char error, 0% line-insertion
+#: rate, zero corrupting confusions) on Courier 8pt @ 300 DPI / Tesseract 5.4.0
+#: (``tools/ocr_font_report.py``; see the module docstring and the project
+#: plan's Design Q2). 16 characters = exactly 4 bits/char = clean nibble
+#: packing. Do not hand-edit this without re-running the measurement tool.
+ALPHABET: _ty.Final[str] = "ABCDHKLMPRTVXY34"
 
-# Decode map: canonical chars, case-insensitive, plus confusable aliases
-# (I,i,L,l -> 1 ; O,o -> 0). Built once at import time.
+# Decode map: canonical chars, case-insensitive. Built once at import time.
+#
+# No confusable ALIASES beyond case-folding are added, by design. The excluded
+# confusable digits/letters (0, 1, 8, 9, I, J, O, Q, S, U, W, Z, ...) are simply
+# rejected here -- a rejected character fails that line's CRC and becomes an RS
+# erasure, which is recoverable. An alias is only safe when its source
+# character is *not itself* printable by this alphabet (otherwise it is the
+# exact "Q -> O -> alias -> 0" silent-corruption bug this alphabet was chosen
+# to eliminate) -- but this alphabet was measured at 16/16 safe with 0 corrupting
+# confusions and 0% line-insertion *without* any alias, so there is no measured
+# need for one, and adding a speculative, unmeasured alias would only reintroduce
+# the class of bug being fixed. When in doubt, omit the alias (Design Q2).
 _DECODE_MAP: _ty.Final[_ty.Dict[str, int]] = {}
 for _i, _ch in enumerate(ALPHABET):
     _DECODE_MAP[_ch] = _i
     _DECODE_MAP[_ch.lower()] = _i
-for _alias, _target in (("I", "1"), ("L", "1"), ("O", "0")):
-    _DECODE_MAP[_alias] = _DECODE_MAP[_target]
-    _DECODE_MAP[_alias.lower()] = _DECODE_MAP[_target]
-del _i, _ch, _alias, _target
+del _i, _ch
 
 
 class CodecError(ValueError):
@@ -109,12 +139,12 @@ class CodecError(ValueError):
     """
 
 
-def crockford_encode(data: bytes) -> str:
-    """Encode raw bytes to a Crockford-Base32 string (MSB-first, padded).
+def nibble_encode(data: bytes) -> str:
+    """Encode raw bytes to an alphabet string, 4 bits (one nibble) per char.
 
-    The final 5-bit group is zero-padded. This is *not* self-delimiting: the
-    caller must track the original byte length to strip pad bits on decode
-    (:func:`crockford_decode` takes that length explicitly).
+    MSB-first; the final 4-bit group is zero-padded. This is *not*
+    self-delimiting: the caller must track the original byte length to strip
+    pad bits on decode (:func:`nibble_decode` takes that length explicitly).
     """
     if not data:
         return ""
@@ -124,20 +154,21 @@ def crockford_encode(data: bytes) -> str:
     for byte in data:
         acc = (acc << 8) | byte
         nbits += 8
-        while nbits >= 5:
-            nbits -= 5
-            out.append(ALPHABET[(acc >> nbits) & 0x1F])
-    if nbits:  # flush the remaining bits, left-aligned (MSB-first) into a group
-        out.append(ALPHABET[(acc << (5 - nbits)) & 0x1F])
+        while nbits >= 4:
+            nbits -= 4
+            out.append(ALPHABET[(acc >> nbits) & 0xF])
+    if nbits:  # flush the remaining bits, left-aligned (MSB-first) into a nibble
+        out.append(ALPHABET[(acc << (4 - nbits)) & 0xF])
     return "".join(out)
 
 
-def crockford_decode(text: str, byte_len: int) -> bytes:
-    """Decode a Crockford-Base32 string back to exactly ``byte_len`` bytes.
+def nibble_decode(text: str, byte_len: int) -> bytes:
+    """Decode an alphabet string back to exactly ``byte_len`` bytes.
 
-    Case-insensitive; maps confusables ``I/i/L/l -> 1`` and ``O/o -> 0``. Any
-    character outside the alphabet (after alias mapping) raises ``ValueError``.
-    Trailing pad bits beyond ``byte_len`` bytes are discarded.
+    Case-insensitive. No confusable aliases are applied (see the comment above
+    ``_DECODE_MAP``): any character outside the 16-char alphabet raises
+    ``ValueError`` rather than being guessed at. Trailing pad bits beyond
+    ``byte_len`` bytes are discarded.
     """
     if byte_len == 0:
         return b""
@@ -148,9 +179,9 @@ def crockford_decode(text: str, byte_len: int) -> bytes:
         try:
             val = _DECODE_MAP[ch]
         except KeyError:
-            raise ValueError(f"invalid Crockford character {ch!r}") from None
-        acc = (acc << 5) | val
-        nbits += 5
+            raise ValueError(f"invalid alphabet character {ch!r}") from None
+        acc = (acc << 4) | val
+        nbits += 4
         if nbits >= 8:
             nbits -= 8
             out.append((acc >> nbits) & 0xFF)
@@ -158,7 +189,7 @@ def crockford_decode(text: str, byte_len: int) -> bytes:
             break
     if len(out) < byte_len:
         raise ValueError(
-            f"Crockford payload too short: got {len(out)} bytes, need {byte_len}"
+            f"payload too short: got {len(out)} bytes, need {byte_len}"
         )
     return bytes(out)
 
@@ -189,14 +220,15 @@ def _crc16_ccitt(data: bytes) -> int:
     return crc
 
 
-#: Number of Crockford characters in a line's check field. 4 chars = 20 bits,
-#: enough to hold a full 16-bit CRC-16 without truncation (2 chars = 10 bits
-#: would not). Documented at module top under "Why 4 check characters".
+#: Number of alphabet characters in a line's check field. At 4 bits/char,
+#: 4 chars = exactly 16 bits -- the full width of a CRC-16, with no truncation
+#: and no wasted bits (2 chars = 8 bits would not hold it). Documented at
+#: module top under "Why 4 check characters, and why 4 is exact now".
 CHECK_WIDTH: _ty.Final[int] = 4
 
 
 def _check_chars(idx_token: str, payload: str) -> str:
-    """Compute the 4-char Crockford check field for a framed line.
+    """Compute the 4-char alphabet check field for a framed line.
 
     The CRC covers exactly what is *printed* -- the index token and the payload
     characters -- so a human can recompute it straight off the page.
@@ -204,7 +236,7 @@ def _check_chars(idx_token: str, payload: str) -> str:
     crc = _crc16_ccitt(idx_token.encode() + payload.encode())
     chars = []
     for shift in range(CHECK_WIDTH - 1, -1, -1):
-        chars.append(ALPHABET[(crc >> (5 * shift)) & 0x1F])
+        chars.append(ALPHABET[(crc >> (4 * shift)) & 0xF])
     return "".join(chars)
 
 
@@ -212,30 +244,42 @@ def _check_chars(idx_token: str, payload: str) -> str:
 # Line framing
 # ---------------------------------------------------------------------------
 
-#: Printed width of a line's index field, in Crockford characters.
-INDEX_WIDTH: _ty.Final[int] = 4
+#: Printed width of a line's index field, in alphabet characters.
+#:
+#: At 4 bits/char (vs. the prior alphabet's 5), one more character is needed to
+#: keep roughly the same per-stream line capacity: the prior ``INDEX_WIDTH=4``
+#: at 32 chars/digit gave a cap of ``32**4 = 1,048,575`` lines. Widening to 5
+#: at 16 chars/digit gives ``16**5 = 1,048,576`` -- capacity does not shrink
+#: just because the alphabet did. (Staying at 4 would have capped a stream at
+#: ``16**4 = 65,536`` lines, a 16x drop -- not enough headroom to keep this an
+#: implementation detail rather than a user-visible size limit.)
+INDEX_WIDTH: _ty.Final[int] = 5
 
-# Fixed, public per-position mask XORed into each 5-bit group of the index before
-# it is rendered. Its only job is to guarantee the index never prints as a run of
-# identical glyphs: OCR engines reliably *insert* phantom characters into uniform
-# runs, and a decimal index made every line start with `00000` -- the single worst
-# target on the page. Measured on rendered pages at 300 DPI, decimal indices read
-# back correctly 5/12 times and plain (unmasked) Crockford only 3/12, while masked
-# Crockford scores 12/12. This is not a secret; it is documented in the README.
-_INDEX_MASK: _ty.Final[_ty.Tuple[int, ...]] = (7, 19, 13, 29)
+# Fixed, public per-position mask XORed into each 4-bit nibble of the index
+# before it is rendered. Its only job is to guarantee the index never prints as
+# a run of identical glyphs: OCR engines reliably *insert* phantom characters
+# into uniform runs, and a decimal index made every line start with `00000` --
+# the single worst target on the page. The prior 4-char/5-bit mask scored
+# 12/12 vs 5/12 for decimal and 3/12 for unmasked Crockford (see git history /
+# the project plan's Design Q1); this is the same masking technique re-pinned
+# to 5 chars of 4-bit nibbles for the new alphabet. All 5 values are distinct
+# 4-bit constants, which is what defeats the runs that are actually hit by
+# small (real-world) indices -- see the no-uniform-run test over 0..5000.
+_INDEX_MASK: _ty.Final[_ty.Tuple[int, ...]] = (7, 13, 2, 11, 4)
 
-_MAX_IDX: _ty.Final[int] = 32**INDEX_WIDTH  # index is INDEX_WIDTH Crockford chars
+_MAX_IDX: _ty.Final[int] = 16**INDEX_WIDTH  # index is INDEX_WIDTH alphabet chars
 _RS_BLOCK: _ty.Final[int] = 255  # GF(2^8) code length ceiling
 
 
 def encode_index(idx: int) -> str:
-    """Render a line index as its printed, OCR-safe Crockford token.
+    """Render a line index as its printed, OCR-safe alphabet token.
 
-    ``0`` -> ``7KDX``, ``1`` -> ``7KDW``, ``99999`` -> ``4JS2``. Never returns a
-    run of identical characters, for any index in range.
+    ``0`` -> ``MYCVH``, ``1`` -> ``MYCVK``, ``1048575`` -> ``PCYHV``. Never
+    returns a run of identical characters, for any index in the tested range
+    (0..5000; see the no-uniform-run test).
     """
     return "".join(
-        ALPHABET[((idx >> (5 * shift)) & 0x1F) ^ _INDEX_MASK[INDEX_WIDTH - 1 - shift]]
+        ALPHABET[((idx >> (4 * shift)) & 0xF) ^ _INDEX_MASK[INDEX_WIDTH - 1 - shift]]
         for shift in range(INDEX_WIDTH - 1, -1, -1)
     )
 
@@ -243,9 +287,9 @@ def encode_index(idx: int) -> str:
 def decode_index(token: str) -> _ty.Optional[int]:
     """Inverse of :func:`encode_index`; ``None`` if the token is not readable.
 
-    Crockford aliases (``I``/``L`` -> ``1``, ``O`` -> ``0``, case-insensitive) are
-    applied first, so a mild OCR misread still resolves. A wrong result cannot
-    slip through: the per-line CRC covers the printed token and rejects it.
+    Case-insensitive; no confusable aliases are applied (Design Q2 -- see the
+    comment above ``_DECODE_MAP``). A wrong result cannot slip through anyway:
+    the per-line CRC covers the printed token and rejects it.
     """
     if len(token) != INDEX_WIDTH:
         return None
@@ -255,7 +299,7 @@ def decode_index(token: str) -> _ty.Optional[int]:
             digit = _DECODE_MAP[char]
         except KeyError:
             return None
-        value = (value << 5) | (digit ^ _INDEX_MASK[position])
+        value = (value << 4) | (digit ^ _INDEX_MASK[position])
     return value
 
 
@@ -469,25 +513,25 @@ def _rs_decode(
 
 
 def _frame_bytes(kind: str, data: bytes, line_width: int) -> _ty.List[str]:
-    """Crockford-encode ``data`` and split into framed lines of ``line_width``.
+    """Encode ``data`` with the alphabet and split into framed lines of ``line_width``.
 
     Each line's payload maps back to a whole number of bytes: we chunk the byte
-    stream so that ``line_width`` Crockford chars carry a fixed byte count where
+    stream so that ``line_width`` alphabet chars carry a fixed byte count where
     possible, and the final line carries whatever remains. To keep byte↔line
     mapping exact and simple, we pack a fixed number of bytes per line such that
     they encode to at most ``line_width`` chars.
     """
     if not data:
         return []
-    # bytes per full line: the largest B with ceil(8B/5) <= line_width.
-    bytes_per_line = (line_width * 5) // 8
+    # bytes per full line: the largest B with ceil(8B/4) <= line_width.
+    bytes_per_line = (line_width * 4) // 8
     if bytes_per_line < 1:
         raise ValueError("line_width too small to carry a byte")
     lines: _ty.List[str] = []
     idx = 0
     for start in range(0, len(data), bytes_per_line):
         chunk = data[start:start + bytes_per_line]
-        payload = crockford_encode(chunk)
+        payload = nibble_encode(chunk)
         if idx >= _MAX_IDX:
             raise ValueError(
                 f"{kind} stream exceeds {_MAX_IDX} lines; use smaller pages"
@@ -522,7 +566,7 @@ def _assemble(
             # A trustworthy line: decode its payload to bytes.
             span = _payload_byte_len(line.payload, bytes_per_line, is_last)
             try:
-                chunk = crockford_decode(line.payload, span)
+                chunk = nibble_decode(line.payload, span)
             except ValueError:
                 # Payload has an illegal char despite a matching CRC — treat as
                 # erasure (extremely unlikely; CRC would normally catch it).
@@ -549,8 +593,8 @@ def _payload_byte_len(payload: str, bytes_per_line: int, is_last: bool) -> int:
     line carries what its (possibly shorter) width encodes."""
     if not is_last:
         return bytes_per_line
-    # Last line: derive byte count from its own char width (floor(5*chars/8)).
-    return (len(payload) * 5) // 8
+    # Last line: derive byte count from its own char width (floor(4*chars/8)).
+    return (len(payload) * 4) // 8
 
 
 def _first_failed_label(
@@ -614,7 +658,7 @@ class G1Codec(Codec):
 
         all_parsed = list(data_lines.values()) + list(parity_lines.values())
         max_payload = max(len(p.payload) for p in all_parsed)
-        bytes_per_line = (max_payload * 5) // 8
+        bytes_per_line = (max_payload * 4) // 8
         data_bytes, data_erasures = _assemble(data_lines, bytes_per_line)
         parity_bytes, parity_erasures = _assemble(parity_lines, bytes_per_line)
 

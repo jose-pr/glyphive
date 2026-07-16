@@ -107,8 +107,10 @@ def test_render_registry_lists_formats_and_rejects_unknown():
 # with codec.g1._parse_line's tolerance for OCR-inserted interior spaces.
 # --------------------------------------------------------------------------- #
 def test_looks_like_encoded_tolerates_captured_ocr_transcript_line():
+    # Re-pinned in Phase 2 for the new 5-char index token (INDEX_WIDTH 4 -> 5
+    # alongside the alphabet's bit-width change).
     ocr_line = (
-        "L7KDX 8WRG2380000627WB10000000001FYWZQH4 "
+        "LMYCVH 8WRG2380000627WB10000000001FYWZQH4 "
         "6F1IWO0C6DJ64R320015D1J4QP90 #1RBN"
     )
     assert layout._looks_like_encoded(ocr_line) is True
