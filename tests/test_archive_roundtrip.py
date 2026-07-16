@@ -30,7 +30,8 @@ def _build_tree(root):
     # UTF-8 text file (with a non-ASCII char). Write with newline="" so the
     # on-disk bytes match the literal string (no Windows \n -> \r\n translation).
     text_content = "héllo world\nsecond line\n"
-    (root / "hello.txt").write_text(text_content, encoding="utf-8", newline="")
+    with (root / "hello.txt").open("w", encoding="utf-8", newline="") as stream:
+        stream.write(text_content)
 
     # Binary file: every byte value, repeated.
     binary = bytes(range(256)) * 10
@@ -40,7 +41,8 @@ def _build_tree(root):
     nested = root / "sub" / "deeper"
     nested.mkdir(parents=True)
     note_content = "# nested\n"
-    (nested / "note.md").write_text(note_content, encoding="utf-8", newline="")
+    with (nested / "note.md").open("w", encoding="utf-8", newline="") as stream:
+        stream.write(note_content)
 
     # One genuinely-empty directory.
     (root / "emptydir").mkdir()

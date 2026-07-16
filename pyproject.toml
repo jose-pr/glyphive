@@ -30,7 +30,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "pathlib_next",
+    "pathlib_next>=0.8.1",
     "duho>=0.2.0",
     "pathspec",
     "reedsolo",
