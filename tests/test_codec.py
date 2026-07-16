@@ -112,6 +112,57 @@ def test_codec_registry_exposes_g1_and_direct_api():
     assert g1.decode(codec.get("g1").encode(payload)) == payload
 
 
+# --------------------------------------------------------------------------- #
+# Structural frame parsing (Phase 3): tolerate OCR-inserted interior spaces
+# --------------------------------------------------------------------------- #
+from glyphive.codec.g1 import _parse_line, split_frame  # noqa: E402
+
+
+def test_parse_line_tolerates_captured_ocr_transcript_line():
+    # Captured Tesseract output: a genuine 3-token line with a spurious space
+    # inserted inside the payload, splitting it into 4 whitespace tokens.
+    ocr_line = (
+        "L7KDX 8WRG2380000627WB10000000001FYWZQH4 "
+        "6F1IWO0C6DJ64R320015D1J4QP90 #1RBN"
+    )
+    parsed = _parse_line(ocr_line)
+    assert parsed is not None
+    assert parsed.kind == "L"
+    assert " " not in parsed.payload
+
+
+def test_parse_line_tolerates_two_interior_spaces():
+    # Build a real line, then punch two spurious interior spaces into its
+    # payload the way Tesseract does, and confirm it still parses and its CRC
+    # still validates (the CRC is recomputed over the rejoined payload).
+    data = bytes(range(40))
+    lines = g1.encode(data)
+    line = next(l for l in lines if l.startswith("L"))
+    label, payload, check = line.split()
+    noisy_payload = payload[:10] + " " + payload[10:20] + " " + payload[20:]
+    noisy_line = f"{label} {noisy_payload} {check}"
+    assert len(noisy_line.split()) == 5  # label + 3 payload fragments + check
+
+    parsed = _parse_line(noisy_line)
+    assert parsed is not None
+    assert parsed.payload == payload
+    assert parsed.ok is True
+
+
+def test_parse_line_rejects_page_footer():
+    # The page footer starts with "P" (like a parity-line kind) and has 3
+    # tokens, but its last token is not a "#check" field -- must not be
+    # mistaken for a real frame.
+    footer = "PAGE 1/1 sha256=ea5b07a93a037a43"
+    assert split_frame(footer) is None
+    assert _parse_line(footer) is None
+
+
+def test_split_frame_anchors_label_first_check_last():
+    assert split_frame("L7KDX AB CD #1RBN") == ("L7KDX", "ABCD", "#1RBN")
+    assert split_frame("no check field here") is None
+
+
 def test_codec_registry_rejects_unknown_names():
     with pytest.raises(ValueError, match=r"unknown codec 'missing'.*g1"):
         codec.get("missing")

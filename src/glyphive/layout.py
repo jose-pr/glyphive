@@ -436,21 +436,25 @@ def _looks_like_encoded(line: str) -> bool:
     """Cheap check: does ``line`` look like a codec ``L<idx>``/``P<idx>`` frame?
 
     We do NOT validate the CRC here (that is codec.decode's job) — we only decide
-    whether to keep the line as data. A line is kept if it splits into exactly 3
-    whitespace tokens, the first is ``L`` or ``P`` followed by a readable index
-    token, and the third starts with ``#``. This mirrors codec's ``_parse_line``
-    shape test so we never drop a real encoded line, while still ignoring
-    headers/footers/noise.
+    whether to keep the line as data. This delegates the structural split to
+    ``codec.g1.split_frame``, which anchors the label as the first token and
+    ``#check`` as the last, joining everything between as the payload -- so an
+    OCR-inserted interior space (splitting the payload into extra whitespace
+    tokens) never causes a real encoded line to be dropped here. A line is kept
+    if it has that shape, the label is ``L`` or ``P`` followed by a readable
+    index token, and the check field starts with ``#``. This mirrors codec's
+    ``_parse_line`` exactly (same shared helper) so the two can never drift
+    apart again, while still ignoring headers/footers/noise (e.g. the
+    ``PAGE 1/1 sha256=...`` footer has no ``#check`` field and is rejected).
     """
-    parts = line.split()
-    if len(parts) != 3:
+    from .codec.g1 import decode_index, split_frame
+
+    split = split_frame(line)
+    if split is None:
         return False
-    label, _payload, check = parts
-    if not check.startswith("#"):
-        return False
+    label, _payload, _check = split
     if label[:1] not in ("L", "P"):
         return False
-    from .codec.g1 import decode_index
 
     return decode_index(label[1:]) is not None
 
