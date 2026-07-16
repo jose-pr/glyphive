@@ -146,7 +146,8 @@ def test_decode_resolves_profile_and_checks_header_profile(tmp_path):
     assert resolved["meta"] == "none"
     assert resolved["archive_version"] == 2
 
-    header_index = next(i for i, line in enumerate(lines) if line.startswith("#!glyphive"))
-    lines[header_index] += " meta=basic"
+    mismatched_meta = dict(meta, meta="basic")
+    mismatch_pages = layout.paginate(encoded, mismatched_meta, lines_per_page=11)
+    lines = [line for page in mismatch_pages for line in page.text_lines]
     with pytest.raises(unarchive.RestoreError, match="profile mismatch"):
         decode.decode_document(lines)
