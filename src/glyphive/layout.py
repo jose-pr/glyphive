@@ -433,16 +433,14 @@ def paginate(
 
 
 def _looks_like_encoded(line: str) -> bool:
-    """Cheap check: does ``line`` look like a codec ``L#####``/``P#####`` frame?
+    """Cheap check: does ``line`` look like a codec ``L<idx>``/``P<idx>`` frame?
 
     We do NOT validate the CRC here (that is codec.decode's job) — we only decide
     whether to keep the line as data. A line is kept if it splits into exactly 3
-    whitespace tokens, the first is ``L`` or ``P`` followed by 5 digits, and the
-    third starts with ``#``. This mirrors codec's ``_parse_line`` shape test so we
-    never drop a real encoded line, while still ignoring headers/footers/noise.
-
-    The index is matched after :func:`normalize_index_digits`, so a line an OCR
-    engine read as ``LO0000`` is still kept for the codec (and its CRC) to judge.
+    whitespace tokens, the first is ``L`` or ``P`` followed by a readable index
+    token, and the third starts with ``#``. This mirrors codec's ``_parse_line``
+    shape test so we never drop a real encoded line, while still ignoring
+    headers/footers/noise.
     """
     parts = line.split()
     if len(parts) != 3:
@@ -452,10 +450,9 @@ def _looks_like_encoded(line: str) -> bool:
         return False
     if label[:1] not in ("L", "P"):
         return False
-    from .codec.g1 import normalize_index_digits
+    from .codec.g1 import decode_index
 
-    idx_text = normalize_index_digits(label[1:])
-    return idx_text.isdigit() and len(idx_text) == 5
+    return decode_index(label[1:]) is not None
 
 
 def read_pages(
