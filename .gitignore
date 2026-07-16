@@ -1,0 +1,26 @@
+# Agent config must never be committed (global rule)
+AGENTS.md
+.agents/
+CLAUDE*
+.claude
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local scratch / tool output
+run.log
+tmp/
+
+# OS
+.DS_Store
+Thumbs.db
