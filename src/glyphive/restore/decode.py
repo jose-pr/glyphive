@@ -57,32 +57,9 @@ class RestoreError(Exception):
     """
 
 
-_OCR_CONFUSABLE_MAP: _ty.Final[_ty.Dict[str, str]] = {
-    "o": "0",
-    "O": "0",
-    "i": "1",
-    "I": "1",
-    "l": "1",
-    "L": "1",
-}
-
-
-def _normalize_identifier(text: str) -> str:
-    return "".join(_OCR_CONFUSABLE_MAP.get(char, char) for char in text)
-
-
 def _resolve_codec(name: str) -> codec.Codec:
-    """Resolve a codec name, allowing OCR-confusable fallback on mismatch."""
-    try:
-        return codec.get(name)
-    except ValueError as original_error:
-        normalized = _normalize_identifier(name)
-        if normalized == name:
-            raise
-        matches = [candidate for candidate in codec.names() if candidate == normalized]
-        if len(matches) == 1:
-            return codec.get(matches[0])
-        raise original_error
+    """Resolve the exact codec name from protected machine metadata."""
+    return codec.get(name)
 
 
 def decode_document(

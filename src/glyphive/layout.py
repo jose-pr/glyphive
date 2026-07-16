@@ -1,66 +1,28 @@
-"""glyphive — encoded line stream ⇄ paginated document with integrity metadata.
+"""Encoded line stream ⇄ paginated document with protected layout metadata.
 
-This module is *geometry-agnostic*. It takes the framed line stream produced by
-:mod:`glyphive.codec` (``L#####``/``P#####`` lines) and groups it into pages,
-prepending a single-line document header (page 1) and appending a per-page
-footer (every page). It knows nothing about fonts, DPI, or PDF — the physical
-page capacity arrives as an integer ``lines_per_page`` that a renderer
-computes from font/page geometry. Here a "line" is simply one text line.
+This geometry-agnostic module groups codec ``L``/``P`` frames into physical
+pages. Page 1 starts with a human-readable ``#!glyphive`` summary and then
+fixed-width ``H`` machine-header frames. Every page ends in a ``T`` machine
+footer followed by a human ``PAGE n/total`` hint on the same line.
 
-It also provides the inverse (:func:`read_pages`) so restore/decode can turn a
-scanned/typed transcript — possibly with pages concatenated out of order, or a
-whole page missing — back into the raw encoded line list for :func:`codec.decode`.
-Pages out of order are fine (codec re-sorts by embedded index); a *missing* page
-is detected via the footers' ``n/total`` and raised.
+Restore trusts only the H/T frames. They use the measured-safe 16-character
+bootstrap alphabet and CRC-16 checks; the compact H-frame envelope additionally
+carries its exact length and a digest. Thus the selected payload codec,
+compression method, page count, and document digest are recoverable without
+trusting or repairing unrestricted ASCII. The human representations may be
+corrupted or clipped without changing machine interpretation.
 
-Document header grammar (ONE line, first line of page 1)
-========================================================
-Shebang-style, single space-separated ``k=v`` tokens, all values in a set safe
-for OCR / re-typing (no whitespace inside a value)::
-
-    #!glyphive v=1 codec=g1 comp=<method> meta=none files=<N> bytes=<orig_len> pages=<M> sha256=<hex64>
-
-- ``#!glyphive`` : literal prefix. Its presence identifies the header line.
-- ``v``          : layout/format version (integer; ``1`` for this build).
-- ``codec``      : codec id, ``g1`` (see :mod:`glyphive.codec`).
-- ``comp``       : compression method, one of ``none`` / ``gzip`` / ``zstd``.
-- ``meta``       : optional archive metadata profile, ``none`` or ``basic``;
-                   absent in older headers.
-- ``files``      : number of archived files (from ``archive.list_paths``).
-- ``bytes``      : ORIGINAL (pre-compression) archive byte count.
-- ``pages``      : total physical page count ``M`` of this document.
-- ``sha256``     : hex-encoded (64 chars) SHA-256 of the ORIGINAL, pre-compression
-                   archive bytes — whole-document integrity, checked on restore.
-
-Tokens are ``key=value`` split on the FIRST ``=`` only (a value never contains a
-space, but this keeps parsing robust). :func:`parse_header` tolerates *extra*
-unknown ``k=v`` tokens for forward-compatibility and raises a clear error if the
-``#!glyphive`` prefix or any required key is absent. Integer-typed keys
-(``v``/``files``/``bytes``/``pages``) are returned as ``int``; the rest as ``str``.
-
-Per-page footer grammar (ONE line, last line of every page)
-===========================================================
-::
-
-    PAGE <n>/<total> sha256=<first16hex>
-
-- ``PAGE``       : literal marker identifying a footer line.
-- ``<n>``        : 1-based page number of this page.
-- ``<total>``    : total page count (missing-page detection).
-- ``sha256=``    : the FIRST 16 hex characters of the SHA-256 of this page's
-                   *data-line text block* — the codec lines that live on this
-                   page, joined by ``"\\n"`` in the order printed. Truncated to
-                   16 chars so it is short to re-type while still detecting a
-                   corrupt page before the (expensive) whole-document assembly.
-
-The footer hash covers only the codec-framed lines carried by the page — NOT the
-document header and NOT the footer itself — so it is reproducible from the page's
-data block alone by :func:`verify_page_footer`.
+H/T payload lines are capped at the same 60 safe characters used by codec data
+frames. Footer page identity and the first 8 bytes of the SHA-256 of that page's
+``"\\n"``-joined data frames live inside the protected T payload. Pages may be
+read out of order; a missing or integrity-invalid metadata frame fails loud.
 """
 
 from __future__ import annotations
 
+import binascii
 import hashlib
+import struct
 import typing as _ty
 
 __all__ = [
@@ -94,6 +56,16 @@ LAYOUT_VERSION: _ty.Final[int] = 1
 #: Number of hex characters of the page SHA-256 kept in the footer.
 PAGE_HASH_CHARS: _ty.Final[int] = 16
 
+# Machine metadata is bootstrapped independently of the document's selected
+# payload codec.  H/T are members of the measured-safe 16-character alphabet,
+# while L/P remain reserved for payload data/parity frames.
+_MACHINE_HEADER_KIND: _ty.Final[str] = "H"
+_MACHINE_FOOTER_KIND: _ty.Final[str] = "T"
+_MACHINE_PAYLOAD_CHARS: _ty.Final[int] = 60
+_MACHINE_META_MAGIC: _ty.Final[bytes] = b"GH1"
+_MACHINE_FOOTER_MAGIC: _ty.Final[bytes] = b"GT1"
+_MACHINE_META_DIGEST_BYTES: _ty.Final[int] = 8
+
 #: Header keys whose values are parsed/returned as ``int``.
 _INT_KEYS: _ty.Final[_ty.FrozenSet[str]] = frozenset(
     {"v", "files", "bytes", "pages"}
@@ -121,21 +93,6 @@ _HEADER_ORDER: _ty.Final[_ty.Tuple[str, ...]] = (
     "pages",
     "sha256",
 )
-
-_OCR_CONFUSABLE_MAP: _ty.Final[_ty.Dict[str, str]] = {
-    "o": "0",
-    "O": "0",
-    "i": "1",
-    "I": "1",
-    "l": "1",
-    "L": "1",
-}
-
-_OCR_NORMALIZED_KEYS: _ty.Final[_ty.FrozenSet[str]] = frozenset(
-    {"v", "files", "bytes", "pages", "sha256"}
-)
-
-
 
 class LayoutError(ValueError):
     """Raised on a malformed header/footer or an unrecoverable page structure."""
@@ -191,18 +148,14 @@ def format_header(meta: _ty.Mapping[str, _ty.Any]) -> str:
     return " ".join(tokens)
 
 
-def _normalize_ocr_token(text: str) -> str:
-    """Canonicalize common OCR confusions used by the printed header/footer."""
-    return "".join(_OCR_CONFUSABLE_MAP.get(char, char) for char in text)
-
-
 def parse_header(line: str) -> _ty.Dict[str, _ty.Any]:
-    """Parse a document header line back into a dict (inverse of format_header).
+    """Parse the display-only header line (inverse of :func:`format_header`).
 
     Tolerates *extra* unknown ``k=v`` tokens (forward-compat) — they are returned
     as-is (string values). Integer-typed keys are coerced to ``int``. Raises
     :class:`LayoutError` if the ``#!glyphive`` prefix or any required key is
-    missing, or if an integer key is non-numeric.
+    missing, or if an integer key is non-numeric. Restore never trusts this
+    unrestricted ASCII summary; :func:`read_pages` uses only protected H frames.
     """
     stripped = line.strip()
     tokens = stripped.split()
@@ -217,8 +170,6 @@ def parse_header(line: str) -> _ty.Dict[str, _ty.Any]:
             # Bare token (no '='): ignore for forward-compat rather than crash.
             continue
         key, value = token.split("=", 1)
-        if key in _OCR_NORMALIZED_KEYS:
-            value = _normalize_ocr_token(value)
         if key in _INT_KEYS:
             try:
                 meta[key] = int(value)
@@ -239,6 +190,250 @@ def parse_header(line: str) -> _ty.Dict[str, _ty.Any]:
             f"unsupported layout version {meta['v']} "
             f"(this build handles {LAYOUT_VERSION})"
         )
+    return meta
+
+
+# ---------------------------------------------------------------------------
+# Integrity-protected machine metadata
+# ---------------------------------------------------------------------------
+
+
+class _ParsedMachineFrame(_ty.NamedTuple):
+    idx: _ty.Optional[int]
+    payload: str
+    ok: bool
+
+
+def _machine_check(idx_token: str, payload: str) -> str:
+    """Return a safe-alphabet CRC-16 for a machine metadata frame."""
+    from .codec.g1 import nibble_encode
+
+    canonical = idx_token.upper().encode() + payload.upper().encode()
+    crc = binascii.crc_hqx(canonical, 0xFFFF)
+    return nibble_encode(crc.to_bytes(2, "big"))
+
+
+def _format_machine_frame(kind: str, idx: int, payload: str) -> str:
+    from .codec.g1 import ALPHABET, encode_index
+
+    if kind not in (_MACHINE_HEADER_KIND, _MACHINE_FOOTER_KIND):
+        raise ValueError(f"invalid machine metadata frame kind {kind!r}")
+    if any(char not in ALPHABET for char in payload):
+        raise ValueError("machine metadata payload contains an unsafe character")
+    token = encode_index(idx)
+    return f"{kind}{token} {payload} #{_machine_check(token, payload)}"
+
+
+def _parse_machine_frame(
+    line: str, kind: str
+) -> _ty.Optional[_ParsedMachineFrame]:
+    """Parse one H/T frame without trusting any surrounding human text.
+
+    Footer lines append a human ``PAGE n/total`` hint *after* the protected T
+    frame.  H/T labels are therefore always the first token, keeping the entire
+    authoritative frame within the same proven line width as L/P payload frames;
+    clipping or corruption in the trailing hint is irrelevant.  Interior
+    whitespace in the safe-alphabet payload is removed, exactly as it is for
+    payload frames; the CRC remains the acceptance oracle.
+    """
+    from .codec.g1 import INDEX_WIDTH, decode_index
+
+    parts = line.split()
+    if not parts or parts[0][:1].upper() != kind:
+        return None
+    label = parts[0]
+    if len(label) != INDEX_WIDTH + 1:
+        return _ParsedMachineFrame(idx=None, payload="", ok=False)
+
+    idx_token = label[1:]
+    idx = decode_index(idx_token)
+    if idx is None:
+        return _ParsedMachineFrame(idx=None, payload="", ok=False)
+
+    check_positions = [
+        check_position
+        for check_position in range(2, len(parts))
+        if parts[check_position].startswith("#")
+    ]
+    if len(check_positions) != 1:
+        return _ParsedMachineFrame(idx=idx, payload="", ok=False)
+    check_position = check_positions[0]
+    payload = "".join(parts[1:check_position]).upper()
+    check = parts[check_position][1:].upper()
+    expected = _machine_check(idx_token, payload)
+    return _ParsedMachineFrame(idx=idx, payload=payload, ok=check == expected)
+
+
+def _pack_machine_text(value: _ty.Any, key: str) -> bytes:
+    encoded = str(value).encode("utf-8")
+    if not encoded or len(encoded) > 254:
+        raise LayoutError(
+            f"header value for {key!r} must encode to 1..254 bytes"
+        )
+    return bytes([len(encoded)]) + encoded
+
+
+def _machine_uint(meta: _ty.Mapping[str, _ty.Any], key: str, bits: int) -> int:
+    if key not in meta:
+        raise LayoutError(f"header meta is missing required key {key!r}")
+    value = meta[key]
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise LayoutError(f"header key {key!r} must be an integer, got {value!r}")
+    if not 0 <= value < 2**bits:
+        raise LayoutError(
+            f"header key {key!r} is outside the unsigned {bits}-bit range"
+        )
+    return value
+
+
+def _machine_header_bytes(meta: _ty.Mapping[str, _ty.Any]) -> bytes:
+    """Serialize authoritative header fields to a compact binary envelope."""
+    version = meta.get("v", LAYOUT_VERSION)
+    if version != LAYOUT_VERSION:
+        raise LayoutError(f"unsupported layout version {version}")
+    if "codec" not in meta or "comp" not in meta:
+        missing = "codec" if "codec" not in meta else "comp"
+        raise LayoutError(f"header meta is missing required key {missing!r}")
+
+    sha_text = str(meta.get("sha256", ""))
+    try:
+        sha_bytes = bytes.fromhex(sha_text)
+    except ValueError:
+        sha_bytes = b""
+    if len(sha_bytes) != 32 or len(sha_text) != 64:
+        raise LayoutError("header sha256 must be exactly 64 hexadecimal characters")
+
+    body = bytearray([version])
+    body.extend(_pack_machine_text(meta["codec"], "codec"))
+    body.extend(_pack_machine_text(meta["comp"], "comp"))
+    if "meta" in meta:
+        body.extend(_pack_machine_text(meta["meta"], "meta"))
+    else:
+        body.append(0xFF)
+    body.extend(struct.pack(
+        ">QQI",
+        _machine_uint(meta, "files", 64),
+        _machine_uint(meta, "bytes", 64),
+        _machine_uint(meta, "pages", 32),
+    ))
+    body.extend(sha_bytes)
+    if len(body) > 0xFFFF:
+        raise LayoutError("machine header metadata is too large")
+
+    digest = hashlib.sha256(body).digest()[:_MACHINE_META_DIGEST_BYTES]
+    return _MACHINE_META_MAGIC + len(body).to_bytes(2, "big") + body + digest
+
+
+def _format_machine_header(meta: _ty.Mapping[str, _ty.Any]) -> _ty.List[str]:
+    from .codec.g1 import nibble_encode
+
+    payload = nibble_encode(_machine_header_bytes(meta))
+    chunks = [
+        payload[start:start + _MACHINE_PAYLOAD_CHARS]
+        for start in range(0, len(payload), _MACHINE_PAYLOAD_CHARS)
+    ]
+    return [
+        _format_machine_frame(_MACHINE_HEADER_KIND, idx, chunk)
+        for idx, chunk in enumerate(chunks)
+    ]
+
+
+def _take_machine_text(data: bytes, cursor: int, key: str) -> _ty.Tuple[str, int]:
+    if cursor >= len(data):
+        raise LayoutError(f"machine header is truncated before {key!r}")
+    size = data[cursor]
+    cursor += 1
+    if size == 0 or cursor + size > len(data):
+        raise LayoutError(f"machine header has an invalid {key!r} field")
+    try:
+        value = data[cursor:cursor + size].decode("utf-8")
+    except UnicodeDecodeError:
+        raise LayoutError(f"machine header {key!r} is not valid UTF-8") from None
+    return value, cursor + size
+
+
+def _decode_machine_header(
+    frames: _ty.Sequence[_ParsedMachineFrame],
+) -> _ty.Dict[str, _ty.Any]:
+    from .codec.g1 import nibble_decode
+
+    if not frames:
+        raise LayoutError("no integrity-protected machine header found")
+    if any(not frame.ok or frame.idx is None for frame in frames):
+        raise LayoutError("machine header frame failed its integrity check")
+
+    indexed: _ty.Dict[int, str] = {}
+    for frame in frames:
+        assert frame.idx is not None
+        previous = indexed.get(frame.idx)
+        if previous is not None and previous != frame.payload:
+            raise LayoutError(f"conflicting machine header frame H{frame.idx}")
+        indexed[frame.idx] = frame.payload
+    expected_indices = list(range(max(indexed) + 1))
+    if sorted(indexed) != expected_indices:
+        missing = sorted(set(expected_indices) - set(indexed))
+        raise LayoutError(f"machine header is missing frame index(es) {missing}")
+
+    encoded = "".join(indexed[idx] for idx in expected_indices)
+    if len(encoded) % 2:
+        raise LayoutError("machine header has an odd safe-alphabet payload length")
+    try:
+        raw = nibble_decode(encoded, len(encoded) // 2)
+    except ValueError as exc:
+        raise LayoutError(f"machine header payload is invalid: {exc}") from None
+
+    prefix_size = len(_MACHINE_META_MAGIC) + 2
+    if len(raw) < prefix_size + _MACHINE_META_DIGEST_BYTES:
+        raise LayoutError("machine header envelope is truncated")
+    if raw[:len(_MACHINE_META_MAGIC)] != _MACHINE_META_MAGIC:
+        raise LayoutError("machine header has invalid magic")
+    body_size = int.from_bytes(raw[len(_MACHINE_META_MAGIC):prefix_size], "big")
+    expected_size = prefix_size + body_size + _MACHINE_META_DIGEST_BYTES
+    if len(raw) != expected_size:
+        raise LayoutError(
+            f"machine header envelope length mismatch: expected {expected_size}, "
+            f"got {len(raw)}"
+        )
+    body = raw[prefix_size:prefix_size + body_size]
+    digest = raw[-_MACHINE_META_DIGEST_BYTES:]
+    expected_digest = hashlib.sha256(body).digest()[:_MACHINE_META_DIGEST_BYTES]
+    if digest != expected_digest:
+        raise LayoutError("machine header envelope failed its integrity check")
+
+    if not body or body[0] != LAYOUT_VERSION:
+        version = body[0] if body else "truncated"
+        raise LayoutError(f"unsupported machine header layout version {version}")
+    cursor = 1
+    codec_name, cursor = _take_machine_text(body, cursor, "codec")
+    comp_name, cursor = _take_machine_text(body, cursor, "comp")
+    if cursor >= len(body):
+        raise LayoutError("machine header is truncated before 'meta'")
+    if body[cursor] == 0xFF:
+        profile = None
+        cursor += 1
+    else:
+        profile, cursor = _take_machine_text(body, cursor, "meta")
+
+    fixed_size = struct.calcsize(">QQI") + 32
+    if len(body) - cursor != fixed_size:
+        raise LayoutError("machine header fixed fields have an invalid length")
+    files, byte_count, pages = struct.unpack_from(">QQI", body, cursor)
+    cursor += struct.calcsize(">QQI")
+    sha256 = body[cursor:cursor + 32].hex()
+    if pages == 0:
+        raise LayoutError("machine header page count must be positive")
+
+    meta: _ty.Dict[str, _ty.Any] = {
+        "v": LAYOUT_VERSION,
+        "codec": codec_name,
+        "comp": comp_name,
+        "files": files,
+        "bytes": byte_count,
+        "pages": pages,
+        "sha256": sha256,
+    }
+    if profile is not None:
+        meta["meta"] = profile
     return meta
 
 
@@ -266,8 +461,16 @@ def format_page_footer(
     ``page_lines`` are the codec-framed data/parity lines on this page (NOT the
     header, NOT the footer). Grammar: ``PAGE <n>/<total> sha256=<first16hex>``.
     """
-    digest = page_data_hash(page_lines)[:PAGE_HASH_CHARS]
-    return f"{_PAGE_MARKER} {n}/{total} sha256={digest}"
+    from .codec.g1 import nibble_encode
+
+    if not (1 <= n <= total < 2**32):
+        raise LayoutError(f"invalid page position {n}/{total}")
+    digest = bytes.fromhex(page_data_hash(page_lines)[:PAGE_HASH_CHARS])
+    payload = nibble_encode(
+        _MACHINE_FOOTER_MAGIC + total.to_bytes(4, "big") + digest
+    )
+    machine = _format_machine_frame(_MACHINE_FOOTER_KIND, n - 1, payload)
+    return f"{machine} {_PAGE_MARKER} {n}/{total}"
 
 
 class _ParsedFooter(_ty.NamedTuple):
@@ -277,21 +480,30 @@ class _ParsedFooter(_ty.NamedTuple):
 
 
 def _parse_footer(line: str) -> _ty.Optional[_ParsedFooter]:
-    """Parse a footer line; return ``None`` if it is not a footer at all."""
-    stripped = line.strip()
-    parts = stripped.split()
-    if len(parts) != 3 or parts[0] != _PAGE_MARKER:
+    """Parse the protected T frame; human ``PAGE n/total`` is display-only."""
+    from .codec.g1 import nibble_decode
+
+    frame = _parse_machine_frame(line, _MACHINE_FOOTER_KIND)
+    if frame is None:
         return None
-    count, hash_token = parts[1], parts[2]
-    if "/" not in count or not hash_token.startswith("sha256="):
-        return None
-    n_text, total_text = count.split("/", 1)
-    n_text = _normalize_ocr_token(n_text)
-    total_text = _normalize_ocr_token(total_text)
-    if not (n_text.isdigit() and total_text.isdigit()):
-        return None
-    digest = _normalize_ocr_token(hash_token[len("sha256="):])
-    return _ParsedFooter(n=int(n_text), total=int(total_text), digest=digest)
+    if not frame.ok or frame.idx is None:
+        raise LayoutError("machine page footer failed its integrity check")
+    if len(frame.payload) % 2:
+        raise LayoutError("machine page footer has an odd payload length")
+    try:
+        raw = nibble_decode(frame.payload, len(frame.payload) // 2)
+    except ValueError as exc:
+        raise LayoutError(f"machine page footer payload is invalid: {exc}") from None
+    expected_size = len(_MACHINE_FOOTER_MAGIC) + 4 + PAGE_HASH_CHARS // 2
+    if len(raw) != expected_size or not raw.startswith(_MACHINE_FOOTER_MAGIC):
+        raise LayoutError("machine page footer has an invalid envelope")
+    cursor = len(_MACHINE_FOOTER_MAGIC)
+    total = int.from_bytes(raw[cursor:cursor + 4], "big")
+    digest = raw[cursor + 4:].hex()
+    n = frame.idx + 1
+    if total == 0 or n > total:
+        raise LayoutError(f"machine page footer has invalid position {n}/{total}")
+    return _ParsedFooter(n=n, total=total, digest=digest)
 
 
 def verify_page_footer(
@@ -302,7 +514,10 @@ def verify_page_footer(
     A structurally invalid footer line returns ``False``. Comparison is
     case-insensitive on the hex digest.
     """
-    parsed = _parse_footer(footer_line)
+    try:
+        parsed = _parse_footer(footer_line)
+    except LayoutError:
+        return False
     if parsed is None:
         return False
     expected = page_data_hash(page_lines)[:PAGE_HASH_CHARS]
@@ -339,7 +554,9 @@ class Page(_ty.NamedTuple):
     encoded_lines: _ty.List[str]
 
 
-def _page_count(n_encoded: int, lines_per_page: int) -> int:
+def _page_count(
+    n_encoded: int, lines_per_page: int, *, first_page_overhead: int
+) -> int:
     """Total pages needed for ``n_encoded`` codec lines given the per-page budget.
 
     Page 1 spends 1 line on the header and 1 on the footer (capacity - 2);
@@ -347,17 +564,18 @@ def _page_count(n_encoded: int, lines_per_page: int) -> int:
     count directly by consuming the budget page by page — cheap and exact,
     avoiding the closed-form edge cases around the first page's extra overhead.
     """
-    if lines_per_page < 3:
+    if lines_per_page <= first_page_overhead:
         raise ValueError(
-            "lines_per_page must be >= 3 (header + footer + at least one data "
-            f"line); got {lines_per_page}"
+            "lines_per_page must fit the human header, protected machine header, "
+            "footer, and at least one data line; "
+            f"got {lines_per_page}, need at least {first_page_overhead + 1}"
         )
     if n_encoded == 0:
         return 1  # a header+footer-only page still exists (empty archive)
     remaining = n_encoded
     pages = 0
     while remaining > 0:
-        overhead = 2 if pages == 0 else 1  # page 1: header+footer; others: footer
+        overhead = first_page_overhead if pages == 0 else 1
         capacity = lines_per_page - overhead
         remaining -= capacity
         pages += 1
@@ -387,17 +605,27 @@ def paginate(
     ``lines_per_page`` is too small to fit header+footer+data.
     """
     encoded = list(encoded_lines)
-    total = _page_count(len(encoded), lines_per_page)
-
-    # Resolve the chicken/egg: page count is known now, so stamp it before we
-    # render the header, then assert the header line we build actually fits.
+    # The compact machine envelope uses a fixed-width u32 for ``pages``, so its
+    # frame count does not depend on the numeric page count.  A provisional value
+    # therefore gives us the exact first-page overhead before pagination.
+    meta["pages"] = 1
+    provisional_machine_header = _format_machine_header(meta)
+    first_page_overhead = 1 + len(provisional_machine_header) + 1
+    total = _page_count(
+        len(encoded),
+        lines_per_page,
+        first_page_overhead=first_page_overhead,
+    )
     meta["pages"] = total
     header_line = format_header(meta)
+    machine_header = _format_machine_header(meta)
+    if len(machine_header) != len(provisional_machine_header):
+        raise LayoutError("machine header frame count changed during pagination")
 
     pages: _ty.List[Page] = []
     cursor = 0
     for page_no in range(1, total + 1):
-        overhead = 2 if page_no == 1 else 1
+        overhead = first_page_overhead if page_no == 1 else 1
         capacity = lines_per_page - overhead
         chunk = encoded[cursor:cursor + capacity]
         cursor += len(chunk)
@@ -405,6 +633,7 @@ def paginate(
         text_lines: _ty.List[str] = []
         if page_no == 1:
             text_lines.append(header_line)
+            text_lines.extend(machine_header)
         text_lines.extend(chunk)
         text_lines.append(format_page_footer(page_no, total, chunk))
 
@@ -486,16 +715,17 @@ def read_pages(
     """
     lines = list(all_text_lines)
 
-    # --- Pass 1: locate the header. -----------------------------------------
-    header_meta: _ty.Optional[_ty.Dict[str, _ty.Any]] = None
+    # --- Pass 1: recover the authoritative protected header. ----------------
+    # The unrestricted ``#!glyphive ...`` line is retained for humans and old
+    # tooling, but the restore path never trusts it.  In particular, there is no
+    # ``gl`` -> ``g1`` repair guess: codec selection comes from CRC-checked H
+    # frames encoded entirely in the measured-safe bootstrap alphabet.
+    header_frames: _ty.List[_ParsedMachineFrame] = []
     for line in lines:
-        if line.strip().startswith(HEADER_PREFIX):
-            header_meta = parse_header(line)
-            break
-    if header_meta is None:
-        raise LayoutError(
-            f"no {HEADER_PREFIX!r} document header found in the transcript"
-        )
+        frame = _parse_machine_frame(line, _MACHINE_HEADER_KIND)
+        if frame is not None:
+            header_frames.append(frame)
+    header_meta = _decode_machine_header(header_frames)
 
     # --- Pass 2: walk the lines, splitting into per-page blocks by footer. ---
     # A page's data block is every encoded line seen since the previous footer
@@ -525,6 +755,8 @@ def read_pages(
             continue
         if stripped.startswith(HEADER_PREFIX):
             continue  # the document header is not a data line
+        if _parse_machine_frame(line, _MACHINE_HEADER_KIND) is not None:
+            continue  # protected machine header is not a payload line
         if _looks_like_encoded(line):
             encoded_lines.append(stripped)
             current_block.append(stripped)
@@ -534,26 +766,20 @@ def read_pages(
     # (a footer could have been dropped by OCR); they are already in
     # ``encoded_lines``. We only *warn* via the missing-page check below.
 
-    # --- Missing-page detection via the footers' declared total. ------------
-    if pages_seen:
-        totals = set(pages_seen.values())
-        declared_total = max(totals)  # tolerate an OCR'd-wrong total on one page
-        # Prefer the header's page count if present and consistent.
-        header_total = header_meta.get("pages")
-        if isinstance(header_total, int) and header_total > 0:
-            declared_total = max(declared_total, header_total)
-        missing = [
-            n for n in range(1, declared_total + 1) if n not in pages_seen
-        ]
-        if missing:
-            raise MissingPageError(missing, declared_total)
-    else:
-        # No footers at all: fall back to the header's page count. If it claims
-        # more than one page we cannot confirm none is missing — but with zero
-        # footers we cannot name which, so only raise if the header says >1 page.
-        header_total = header_meta.get("pages")
-        if isinstance(header_total, int) and header_total > 1:
-            raise MissingPageError(list(range(1, header_total + 1)), header_total)
+    # --- Missing-page detection via integrity-protected machine metadata. ---
+    header_total = header_meta["pages"]
+    inconsistent = sorted(
+        n for n, observed_total in pages_seen.items()
+        if observed_total != header_total
+    )
+    if inconsistent:
+        raise LayoutError(
+            "machine footer total disagrees with protected header on page(s) "
+            + ", ".join(str(n) for n in inconsistent)
+        )
+    missing = [n for n in range(1, header_total + 1) if n not in pages_seen]
+    if missing:
+        raise MissingPageError(missing, header_total)
 
     header_meta["_page_warnings"] = warnings
     header_meta["_pages_seen"] = sorted(pages_seen)

@@ -1,0 +1,93 @@
+"""Focused tests for OCR-safe layout metadata bootstrapping."""
+
+import hashlib
+
+import pytest
+
+from glyphive import codec, layout
+
+
+def _document(data=b"protected metadata"):
+    meta = {
+        "codec": "g1",
+        "comp": "none",
+        "meta": "none",
+        "files": 1,
+        "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    pages = layout.paginate(
+        codec.get("g1").encode(data), meta, lines_per_page=11
+    )
+    return data, [line for page in pages for line in page.text_lines]
+
+
+def _mutate_safe_payload(line):
+    label, payload, check = line.split()
+    replacement = "A" if payload[0] != "A" else "B"
+    return f"{label} {replacement + payload[1:]} {check}"
+
+
+def test_real_ocr_damage_to_human_metadata_is_display_only():
+    data, lines = _document()
+    lines[0] = (
+        "#!glyphive v=1 codec=gl comp=none meta=none files=2 bytes=160 "
+        "pages=1 sha256=cad768eecfe095abd8ceff2c75a5c4df14Ff300b68 9:"
+    )
+    footer_index = next(i for i, line in enumerate(lines) if " PAGE " in line)
+    lines[footer_index] = lines[footer_index].replace("PAGE 1/1", "PAGF l/l")
+
+    meta, encoded = layout.read_pages(lines)
+    restored = codec.get(meta["codec"]).decode(encoded)
+
+    assert meta["codec"] == "g1"
+    assert meta["bytes"] == len(data)
+    assert restored == data
+
+
+def test_machine_header_uses_fixed_width_safe_frames():
+    _data, lines = _document()
+    header_frames = [line for line in lines if line.startswith("H")]
+
+    assert len(header_frames) == 3
+    assert all(len(line.split()[1]) <= 60 for line in header_frames)
+    assert all(len(line) <= 73 for line in header_frames)
+
+
+def test_machine_header_corruption_fails_instead_of_guessing():
+    _data, lines = _document()
+    index = next(i for i, line in enumerate(lines) if line.startswith("H"))
+    lines[index] = _mutate_safe_payload(lines[index])
+
+    with pytest.raises(layout.LayoutError, match="machine header frame failed"):
+        layout.read_pages(lines)
+
+
+def test_missing_last_machine_header_frame_is_detected_by_envelope_length():
+    _data, lines = _document()
+    indexes = [i for i, line in enumerate(lines) if line.startswith("H")]
+    del lines[indexes[-1]]
+
+    with pytest.raises(layout.LayoutError, match="envelope length mismatch"):
+        layout.read_pages(lines)
+
+
+def test_machine_footer_corruption_fails_instead_of_using_page_hint():
+    _data, lines = _document()
+    index = next(i for i, line in enumerate(lines) if line.startswith("T"))
+    label, payload, check, suffix, count = lines[index].split()
+    replacement = "A" if payload[0] != "A" else "B"
+    lines[index] = (
+        f"{label} {replacement + payload[1:]} {check} {suffix} {count}"
+    )
+
+    with pytest.raises(layout.LayoutError, match="footer failed"):
+        layout.read_pages(lines)
+
+
+def test_page_footer_verifier_rejects_damaged_protected_footer():
+    _data, lines = _document()
+    footer = next(line for line in lines if line.startswith("T"))
+    page_lines = [line for line in lines if layout._looks_like_encoded(line)]
+    assert layout.verify_page_footer(footer, page_lines)
+    assert not layout.verify_page_footer(footer[:-1] + "A", [])

@@ -162,7 +162,7 @@ def test_restore_rejects_unknown_codec_before_decode(tmp_path):
     payload = compression.get("none").compress(raw)
     encoded = codec.get("g1").encode(payload)
     meta = {
-        "codec": "g1",
+        "codec": "missing",
         "comp": "none",
         "files": 0,
         "bytes": len(raw),
@@ -170,7 +170,6 @@ def test_restore_rejects_unknown_codec_before_decode(tmp_path):
     }
     pages = layout.paginate(encoded, meta, lines_per_page=11)
     text_lines = [line for page in pages for line in page.text_lines]
-    text_lines[0] = text_lines[0].replace("codec=g1", "codec=missing")
 
     with pytest.raises(ValueError, match=r"unknown codec 'missing'.*g1"):
         restore_decode.decode_document(text_lines)
@@ -196,7 +195,7 @@ def test_restore_accepts_ocr_confusable_header_and_footer_tokens(tmp_path):
     text_lines = [line for page in pages for line in page.text_lines]
 
     text_lines[0] = text_lines[0].replace("codec=g1", "codec=gl")
-    footer_index = next(i for i, line in enumerate(text_lines) if line.startswith("PAGE "))
+    footer_index = next(i for i, line in enumerate(text_lines) if " PAGE " in line)
     text_lines[footer_index] = text_lines[footer_index].replace("1/1", "l/l")
 
     decoded_meta, decoded_raw = restore_decode.decode_document(text_lines)
