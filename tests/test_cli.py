@@ -53,12 +53,20 @@ def test_create_extract_list_roundtrip(tmp_path, capsys):
     assert rc == 0
     _compare_dirs(src, outdir)
 
-    # list returns 0 and prints the header line.
+    # Corrupt the display-only prose header. list must verify/decode first and
+    # print the authoritative protected metadata, not the damaged summary.
+    text = archive_file.read_text(encoding="utf-8")
+    archive_file.write_text(
+        text.replace("codec=g1", "codec=gl", 1), encoding="utf-8"
+    )
+
+    # list returns 0 and prints verified protected metadata.
     capsys.readouterr()  # clear
     rc = cli.run(["list", "-f", str(archive_file)])
     assert rc == 0
     captured = capsys.readouterr()
     assert "glyphive" in captured.out
+    assert "codec=g1" in captured.out
     assert "files=" in captured.out
     assert "meta=none" in captured.out
 
