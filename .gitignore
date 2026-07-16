@@ -11,10 +11,13 @@ __pycache__/
 .eggs/
 build/
 dist/
+site/
 .venv/
 .pytest_cache/
+.hypothesis/
 .mypy_cache/
-.coverage
+.ruff_cache/
+.coverage*
 htmlcov/
 
 # Local scratch / tool output
@@ -24,3 +27,5 @@ tmp/
 # OS
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
