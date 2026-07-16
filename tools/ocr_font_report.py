@@ -30,7 +30,7 @@ not assumed; a combination that would need to wrap a line is marked invalid
 (reported as "WRAPS", no bogus density) rather than silently measured wrong.
 
 Lines whose OCR length does not match the printed length (after stripping
-spaces -- Tesseract's line-width-overflow noise, Design Q3 in the plan) are a
+spaces -- Tesseract's line-width-overflow noise) are a
 distinct failure mode (insertion/deletion, not substitution) and are excluded
 from per-character stats; their rate is reported separately as
 `line_insert_rate`.
@@ -63,9 +63,11 @@ import json
 import math
 import os
 import random
+import subprocess
 import sys
 import tempfile
 from collections import Counter, defaultdict
+from importlib.metadata import PackageNotFoundError, version
 
 from pathlib_next import Path
 
@@ -135,6 +137,33 @@ def _usable_bytes_per_page(result: dict) -> float | None:
     if erasure_rate is None:
         return None
     return float(nominal) * (1.0 - float(erasure_rate))
+
+
+def _engine_version(engine: str) -> str | None:
+    """Return the external OCR engine/package version for reproducibility."""
+    if engine == "tesseract":
+        try:
+            completed = subprocess.run(
+                ["tesseract", "--version"],
+                capture_output=True,
+                check=False,
+                text=True,
+                timeout=10,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        if completed.returncode == 0 and completed.stdout:
+            first_line = completed.stdout.splitlines()[0].strip()
+            return first_line.removeprefix("tesseract ")
+        return None
+
+    distribution = {"paddle": "paddleocr", "easyocr": "easyocr"}.get(engine)
+    if distribution is None:
+        return None
+    try:
+        return version(distribution)
+    except PackageNotFoundError:
+        return None
 
 
 # --- rendering ---------------------------------------------------------------
@@ -298,8 +327,8 @@ def measure(
     for i, printed in enumerate(printed_rows):
         ocr_line_raw = ocr_lines[i] if i < len(ocr_lines) else ""
         # A line-width overflow makes Tesseract insert spurious interior
-        # spaces (Design Q3 in the plan: "the payload alphabet contains no
-        # spaces, so an interior space is provably OCR noise"). None of our
+        # spaces. The payload alphabet contains no spaces, so an interior space
+        # is provably OCR noise. None of our
         # sample alphabets contain a space, so strip it before comparing
         # lengths -- that isolates genuine character insertion/deletion
         # (a dropped or duplicated *character*) from the separately-tracked
@@ -684,6 +713,7 @@ def main(argv: list[str] | None = None) -> int:
                         scratch=scratch,
                     )
                     r["charset_label"] = label
+                    r["engine_version"] = _engine_version(engine)
                     results.append(r)
 
     print_report(results)
