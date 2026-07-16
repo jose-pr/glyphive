@@ -5,10 +5,9 @@ it into an OCR-safe, human-re-typeable printable format laid out on pages (plain
 text, PDF, or Word), then restore the tree from a scan or a re-typed transcript.
 
 The default codec (``g1``) uses a confusable-free Crockford-Base32 alphabet, a
-per-line CRC check character, and per-page Reed-Solomon parity so a scanned page
-self-heals small OCR errors instead of silently corrupting everything downstream.
-See the repository ``AGENTS.md`` for the recovery postmortem that motivates the
-format.
+per-line CRC check character, and document-wide interleaved Reed-Solomon parity
+so scattered OCR errors self-heal instead of silently corrupting everything
+downstream.
 """
 
 __all__ = ["__version__"]
