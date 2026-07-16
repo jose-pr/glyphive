@@ -1,0 +1,196 @@
+"""glyphive — text transcript → original archive bytes (the OCR-less path).
+
+This module composes the three already-built layers to turn a printed/typed
+page transcript back into the exact archive byte stream that :mod:`archive`
+produced:
+
+    text lines
+        → :func:`glyphive.layout.read_pages`   (strip header/footers, re-order
+                                                 pages, detect missing pages)
+        → ``codec.get(header.codec).decode``   (per-line CRC + Reed-Solomon,
+                                                 recovers the compressed payload)
+        → ``compression.get(header.comp).decompress`` (per the header's ``comp=``)
+        → **whole-document SHA-256 verification against the header**.
+
+The SHA-256 gate is the point of this module: *no silent partial restore and no
+silent corruption*. A decode that "mostly works" but whose bytes differ from the
+original must be a loud, named failure, not a returned blob. So after
+decompression we recompute
+``sha256(raw)`` and compare it to the ``sha256=`` recorded in the page header;
+a mismatch raises :class:`RestoreError` naming expected-vs-got, and the corrupt
+bytes are never returned.
+
+Every failure below this layer already names *what* and *where*:
+
+- a missing page raises :class:`glyphive.layout.MissingPageError` (naming the
+  absent page numbers) — we let it propagate unchanged;
+- an unrecoverable line raises :class:`glyphive.codec.CodecError` (naming the
+  exact ``L#####`` / ``P#####`` line) — we let it propagate unchanged;
+- a whole-document hash mismatch raises :class:`RestoreError` here.
+
+Corrupt-but-*recovered* pages (footer-hash warnings that the codec's RS still
+repaired) are not fatal: :func:`glyphive.layout.read_pages` records them in
+``meta["_page_warnings"]`` and we carry that straight through in the returned
+``meta`` so the caller (the CLI) can surface them to a human.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import typing as _ty
+
+from .. import archive, codec, compression, layout
+
+__all__ = [
+    "RestoreError",
+    "decode_document",
+]
+
+
+class RestoreError(Exception):
+    """Raised on an integrity failure the restore path refuses to paper over.
+
+    Used for whole-document SHA-256 mismatches (:func:`decode_document`) and
+    path-traversal / clobber violations (:mod:`glyphive.restore.unarchive`).
+    The message always names the concrete offender (expected-vs-got digest, or
+    the offending relpath) so a failure is actionable, never silent.
+    """
+
+
+_OCR_CONFUSABLE_MAP: _ty.Final[_ty.Dict[str, str]] = {
+    "o": "0",
+    "O": "0",
+    "i": "1",
+    "I": "1",
+    "l": "1",
+    "L": "1",
+}
+
+
+def _normalize_identifier(text: str) -> str:
+    return "".join(_OCR_CONFUSABLE_MAP.get(char, char) for char in text)
+
+
+def _resolve_codec(name: str) -> codec.Codec:
+    """Resolve a codec name, allowing OCR-confusable fallback on mismatch."""
+    try:
+        return codec.get(name)
+    except ValueError as original_error:
+        normalized = _normalize_identifier(name)
+        if normalized == name:
+            raise
+        matches = [candidate for candidate in codec.names() if candidate == normalized]
+        if len(matches) == 1:
+            return codec.get(matches[0])
+        raise original_error
+
+
+def decode_document(
+    text_lines: _ty.Iterable[str],
+) -> _ty.Tuple[_ty.Dict[str, _ty.Any], bytes]:
+    """Turn a full page transcript back into ``(meta, raw_archive_bytes)``.
+
+    Pipeline (each stage is an already-tested module; this only composes them):
+
+    1. :func:`glyphive.layout.read_pages` — parse the ``#!glyphive`` header,
+       strip page headers/footers, tolerate out-of-order pages, and detect a
+       missing page. Propagates :class:`glyphive.layout.MissingPageError`
+       (naming the absent page numbers) unchanged — that is the correct, loud
+       behaviour for an incomplete transcript.
+    2. ``codec.get(meta["codec"]).decode`` — per-line CRC + Reed-Solomon recovery of
+       the compressed payload. Propagates :class:`glyphive.codec.CodecError`
+       (naming the exact failing line) unchanged when a line is unrecoverable.
+    3. :func:`glyphive.compression.get` — inverse of the archive's compression
+       stage, selected by the header's ``comp=`` value.
+    4. **Whole-document integrity**: ``sha256(raw)`` must equal the header's
+       ``sha256=``. On mismatch this raises :class:`RestoreError` naming the
+       expected and observed digests and returns nothing — corrupt bytes are
+       never handed back — no silent corruption.
+
+    Returns
+    -------
+    ``(meta, raw)`` where ``raw`` is the archive byte stream ready for
+    :func:`glyphive.restore.unarchive.unarchive_bytes`, and ``meta`` is the
+    parsed header dict. ``meta`` still carries ``meta["_page_warnings"]`` (a
+    list of corrupt-but-recovered-page warning strings from ``read_pages``) so
+    the caller can log them. The returned ``meta["meta"]`` is the resolved
+    archive profile; old document headers without that key are accepted.
+
+    Raises
+    ------
+    glyphive.layout.LayoutError / MissingPageError:
+        No parseable header, or a whole page absent from the transcript.
+    glyphive.codec.g1.CodecError:
+        A framed line failed CRC and RS could not correct it (line named).
+    RestoreError:
+        The decompressed archive's SHA-256 does not match the header's.
+    """
+    # 1) transcript -> (header meta, framed codec lines). read_pages raises
+    #    MissingPageError (naming pages) / LayoutError (no header) — let it.
+    meta, encoded = layout.read_pages(text_lines)
+
+    # 2) Resolve the header's data identifier before decoding anything. Header
+    # identifiers are data, not import paths, and unknown names must fail before
+    # decompression or filesystem writes can begin.
+    selected_codec = _resolve_codec(str(meta["codec"]))
+    meta["codec"] = selected_codec.name
+    payload = selected_codec.decode(list(encoded))
+
+    # 3) compressed payload -> raw archive bytes, per the header's method.
+    comp = str(meta["comp"])
+    raw = compression.get(comp).decompress(payload)
+
+    # 4) Whole-document integrity gate. NEVER return unverified bytes.
+    expected = meta.get("sha256")
+    got = hashlib.sha256(raw).hexdigest()
+    if not expected:
+        raise RestoreError(
+            "header carries no sha256= digest; cannot verify document "
+            "integrity (refusing to return unverified bytes)"
+        )
+    if got.lower() != str(expected).lower():
+        raise RestoreError(
+            "document integrity check failed: sha256 mismatch after decode/"
+            f"decompress (comp={comp!r}) — expected {expected}, got {got}. "
+            "The transcript decoded but does not reproduce the original bytes; "
+            "refusing to return corrupt data."
+        )
+
+    expected_bytes = meta["bytes"]
+    if expected_bytes != len(raw):
+        raise RestoreError(
+            "document header byte count mismatch: "
+            f"header claims {expected_bytes}, archive contains {len(raw)}"
+        )
+
+    record_count = sum(1 for _record in archive.iter_records(raw))
+    expected_records = meta["files"]
+    if expected_records != record_count:
+        raise RestoreError(
+            "document header entry count mismatch: "
+            f"header claims {expected_records}, archive contains {record_count}"
+        )
+
+    # The archive stream is the authority for the profile. A document header
+    # may identify it explicitly, but an old header can omit the key.
+    stream_meta = archive.stream_metadata(raw)
+    header_profile = meta.get("meta")
+    if header_profile is not None:
+        header_profile = str(header_profile)
+        if header_profile not in archive.METADATA_PROFILES:
+            raise RestoreError(
+                f"header carries unknown metadata profile {header_profile!r}; "
+                f"choose {', '.join(archive.METADATA_PROFILES)}"
+            )
+        if header_profile != stream_meta.metadata:
+            raise RestoreError(
+                "document/archive metadata profile mismatch: header "
+                f"claims {header_profile!r}, stream carries "
+                f"{stream_meta.metadata!r}"
+            )
+    else:
+        header_profile = stream_meta.metadata
+    meta["meta"] = header_profile
+    meta["archive_version"] = stream_meta.version
+
+    return meta, raw
