@@ -1,0 +1,62 @@
+site_name: glyphive
+site_description: Archive file trees to compact, OCR-friendly printable pages and restore them from transcripts or scans.
+site_url: https://jose-pr.github.io/glyphive/
+repo_url: https://github.com/jose-pr/glyphive
+repo_name: jose-pr/glyphive
+edit_uri: edit/master/docs/
+
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Guides:
+      - Create an archive: guides/create.md
+      - Restore an archive: guides/restore.md
+      - Wire format: guides/wire-format.md
+      - OCR: guides/ocr.md
+  - Benchmarks: benchmarks.md
+  - API Reference:
+      - Overview: api/overview.md
+      - Archive: api/archive.md
+      - Codecs: api/codec.md
+      - Compression: api/compression.md
+      - Layout: api/layout.md
+      - Renderers: api/render.md
+      - Restore: api/restore.md
+      - OCR: api/ocr.md
+  - Changelog: changelog.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            merge_init_into_class: true
+            show_if_no_docstring: true
+
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.snippets:
+      base_path: ["."]
+  - pymdownx.superfences
