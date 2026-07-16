@@ -116,14 +116,14 @@ def test_codec_registry_exposes_g1_and_direct_api():
 
 
 # --------------------------------------------------------------------------- #
-# Structural frame parsing (Phase 3): tolerate OCR-inserted interior spaces
+# Structural frame parsing: tolerate OCR-inserted interior spaces
 # --------------------------------------------------------------------------- #
 from glyphive.codec.g1 import _parse_line, split_frame  # noqa: E402
 
 
 def test_parse_line_tolerates_captured_ocr_transcript_line():
-    # Captured Tesseract output (re-pinned in Phase 2 for the new 5-char index
-    # token -- INDEX_WIDTH grew from 4 to 5 alongside the alphabet's bit-width
+    # Captured Tesseract output re-pinned for the new 5-char index token --
+    # INDEX_WIDTH grew from 4 to 5 alongside the alphabet's bit-width
     # change): a genuine 3-token line with a spurious space inserted inside the
     # payload, splitting it into 4 whitespace tokens.
     ocr_line = (
@@ -169,8 +169,8 @@ def test_split_frame_anchors_label_first_check_last():
 
 
 # --------------------------------------------------------------------------- #
-# Index encoding never renders as a uniform run (Design Q1, re-pinned for the
-# 16-char alphabet / 5-char index token in Phase 2)
+# Index encoding never renders as a uniform run with the 16-char alphabet /
+# 5-char index token.
 # --------------------------------------------------------------------------- #
 from glyphive.codec.g1 import decode_index, encode_index  # noqa: E402
 
@@ -207,7 +207,7 @@ def test_codec_registry_rejects_duplicate_names():
 
 
 # --------------------------------------------------------------------------- #
-# Out-of-alphabet characters are rejected, not aliased (Design Q2)
+# Out-of-alphabet characters are rejected, not aliased.
 # --------------------------------------------------------------------------- #
 def test_nibble_decode_case_insensitive_but_no_confusable_aliases():
     # nibble_decode is case-insensitive over the 16-char alphabet itself, but

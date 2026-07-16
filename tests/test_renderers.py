@@ -103,12 +103,12 @@ def test_render_registry_lists_formats_and_rejects_unknown():
 
 
 # --------------------------------------------------------------------------- #
-# Structural frame parsing (Phase 3): layout._looks_like_encoded must agree
+# Structural frame parsing: layout._looks_like_encoded must agree
 # with codec.g1._parse_line's tolerance for OCR-inserted interior spaces.
 # --------------------------------------------------------------------------- #
 def test_looks_like_encoded_tolerates_captured_ocr_transcript_line():
-    # Re-pinned in Phase 2 for the new 5-char index token (INDEX_WIDTH 4 -> 5
-    # alongside the alphabet's bit-width change).
+    # Re-pinned for the new 5-char index token (INDEX_WIDTH 4 -> 5 alongside
+    # the alphabet's bit-width change).
     ocr_line = (
         "LMYCVH 8WRG2380000627WB10000000001FYWZQH4 "
         "6F1IWO0C6DJ64R320015D1J4QP90 #1RBN"

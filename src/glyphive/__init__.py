@@ -4,10 +4,10 @@ Take a directory tree (or arbitrary bytes), serialize it, compress it, and encod
 it into an OCR-safe, human-re-typeable printable format laid out on pages (plain
 text, PDF, or Word), then restore the tree from a scan or a re-typed transcript.
 
-The default codec (``g1``) uses a confusable-free Crockford-Base32 alphabet, a
-per-line CRC check character, and document-wide interleaved Reed-Solomon parity
-so scattered OCR errors self-heal instead of silently corrupting everything
-downstream.
+The default codec (``g1``) uses the measured-safe 16-character alphabet
+``ABCDHKLMPRTVXY34``, a per-line CRC-16, and document-wide interleaved
+Reed-Solomon parity so scattered OCR errors self-heal instead of silently
+corrupting everything downstream.
 """
 
 __all__ = ["__version__"]

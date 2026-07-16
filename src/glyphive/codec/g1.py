@@ -18,8 +18,8 @@ is not safe on this channel: Crockford *keeps* ``Q`` and ``J`` while excluding
 ``0``) and ``J`` is misread as ``I`` (which then alias-maps to ``1``) — both are
 *silent, undetectable data corruption*, not a recoverable erasure. Trading 5
 bits/char for 4 costs 25% more pages; that is the price of a format that
-actually round-trips (see the project plan's Design Q2 for the full derivation
-and the multi-radix measurement table).
+actually round-trips. See the public wire-format and OCR guides for the
+derivation and multi-radix measurement method.
 
 Frame grammar (one printed line)
 --------------------------------
@@ -107,8 +107,8 @@ __all__ = [
 
 #: OCR-verified alphabet: measured safe 16/16 (0% char error, 0% line-insertion
 #: rate, zero corrupting confusions) on Courier 8pt @ 300 DPI / Tesseract 5.4.0
-#: (``tools/ocr_font_report.py``; see the module docstring and the project
-#: plan's Design Q2). 16 characters = exactly 4 bits/char = clean nibble
+#: (``tools/ocr_font_report.py``; see the module docstring and public OCR
+#: guide). 16 characters = exactly 4 bits/char = clean nibble
 #: packing. Do not hand-edit this without re-running the measurement tool.
 ALPHABET: _ty.Final[str] = "ABCDHKLMPRTVXY34"
 
@@ -123,7 +123,7 @@ ALPHABET: _ty.Final[str] = "ABCDHKLMPRTVXY34"
 # to eliminate) -- but this alphabet was measured at 16/16 safe with 0 corrupting
 # confusions and 0% line-insertion *without* any alias, so there is no measured
 # need for one, and adding a speculative, unmeasured alias would only reintroduce
-# the class of bug being fixed. When in doubt, omit the alias (Design Q2).
+# the class of bug being fixed. When in doubt, omit the alias.
 _DECODE_MAP: _ty.Final[_ty.Dict[str, int]] = {}
 for _i, _ch in enumerate(ALPHABET):
     _DECODE_MAP[_ch] = _i
@@ -260,8 +260,8 @@ INDEX_WIDTH: _ty.Final[int] = 5
 # a run of identical glyphs: OCR engines reliably *insert* phantom characters
 # into uniform runs, and a decimal index made every line start with `00000` --
 # the single worst target on the page. The prior 4-char/5-bit mask scored
-# 12/12 vs 5/12 for decimal and 3/12 for unmasked Crockford (see git history /
-# the project plan's Design Q1); this is the same masking technique re-pinned
+# 12/12 vs 5/12 for decimal and 3/12 for unmasked Crockford (see git history);
+# this is the same masking technique re-pinned
 # to 5 chars of 4-bit nibbles for the new alphabet. All 5 values are distinct
 # 4-bit constants, which is what defeats the runs that are actually hit by
 # small (real-world) indices -- see the no-uniform-run test over 0..5000.
@@ -287,8 +287,8 @@ def encode_index(idx: int) -> str:
 def decode_index(token: str) -> _ty.Optional[int]:
     """Inverse of :func:`encode_index`; ``None`` if the token is not readable.
 
-    Case-insensitive; no confusable aliases are applied (Design Q2 -- see the
-    comment above ``_DECODE_MAP``). A wrong result cannot slip through anyway:
+    Case-insensitive; no confusable aliases are applied (see the comment above
+    ``_DECODE_MAP``). A wrong result cannot slip through anyway:
     the per-line CRC covers the printed token and rejects it.
     """
     if len(token) != INDEX_WIDTH:
