@@ -54,6 +54,14 @@ glyphive list -f backup.txt
 glyphive extract -f backup.txt -C restored
 ```
 
+Tar-style mode flags are equivalent when a positional command is inconvenient:
+
+```bash
+glyphive -c -f backup.txt -C project .
+glyphive -t -f backup.txt
+glyphive -x -f backup.txt -C restored
+```
+
 Create a PDF instead:
 
 ```bash

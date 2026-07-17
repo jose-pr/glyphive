@@ -44,7 +44,16 @@ OCR-friendly printable pages and back to a verified tree.
   whole-document SHA-256 validation, path-traversal-safe extraction, and an
   optional multi-provider OCR layer for image input.
 - **Tar-like CLI**: `create` (`c`), `extract` (`x`), and `list` (`t`) commands
-  with codec, compression, metadata, renderer, and OCR selectors.
+  with codec, compression, metadata, renderer, and OCR selectors. Leading
+  `-c`, `-x`, and `-t` mode flags work without a positional command.
+- **Automatic document input**: `extract` and `list` classify each direct-child
+  input independently by magic bytes, extension, then UTF-8 text, so transcript,
+  image, PDF, and DOCX pages can be mixed in deterministic order. A conversion
+  helper renders PDF/DOCX pages to PNG with configurable DPI and blur.
+- **Capacity-aware rendering**: PDF/DOCX row budgets follow font size and page
+  margins; `--minimal-margins` uses a compact 12-point profile, and long PDF
+  display headers fit rather than clip. Output format is inferred from `-f`
+  when `--format` is omitted.
 - **Documentation and examples**: task-focused create, restore, wire-format,
   OCR, benchmark, and API pages plus a runnable create/restore example.
 
@@ -52,6 +61,8 @@ OCR-friendly printable pages and back to a verified tree.
 
 - Require `pathlib_next>=0.8.1`, including its Python 3.9 import and local path
   walking fixes.
+- A directory supplied to CLI `-f` expands its direct child files in stable
+  filename order.
 
 ### Known limitations
 
