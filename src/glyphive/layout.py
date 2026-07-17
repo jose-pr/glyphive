@@ -561,14 +561,24 @@ class _ParsedFooter(_ty.NamedTuple):
 
 
 def _parse_footer(line: str) -> _ty.Optional[_ParsedFooter]:
-    """Parse the protected T frame; human ``PAGE n/total`` is display-only."""
+    """Parse the protected T frame; human ``PAGE n/total`` is display-only.
+
+    A structurally footer-shaped line whose CRC fails (a real OCR misread —
+    unlike ``H`` frames, ``T`` carries no duplication or RS parity) returns
+    ``None`` rather than raising: the human ``PAGE n/total`` hint is never
+    substituted, but the page's footer is simply treated as unreadable/absent
+    for this pass. ``read_pages``'s existing missing-page detection (which
+    compares the protected header's total page count against every page
+    number actually confirmed by a *valid* footer) still catches a genuinely
+    lost page; it does not depend on guessing at a damaged footer.
+    """
     from .codec.base16c import nibble_decode
 
     frame = _parse_machine_frame(line, _MACHINE_FOOTER_KIND)
     if frame is None:
         return None
     if not frame.ok or frame.idx is None:
-        raise LayoutError("machine page footer failed its integrity check")
+        return None
     if len(frame.payload) % 2:
         raise LayoutError("machine page footer has an odd payload length")
     try:

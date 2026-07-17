@@ -170,6 +170,15 @@ def test_one_missing_machine_header_copy_is_recovered():
 
 
 def test_machine_footer_corruption_fails_instead_of_using_page_hint():
+    """A damaged T frame is treated as missing, never as its human PAGE hint.
+
+    T frames carry no duplication or RS (unlike H, findings-driven fix
+    2026-07-17), so a CRC-damaged footer cannot be repaired -- but it must
+    still never fall back to trusting the unprotected ``PAGE n/total`` prose
+    that follows it on the same line. The correct, honest outcome is that the
+    page's identity is unconfirmed, which the existing missing-page detection
+    reports by number (not a generic parse error).
+    """
     _data, lines = _document()
     index = next(i for i, line in enumerate(lines) if line.startswith("T"))
     label, payload, check, suffix, count = lines[index].split()
@@ -178,8 +187,9 @@ def test_machine_footer_corruption_fails_instead_of_using_page_hint():
         f"{label} {replacement + payload[1:]} {check} {suffix} {count}"
     )
 
-    with pytest.raises(layout.LayoutError, match="footer failed"):
+    with pytest.raises(layout.MissingPageError) as excinfo:
         layout.read_pages(lines)
+    assert excinfo.value.missing == [1]
 
 
 def test_page_footer_verifier_rejects_damaged_protected_footer():
