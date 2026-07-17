@@ -13,7 +13,10 @@ glyphive create -f backup.txt -C project .
 `-C project .` means “archive the `project` directory as the root.” The alpha
 CLI accepts exactly one root; put multiple inputs beneath a common directory.
 
-The default format is `text`. Compression selects `zstd` when the optional
+The output format is inferred from `-f`: `.pdf` selects PDF, `.docx` selects
+Word, and `.txt` or `.text` selects text. An unknown or missing extension falls
+back to `text`, and an explicit `--format` always wins. Compression selects
+`zstd` when the optional
 dependency is available and otherwise uses `gzip`. Select behavior explicitly
 when reproducibility across installations matters:
 
@@ -33,12 +36,12 @@ Short command alias: `glyphive c`.
 
 ```bash
 pip install "glyphive[pdf]"
-glyphive create -f backup.pdf --format pdf --font courier --font-size 8 -C project .
+glyphive create -f backup.pdf --font courier --font-size 8 -C project .
 ```
 
 ```bash
 pip install "glyphive[docx]"
-glyphive create -f backup.docx --format docx --font Consolas --font-size 10 -C project .
+glyphive create -f backup.docx --font Consolas --font-size 10 -C project .
 ```
 
 PDF output accepts the built-in FPDF families `courier`, `helvetica`, `times`,
