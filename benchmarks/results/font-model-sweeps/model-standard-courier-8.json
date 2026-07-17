@@ -1,0 +1,172 @@
+{
+  "results": [
+    {
+      "font_arg": "courier",
+      "font_label": "courier",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 8.0,
+      "rows": 150,
+      "line_length": 60,
+      "chars_per_line": 110,
+      "lines_per_page": 75,
+      "seed": 1234,
+      "wraps": false,
+      "line_insert_rate": 0.006666666666666667,
+      "length_mismatches": 1,
+      "per_char": {
+        "A": {
+          "samples": 514,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 576,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 589,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 569,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 604,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 533,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 539,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 552,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 590,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 556,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 564,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 560,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 544,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 574,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 550,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 526,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 4.0,
+      "efficiency": 1.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 4500,
+      "bytes_per_page": 2250.0,
+      "usable_bytes_per_page": 2235.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "tesseract"
+    ],
+    "dense": {
+      "font": "courier",
+      "size": 8.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "bytes_per_page": 2250.0,
+      "usable_bytes_per_page": 2235.0,
+      "line_insert_rate": 0.006666666666666667,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "courier",
+      "size": 8.0,
+      "charset": "custom",
+      "engines": [
+        "tesseract"
+      ],
+      "safe": "34ABCDHKLMPRTVXY",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "bytes_per_page": 2250.0,
+      "usable_bytes_per_page": 2235.0,
+      "line_insert_rate": 0.006666666666666667
+    },
+    "retype": {
+      "font": "courier",
+      "size": 8.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}
