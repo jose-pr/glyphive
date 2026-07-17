@@ -211,7 +211,7 @@ class _ParsedMachineFrame(_ty.NamedTuple):
 
 def _machine_check(idx_token: str, payload: str) -> str:
     """Return a safe-alphabet CRC-16 for a machine metadata frame."""
-    from .codec.g1 import nibble_encode
+    from .codec.base16c import nibble_encode
 
     canonical = idx_token.upper().encode() + payload.upper().encode()
     crc = binascii.crc_hqx(canonical, 0xFFFF)
@@ -219,7 +219,7 @@ def _machine_check(idx_token: str, payload: str) -> str:
 
 
 def _format_machine_frame(kind: str, idx: int, payload: str) -> str:
-    from .codec.g1 import ALPHABET, encode_index
+    from .codec.base16c import ALPHABET, encode_index
 
     if kind not in (_MACHINE_HEADER_KIND, _MACHINE_FOOTER_KIND):
         raise ValueError(f"invalid machine metadata frame kind {kind!r}")
@@ -241,7 +241,7 @@ def _parse_machine_frame(
     whitespace in the safe-alphabet payload is removed, exactly as it is for
     payload frames; the CRC remains the acceptance oracle.
     """
-    from .codec.g1 import INDEX_WIDTH, decode_index, split_frame
+    from .codec.base16c import INDEX_WIDTH, decode_index, split_frame
 
     split = split_frame(line, allow_trailing=kind == _MACHINE_FOOTER_KIND)
     if split is None:
@@ -324,7 +324,7 @@ def _machine_header_bytes(meta: _ty.Mapping[str, _ty.Any]) -> bytes:
 
 
 def _format_machine_header(meta: _ty.Mapping[str, _ty.Any]) -> _ty.List[str]:
-    from .codec.g1 import nibble_encode
+    from .codec.base16c import nibble_encode
 
     payload = nibble_encode(_machine_header_bytes(meta))
     chunks = [
@@ -358,7 +358,7 @@ def _take_machine_text(data: bytes, cursor: int, key: str) -> _ty.Tuple[str, int
 def _decode_machine_header(
     frames: _ty.Sequence[_ParsedMachineFrame],
 ) -> _ty.Dict[str, _ty.Any]:
-    from .codec.g1 import nibble_decode
+    from .codec.base16c import nibble_decode
 
     if not frames:
         raise LayoutError("no integrity-protected machine header found")
@@ -474,7 +474,7 @@ def format_page_footer(
     ``page_lines`` are the codec-framed data/parity lines on this page (NOT the
     header, NOT the footer). Grammar: ``PAGE <n>/<total> sha256=<first16hex>``.
     """
-    from .codec.g1 import nibble_encode
+    from .codec.base16c import nibble_encode
 
     if not (1 <= n <= total < 2**32):
         raise LayoutError(f"invalid page position {n}/{total}")
@@ -494,7 +494,7 @@ class _ParsedFooter(_ty.NamedTuple):
 
 def _parse_footer(line: str) -> _ty.Optional[_ParsedFooter]:
     """Parse the protected T frame; human ``PAGE n/total`` is display-only."""
-    from .codec.g1 import nibble_decode
+    from .codec.base16c import nibble_decode
 
     frame = _parse_machine_frame(line, _MACHINE_FOOTER_KIND)
     if frame is None:
@@ -701,7 +701,7 @@ def _looks_like_encoded(line: str) -> bool:
 
     We do NOT validate the CRC here (that is codec.decode's job) — we only decide
     whether to keep the line as data. This delegates the structural split to
-    ``codec.g1.split_frame``, which anchors the label as the first token and
+    ``codec.base16c.split_frame``, which anchors the label as the first token and
     ``#check`` as the last, joining everything between as the payload -- so an
     OCR-inserted interior space (splitting the payload into extra whitespace
     tokens) never causes a real encoded line to be dropped here. A line is kept
@@ -711,7 +711,7 @@ def _looks_like_encoded(line: str) -> bool:
     apart again, while still ignoring headers/footers/noise (e.g. the
     ``PAGE 1/1 sha256=...`` footer has no ``#check`` field and is rejected).
     """
-    from .codec.g1 import decode_index, split_frame
+    from .codec.base16c import decode_index, split_frame
 
     split = split_frame(line)
     if split is None:
@@ -762,8 +762,9 @@ def read_pages_to_spool(
     # --- Pass 1: recover the authoritative protected header. ----------------
     # The unrestricted ``#!glyphive ...`` line is retained for humans and old
     # tooling, but the restore path never trusts it.  In particular, there is no
-    # ``gl`` -> ``g1`` repair guess: codec selection comes from CRC-checked H
-    # frames encoded entirely in the measured-safe bootstrap alphabet.
+    # OCR-repair guessing of a garbled codec name (e.g. a misread character in
+    # ``base16c-crc16-rs``): codec selection comes from CRC-checked H frames
+    # encoded entirely in the measured-safe bootstrap alphabet.
     header_frames: _ty.List[_ParsedMachineFrame] = []
     warnings: _ty.List[str] = []
     pages_seen: _ty.Dict[int, int] = {}

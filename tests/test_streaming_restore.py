@@ -11,10 +11,10 @@ from glyphive.restore import decode, unarchive
 
 
 def _transcript(raw, *, digest=None, files=1):
-    encoded = codec.get("g1").encode(compression.get("none").compress(raw))
+    encoded = codec.get("base16c-crc16-rs").encode(compression.get("none").compress(raw))
     meta = {
         "v": 1,
-        "codec": "g1",
+        "codec": "base16c-crc16-rs",
         "comp": "none",
         "meta": "none",
         "files": files,

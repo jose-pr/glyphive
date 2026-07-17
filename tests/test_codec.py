@@ -1,4 +1,4 @@
-"""Tests for :mod:`glyphive.codec` — the OCR-safe codec (g1).
+"""Tests for :mod:`glyphive.codec` — the OCR-safe codec (base16c-crc16-rs).
 
 Covers round-trip fidelity, single-char RS self-healing, over-budget failure
 naming the failing line, and rejection of out-of-alphabet characters (Design
@@ -13,7 +13,7 @@ import random
 import pytest
 
 from glyphive import codec
-from glyphive.codec.g1 import (
+from glyphive.codec.base16c import (
     ALPHABET,
     CodecError,
     _encoding_shape,
@@ -23,7 +23,7 @@ from glyphive.codec.g1 import (
 )
 
 
-g1 = codec.get("g1")
+base16c = codec.get("base16c-crc16-rs")
 
 
 # --------------------------------------------------------------------------- #
@@ -36,43 +36,43 @@ g1 = codec.get("g1")
 def test_roundtrip_sizes(size):
     rng = random.Random(1234 + size)
     data = bytes(rng.randrange(256) for _ in range(size))
-    lines = g1.encode(data)
-    assert g1.decode(lines) == data
+    lines = base16c.encode(data)
+    assert base16c.decode(lines) == data
 
 
 def test_roundtrip_line_width_boundary():
     # line_width default is 60 chars; exercise data exactly one full line wide.
     # bytes_per_line = (60 * 4) // 8 = 30 bytes (4 bits/char, the 16-char alphabet).
     data = bytes(range(30))
-    lines = g1.encode(data)
-    assert g1.decode(lines) == data
+    lines = base16c.encode(data)
+    assert base16c.decode(lines) == data
 
 
 @pytest.mark.parametrize("size", [0, 1, 29, 30, 31, 255, 4096])
 def test_streaming_encode_is_line_identical(size):
     data = bytes((index * 31) % 256 for index in range(size))
-    expected = g1.encode(data)
-    actual = list(g1.iter_encode(io.BytesIO(data), len(data)))
+    expected = base16c.encode(data)
+    actual = list(base16c.iter_encode(io.BytesIO(data), len(data)))
     assert actual == expected
     assert encoded_line_count(len(data)) == len(expected)
 
 
 def test_streaming_encode_rejects_truncated_and_grown_source():
     with pytest.raises(ValueError, match="truncated"):
-        list(g1.iter_encode(io.BytesIO(b"short"), 6))
+        list(base16c.iter_encode(io.BytesIO(b"short"), 6))
     with pytest.raises(ValueError, match="grew"):
-        list(g1.iter_encode(io.BytesIO(b"extra"), 4))
+        list(base16c.iter_encode(io.BytesIO(b"extra"), 4))
 
 
 def test_spooled_decode_matches_one_shot_and_repairs_erasures():
     data = bytes((index * 17) % 256 for index in range(4096))
-    lines = g1.encode(data)
+    lines = base16c.encode(data)
     damaged = list(lines)
     line_index = _first_data_line_index(damaged)
     damaged[line_index] = _mutate_one_payload_char(damaged[line_index])
     encoded = io.BytesIO("\n".join(damaged).encode("utf-8") + b"\n")
     restored = io.BytesIO()
-    g1.decode_spool(encoded, restored)
+    base16c.decode_spool(encoded, restored)
     assert restored.getvalue() == data
 
 
@@ -120,7 +120,7 @@ def _mutate_one_payload_char(line):
 def test_single_char_error_self_heals():
     rng = random.Random(42)
     data = bytes(rng.randrange(256) for _ in range(500))
-    lines = g1.encode(data)
+    lines = base16c.encode(data)
 
     idx = _first_data_line_index(lines)
     corrupted = list(lines)
@@ -129,7 +129,7 @@ def test_single_char_error_self_heals():
     corrupted[idx] = mutated
 
     # The line's CRC now fails, marking it an erasure; RS repairs it.
-    assert g1.decode(corrupted) == data
+    assert base16c.decode(corrupted) == data
 
 
 # --------------------------------------------------------------------------- #
@@ -139,7 +139,7 @@ def test_over_budget_corruption_raises_named():
     rng = random.Random(7)
     data = bytes(rng.randrange(256) for _ in range(400))
     # Small parity budget so a modest amount of damage exceeds it.
-    lines = g1.encode(data, parity_ratio=0.02)
+    lines = base16c.encode(data, parity_ratio=0.02)
 
     corrupted = list(lines)
     # Wreck every data line's payload -> far beyond any RS budget.
@@ -151,7 +151,7 @@ def test_over_budget_corruption_raises_named():
     assert n_wrecked > 0
 
     with pytest.raises(CodecError) as excinfo:
-        g1.decode(corrupted)
+        base16c.decode(corrupted)
     msg = str(excinfo.value)
     # Message must name a concrete line label (L##### or P#####).
     import re
@@ -164,17 +164,17 @@ def test_codec_error_is_valueerror():
 
 
 def test_codec_registry_exposes_g1_and_direct_api():
-    assert codec.names() == ["g1"]
-    assert codec.available() == ["g1"]
-    assert isinstance(codec.get("g1"), codec.G1Codec)
+    assert codec.names() == ["base16c-crc16-rs"]
+    assert codec.available() == ["base16c-crc16-rs"]
+    assert isinstance(codec.get("base16c-crc16-rs"), codec.Base16CCodec)
     payload = b"registry compatibility"
-    assert g1.decode(codec.get("g1").encode(payload)) == payload
+    assert base16c.decode(codec.get("base16c-crc16-rs").encode(payload)) == payload
 
 
 # --------------------------------------------------------------------------- #
 # Structural frame parsing: tolerate OCR-inserted interior spaces
 # --------------------------------------------------------------------------- #
-from glyphive.codec.g1 import _parse_line, split_frame  # noqa: E402
+from glyphive.codec.base16c import _parse_line, split_frame  # noqa: E402
 
 
 def test_parse_line_tolerates_captured_ocr_transcript_line():
@@ -197,7 +197,7 @@ def test_parse_line_tolerates_two_interior_spaces():
     # payload the way Tesseract does, and confirm it still parses and its CRC
     # still validates (the CRC is recomputed over the rejoined payload).
     data = bytes(range(40))
-    lines = g1.encode(data)
+    lines = base16c.encode(data)
     line = next(l for l in lines if l.startswith("L"))
     label, payload, check = line.split()
     noisy_payload = payload[:10] + " " + payload[10:20] + " " + payload[20:]
@@ -211,7 +211,7 @@ def test_parse_line_tolerates_two_interior_spaces():
 
 
 def test_parse_line_accepts_compact_frame_with_valid_crc():
-    line = next(line for line in g1.encode(b"compact frame") if line.startswith("L"))
+    line = next(line for line in base16c.encode(b"compact frame") if line.startswith("L"))
     compact = line.replace(" ", "")
 
     parsed = _parse_line(compact)
@@ -221,7 +221,7 @@ def test_parse_line_accepts_compact_frame_with_valid_crc():
 
 
 def test_parse_line_keeps_corrupted_compact_frame_as_crc_erasure():
-    line = next(line for line in g1.encode(b"compact frame") if line.startswith("L"))
+    line = next(line for line in base16c.encode(b"compact frame") if line.startswith("L"))
     compact = line.replace(" ", "")
     payload_start = 6
     replacement = "A" if compact[payload_start] != "A" else "B"
@@ -251,7 +251,7 @@ def test_split_frame_anchors_label_first_check_last():
 # Index encoding never renders as a uniform run with the 16-char alphabet /
 # 5-char index token.
 # --------------------------------------------------------------------------- #
-from glyphive.codec.g1 import decode_index, encode_index  # noqa: E402
+from glyphive.codec.base16c import decode_index, encode_index  # noqa: E402
 
 
 def test_encode_index_never_renders_uniform_run():
@@ -271,15 +271,15 @@ def test_encode_decode_index_roundtrip():
 
 
 def test_codec_registry_rejects_unknown_names():
-    with pytest.raises(ValueError, match=r"unknown codec 'missing'.*g1"):
+    with pytest.raises(ValueError, match=r"unknown codec 'missing'.*base16c-crc16-rs"):
         codec.get("missing")
 
 
 def test_codec_registry_rejects_duplicate_names():
     existing = dict(codec.Codec._registry)
     try:
-        with pytest.raises(ValueError, match="duplicate codec name 'g1'"):
-            type("DuplicateCodec", (codec.Codec,), {"name": "g1", "encode": lambda self, data, **options: [], "decode": lambda self, lines, **options: b""})
+        with pytest.raises(ValueError, match="duplicate codec name 'base16c-crc16-rs'"):
+            type("DuplicateCodec", (codec.Codec,), {"name": "base16c-crc16-rs", "encode": lambda self, data, **options: [], "decode": lambda self, lines, **options: b""})
     finally:
         codec.Codec._registry.clear()
         codec.Codec._registry.update(existing)
@@ -322,7 +322,7 @@ def test_excluded_confusable_in_framed_line_repairs_via_rs():
     # instead of an in-alphabet one.
     rng = random.Random(99)
     data = bytes(rng.randrange(256) for _ in range(300))
-    lines = g1.encode(data)
+    lines = base16c.encode(data)
 
     idx = _first_data_line_index(lines)
     label, payload, check = lines[idx].split()
@@ -331,4 +331,4 @@ def test_excluded_confusable_in_framed_line_repairs_via_rs():
     corrupted = list(lines)
     corrupted[idx] = f"{label} {noisy_payload} {check}"
 
-    assert g1.decode(corrupted) == data
+    assert base16c.decode(corrupted) == data
