@@ -258,6 +258,52 @@ def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch)
     assert seen["engine"] == "test-engine"
 
 
+def test_transcript_directory_is_read_in_sorted_nonrecursive_order(tmp_path):
+    from glyphive.cli._common import load_transcript_lines
+
+    transcripts = tmp_path / "transcripts"
+    transcripts.mkdir()
+    (transcripts / "b.txt").write_text("second\n", encoding="utf-8")
+    (transcripts / "a.txt").write_text("first\fpage\n", encoding="utf-8")
+    nested = transcripts / "nested"
+    nested.mkdir()
+    (nested / "ignored.txt").write_text("ignored\n", encoding="utf-8")
+
+    assert load_transcript_lines(transcripts) == ["first", "page", "second"]
+
+
+def test_image_directory_uses_one_provider_and_sorted_files(tmp_path, monkeypatch):
+    from glyphive.cli._common import load_image_lines
+    from glyphive.restore import ocr
+
+    images = tmp_path / "images"
+    images.mkdir()
+    (images / "b.png").write_bytes(b"b")
+    (images / "a.png").write_bytes(b"a")
+    (images / "nested").mkdir()
+    seen = {}
+
+    def fake_ocr_pages(paths, *, engine=None):
+        seen["paths"] = [path.name for path in paths]
+        seen["engine"] = engine
+        return [["page-a"], ["page-b", "tail"]]
+
+    monkeypatch.setattr(ocr, "ocr_pages", fake_ocr_pages)
+    assert load_image_lines(images, engine="mock") == ["page-a", "page-b", "tail"]
+    assert seen == {"paths": ["a.png", "b.png"], "engine": "mock"}
+
+
+@pytest.mark.parametrize("loader_name", ["load_transcript_lines", "load_image_lines"])
+def test_empty_input_directory_fails_clearly(tmp_path, loader_name):
+    from glyphive.cli import _common
+
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    loader = getattr(_common, loader_name)
+    with pytest.raises(ValueError, match="input directory contains no files"):
+        loader(empty)
+
+
 def test_mutually_exclusive_compression_guard(tmp_path):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "a.txt"
