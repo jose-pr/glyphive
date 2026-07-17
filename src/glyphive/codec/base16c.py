@@ -88,6 +88,7 @@ correct the resulting erasures, ``decode`` RAISES a clear exception naming the
 exact failing line label. It never guesses or mutates data to make it "work".
 """
 
+import collections as _collections
 import mmap as _mmap
 import io as _io
 import tempfile as _tempfile
@@ -890,7 +891,7 @@ class Base16CCodec(Codec):
         """Decode an encoded-line spool with only offsets and RS blocks in RAM."""
         data_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
         parity_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
-        max_payload = 0
+        length_counts: _ty.Counter[int] = _collections.Counter()
         encoded_source.seek(0)
         while True:
             offset = encoded_source.tell()
@@ -902,11 +903,39 @@ class Base16CCodec(Codec):
                 continue
             target = data_lines if parsed.kind == "L" else parity_lines
             target[parsed.idx] = (offset, parsed.ok, len(parsed.payload))
-            max_payload = max(max_payload, len(parsed.payload))
+            length_counts[len(parsed.payload)] += 1
 
         if not data_lines:
             raise ValueError("no data lines found to decode")
-        bytes_per_line = (max_payload * 4) // 8
+        # Derive the line width from the MODAL payload length, not max(): a single
+        # OCR-corrupted line whose length is off by a couple of characters must not
+        # widen bytes_per_line for every other, perfectly good line on the stream
+        # (real-recovery finding #4 — 3 bad lines out of ~3500 broke an otherwise
+        # successful 72-page RS decode). Any non-last line whose length disagrees
+        # with the modal width is itself evidence of corruption and is forced into
+        # an erasure below, exactly as a CRC failure would be. The last line of each
+        # kind is legitimately shorter, so it never votes on or is judged by the
+        # modal width.
+        data_last = max(data_lines)
+        parity_last = max(parity_lines) if parity_lines else None
+        modal_counts: _ty.Counter[int] = _collections.Counter()
+        for kind_index, last_idx in ((data_lines, data_last), (parity_lines, parity_last)):
+            for idx, (_offset, _ok, payload_len) in kind_index.items():
+                if idx != last_idx:
+                    modal_counts[payload_len] += 1
+        if modal_counts:
+            modal_payload = modal_counts.most_common(1)[0][0]
+        else:
+            # Only last lines present (a tiny 1-line-per-kind stream): fall back to
+            # the largest observed length, which is the single real line's width.
+            modal_payload = max(length_counts)
+        # Force any non-last line whose width != modal into an erasure (ok=False)
+        # so a wrong-length line is corrected by RS instead of corrupting geometry.
+        for kind_index, last_idx in ((data_lines, data_last), (parity_lines, parity_last)):
+            for idx, (line_offset, ok, payload_len) in list(kind_index.items()):
+                if idx != last_idx and payload_len != modal_payload:
+                    kind_index[idx] = (line_offset, False, payload_len)
+        bytes_per_line = (modal_payload * 4) // 8
         with _tempfile.TemporaryFile(dir=temp_dir) as data_spool, _tempfile.TemporaryFile(
             dir=temp_dir
         ) as parity_spool:

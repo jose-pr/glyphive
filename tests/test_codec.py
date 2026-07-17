@@ -132,6 +132,54 @@ def test_single_char_error_self_heals():
     assert base16c.decode(corrupted) == data
 
 
+def _find_non_last_data_line(lines):
+    """Return the index in ``lines`` of a data line that is not the last one."""
+    data_positions = [i for i, line in enumerate(lines) if line.startswith("L")]
+    assert len(data_positions) >= 3, "need multiple data lines for this test"
+    return data_positions[1]  # a middle line, definitely not the last
+
+
+def _pad_payload(line, extra):
+    """Return ``line`` with ``extra`` alphabet chars appended to its payload.
+
+    Widens the line beyond the modal width and (because the check no longer
+    matches) breaks its CRC -- exactly the OCR class where a substitution also
+    merged/duplicated a character (real-recovery finding #4).
+    """
+    label, payload, check = line.split()
+    return f"{label} {payload + ALPHABET[0] * extra} {check}"
+
+
+def _truncate_payload(line, fewer):
+    """Return ``line`` with ``fewer`` chars removed from its payload."""
+    label, payload, check = line.split()
+    return f"{label} {payload[:-fewer]} {check}"
+
+
+def test_wrong_length_line_does_not_poison_global_byte_width():
+    """One over/under-length line must not change bytes_per_line for the rest.
+
+    Real-recovery finding #4: ``decode`` derived the stream-wide byte width from
+    ``max()`` over every parsed line, so a single OCR-corrupted line whose
+    payload came out a couple of characters too long widened the geometry for
+    every other, perfectly good line and broke the whole RS decode. The width
+    now comes from the modal payload length, and the off-width line is forced
+    into an erasure RS repairs.
+    """
+    rng = random.Random(1234)
+    data = bytes(rng.randrange(256) for _ in range(500))
+    lines = base16c.encode(data)
+
+    for corrupt in (_pad_payload, _truncate_payload):
+        corrupted = list(lines)
+        idx = _find_non_last_data_line(corrupted)
+        corrupted[idx] = corrupt(corrupted[idx], 2)
+        assert corrupted[idx] != lines[idx]
+        # Every other line is untouched and perfectly good; the one wrong-length
+        # line is an erasure the interleaved RS repairs.
+        assert base16c.decode(corrupted) == data
+
+
 # --------------------------------------------------------------------------- #
 # Corruption beyond the RS budget -> CodecError naming a line label
 # --------------------------------------------------------------------------- #
