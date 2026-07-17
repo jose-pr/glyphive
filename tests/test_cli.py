@@ -85,6 +85,32 @@ def test_tar_style_mode_flags_roundtrip(tmp_path, capsys):
     assert "codec=g1" in capsys.readouterr().out
 
 
+def test_create_uses_configured_spool_directory_and_chunk_size(tmp_path):
+    src = _make_srcdir(tmp_path)
+    archive_file = tmp_path / "streamed.txt"
+    spool_dir = tmp_path / "spools"
+    spool_dir.mkdir()
+
+    assert cli.run(
+        [
+            "create",
+            "-f",
+            str(archive_file),
+            "-C",
+            str(src),
+            "--none",
+            "--temp-dir",
+            str(spool_dir),
+            "--chunk-size",
+            "17",
+            ".",
+        ]
+    ) == 0
+    assert list(spool_dir.iterdir()) == []
+    assert cli.run(["extract", "-f", str(archive_file), "-C", str(tmp_path / "out")]) == 0
+    _compare_dirs(src, tmp_path / "out")
+
+
 def test_plugins_flag_discovers_before_selector_validation(tmp_path, monkeypatch):
     from glyphive import plugins
     from glyphive.cli import create as create_command
