@@ -15,11 +15,17 @@ def test_registry_names_and_fresh_instances():
     assert compression.get("none").compress(b"payload") == b"payload"
 
 
-def test_gzip_bytes_and_explicit_level_match_stdlib():
+def test_gzip_bytes_match_stdlib_except_normalized_os_byte():
     payload = b"compression registry" * 20
-    assert compression.get("gzip").compress(payload) == gzip.compress(
-        payload, compresslevel=9, mtime=0
-    )
+    actual = compression.get("gzip").compress(payload)
+    expected = gzip.compress(payload, compresslevel=9, mtime=0)
+    # CPython 3.11/3.12 delegates this fast path to zlib and writes the host OS
+    # byte (3 on Linux), while GzipFile deliberately writes 255.  Glyphive uses
+    # GzipFile so archives are byte-identical across operating systems.
+    assert actual[:9] == expected[:9]
+    assert actual[9] == 255
+    assert actual[10:] == expected[10:]
+    assert gzip.decompress(actual) == payload
     assert compression.get("gzip").decompress(
         compression.get("gzip").compress(payload, 1)
     ) == payload
