@@ -93,10 +93,14 @@ radix 8; 0.1 pt recovered radix 16 but yielded only 4,023 bytes/page. Thus
 neither centering, justification, nor added tracking displaced OCR-B left/0 as
 the densest measured constrained grid.
 
-The OCR-B 6 pt constrained result is a character-grid result, not yet a wire
-profile. Real pages also contain frame labels, indices, separators, and display
-text. It must survive complete PDF creation, rasterization, OCR, and restore
-before Glyphive can make the constrained profile a default.
+The constrained profile subsequently passed a complete VM wire gate: a
+12,036-byte source was archived with Zstandard into five PDF pages using the
+bundled OCR-B font at 6 pt and minimum margins, rasterized at 300 DPI,
+recognized with pinned `tessdata_fast`, and restored byte-for-byte. Tesseract
+removed frame-separator spaces, so all five display page hashes warned; compact
+CRC-checked frame parsing and payload FEC still recovered the exact archive.
+This is a synthetic PDF/raster gate, not evidence for a physical printer and
+scanner.
 
 ## Tesseract model pins
 
@@ -118,8 +122,8 @@ on its synthetic training samples.
 
 ## Pending matrix
 
-- Run complete restore gates for constrained OCR-B and Courier pages, including
-  every frame marker and compressed payload modes.
+- Repeat the constrained OCR-B restore gate through physical print/scan paths,
+  and run the same full-frame comparison for Courier.
 - Continue OCR-B point-size, rendered stroke-width, line-spacing, and
   minimum-margin tests. The first alignment sweep favored left alignment with
   no added spacing; repeat it through an end-to-end restore path before making

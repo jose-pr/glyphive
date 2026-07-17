@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "kind": "diagnostic-compression-candidates",
+  "evidence_class": "Rocky Linux VM diagnostic; not CI performance evidence",
+  "environment": {
+    "date": "2026-07-16",
+    "os": "Rocky Linux 9, Linux 5.14.0-687.26.1.el9_8 x86_64, glibc 2.34",
+    "python": "3.9.25",
+    "repository_revision": "874177dcb7dee4b77075ab6277a64c9285077dab",
+    "zstandard": "0.25.0",
+    "brotli": "1.2.0"
+  },
+  "method": {
+    "trials_per_profile": 3,
+    "reported_time": "median milliseconds",
+    "deterministic_container": true,
+    "compressed_hashes_identical_across_trials": true,
+    "compressed_sha256_values_retained": false,
+    "page_calculation": "exact g1 encoded_line_count and paginate at 60 lines/page",
+    "notes": "Corpora are deterministic path/length/content containers from the checkout. The already-compressed corpus combines deterministic zlib-compressed bytes and gzip-9 source bytes. Peak RSS was not measured."
+  },
+  "columns": [
+    "profile",
+    "compressed_bytes",
+    "g1_pages",
+    "compression_median_ms",
+    "decompression_median_ms"
+  ],
+  "corpora": {
+    "source": {
+      "raw_bytes": 275049,
+      "rows": [
+        ["gzip-9", 71500, 67, 30.139, 1.605],
+        ["zstd-3", 71214, 67, 1.914, 0.327],
+        ["zstd-9", 64393, 61, 8.009, 0.309],
+        ["zstd-19", 60024, 56, 88.611, 0.335],
+        ["xz-6", 58908, 55, 76.770, 4.197],
+        ["xz-9", 58908, 55, 83.644, 4.395],
+        ["bz2-9", 57508, 54, 19.903, 7.359],
+        ["brotli-6", 63206, 59, 8.329, 0.673],
+        ["brotli-9", 61828, 58, 19.730, 0.733],
+        ["brotli-11", 56893, 54, 496.347, 0.813]
+      ]
+    },
+    "text": {
+      "raw_bytes": 47274,
+      "rows": [
+        ["gzip-9", 17317, 17, 2.194, 0.341],
+        ["zstd-3", 17935, 17, 0.304, 0.078],
+        ["zstd-9", 16849, 16, 1.288, 0.077],
+        ["zstd-19", 16406, 16, 14.591, 0.085],
+        ["xz-6", 16136, 16, 12.963, 1.143],
+        ["xz-9", 16136, 16, 25.413, 1.206],
+        ["bz2-9", 15436, 15, 4.046, 1.525],
+        ["brotli-6", 16314, 16, 1.744, 0.198],
+        ["brotli-9", 16280, 16, 7.679, 0.213],
+        ["brotli-11", 14619, 14, 79.779, 0.233]
+      ]
+    },
+    "mixed": {
+      "raw_bytes": 238897,
+      "rows": [
+        ["gzip-9", 73883, 69, 23.726, 1.433],
+        ["zstd-3", 73671, 69, 1.243, 0.340],
+        ["zstd-9", 67594, 64, 5.912, 0.290],
+        ["zstd-19", 63518, 60, 75.464, 0.383],
+        ["xz-6", 61472, 58, 62.342, 4.310],
+        ["xz-9", 61472, 58, 74.125, 4.661],
+        ["bz2-9", 64764, 61, 18.080, 7.030],
+        ["brotli-6", 65779, 62, 7.615, 0.722],
+        ["brotli-9", 64739, 61, 18.408, 0.777],
+        ["brotli-11", 59755, 56, 464.367, 0.891]
+      ]
+    },
+    "already_compressed": {
+      "raw_bytes": 73864,
+      "rows": [
+        ["gzip-9", 71928, 68, 1.922, 0.185],
+        ["zstd-3", 71858, 67, 0.078, 0.019],
+        ["zstd-9", 71847, 67, 0.140, 0.018],
+        ["zstd-19", 71881, 67, 5.595, 0.022],
+        ["xz-6", 72680, 68, 14.005, 4.322],
+        ["xz-9", 72680, 68, 32.861, 4.834],
+        ["bz2-9", 72531, 68, 12.179, 3.874],
+        ["brotli-6", 71858, 67, 1.216, 0.211],
+        ["brotli-9", 71843, 67, 6.862, 0.221],
+        ["brotli-11", 71829, 67, 450.206, 0.221]
+      ]
+    }
+  },
+  "recommendation": "Keep zstd as the default and add no new built-in yet. XZ misses the existing page-reduction gate, bzip2 restore is too slow, and Brotli needs a larger CI corpus plus bounded-output streaming and long-term recovery review."
+}

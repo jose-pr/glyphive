@@ -56,6 +56,28 @@ commit `69dcb0f` with five repeats after one warm-up call:
 This is a local VM sanity result, not release-grade performance evidence. A
 matched CI before/after comparison is still required for a performance claim.
 
+### Compression candidate diagnostic
+
+A separate Rocky Linux VM diagnostic compared gzip-9, zstd levels 3/9/19, XZ
+levels 6/9, bzip2-9, and Brotli levels 6/9/11 over deterministic source, text,
+mixed, and already-compressed corpora. Each cell used three trials; reported
+times are medians. This is local/VM diagnostic evidence, not CI performance
+evidence.
+
+Against zstd-9, XZ-6 reduced a 61-page source case to 55 pages and a 64-page
+mixed case to 58, but missed the plan's 10% page-reduction threshold and was
+roughly 14 times slower to restore. Bzip2-9 reached 54 source pages but had
+roughly 24 times the zstd-9 restore time. Brotli-11 reached 54 source, 14 text,
+and 56 mixed pages, but compression took 496, 80, and 464 ms respectively,
+versus 8, 1.3, and 5.9 ms for zstd-9. It also adds a recovery dependency and
+still needs bounded-output streaming validation. Already-compressed input was
+67 pages under both zstd-9 and Brotli-11; XZ and bzip2 each increased it to 68.
+
+The current recommendation remains zstd: add no new built-in until a larger CI
+corpus and decompression-safety gate justify the permanent recovery surface.
+The exact environment, sizes, page counts, timings, and determinism record are
+in the [raw compression result](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/compression-candidates-20260716.json).
+
 ## OCR density
 
 Run `tools/ocr_font_report.py` for selected font/engine cells. It supports
@@ -119,8 +141,10 @@ The historical Consolas recovery source was printed at 12 pt and scanned at
 `5/S`, and `8/B` confusions; it was not a controlled capacity benchmark.
 These results make Courier 8 pt at 300 DPI the current starting profile, not
 proof that it is optimal for every renderer or OCR model. Subsequent VM sweeps
-found a promising constrained OCR-B cell but it has not passed a complete
-restore gate. In a 150-row layout diagnostic, 6 pt OCR-B with left alignment
+found a promising constrained OCR-B cell. It later passed a five-page,
+12,036-byte synthetic PDF/raster restore gate byte-for-byte; this does not
+substitute for a physical print/scan gate. In a 150-row layout diagnostic,
+6 pt OCR-B with left alignment
 and no added character spacing retained 16/16 symbols with no erasures and
 yielded 5,050 usable bytes/page. Centering without spacing lost two symbols;
 0.1 pt spacing recovered them but reduced capacity to 5,000 bytes/page.
