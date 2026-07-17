@@ -94,6 +94,33 @@ capacity. The Paddle-only result supports further radix-64 work. A conservative
 64-symbol candidate should omit visually confusable `O`; it is not yet a wire
 preset and has not passed an end-to-end dense create/OCR/restore gate.
 
+### Historical Windows font and size probes
+
+Earlier exploratory probes ran on Windows with Tesseract 5.4.0. They predate
+the versioned JSON report schema, so they guide follow-up experiments but are
+not directly comparable to the Rocky VM table above. No trustworthy
+bytes/page value survives for these probes: the early tool calculated capacity
+from the full line width instead of the requested line length.
+
+| Font / size | Render and sample | Observed result |
+| --- | --- | --- |
+| Courier 8 pt | 300 DPI; 60 rows x 110 characters; current 16-symbol alphabet | 16/16 symbols safe, 0% length-mismatched lines, no corrupting pairs |
+| Courier 11 pt | 300 DPI; 60 rows x 60 characters; current 16-symbol alphabet | 15/16 symbols safe (`T` failed), 2% length-mismatched lines |
+| Courier 11 pt | 300 DPI; 60 rows x 60 characters; all 36 uppercase alphanumerics | 26 zero-error symbols; detailed confusions were retained in the exploratory record |
+| Courier / Consolas | 12 frame lines per font at 300 DPI | Frame index read correctly on 12/12 lines for each font |
+| Cascadia Mono | 12 attempted frame lines at 300 DPI | 0/12: the tested font did not embed cleanly, so this is a rendering failure rather than an OCR score |
+| OCR-A Extended | 12 frame lines at 300 DPI | 0/12 under Tesseract 5.4.0 |
+| Courier 9/11/12/14 pt | exploratory 72-character frame lines at 300 DPI | Roughly one insertion per probe; only qualitative data was retained |
+| Courier 16/18 pt | exploratory 72-character frame lines at 300 DPI | Lines wrapped at US-Letter width, invalidating the cells |
+| Courier, 600 DPI | same exploratory channel as the 300-DPI probe | More insertions than at 300 DPI; only qualitative data was retained |
+
+The historical Consolas recovery source was printed at 12 pt and scanned at
+600 DPI. It was readable but suffered the familiar `0/O/o`, `1/l/I`, `2/Z`,
+`5/S`, and `8/B` confusions; it was not a controlled capacity benchmark.
+These results make Courier 8 pt at 300 DPI the current starting profile, not
+proof that it is optimal for every renderer or OCR model. OCR-B and any newly
+bundled font still require a versioned sweep before being recommended.
+
 ## Publication checklist
 
 A table may move from raw reports into release notes only when it includes:
