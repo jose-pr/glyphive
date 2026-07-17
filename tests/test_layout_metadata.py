@@ -1,6 +1,7 @@
 """Focused tests for OCR-safe layout metadata bootstrapping."""
 
 import hashlib
+import io
 
 import pytest
 
@@ -46,6 +47,18 @@ def test_iter_paginate_is_identical_and_checks_declared_count():
 
     with pytest.raises(layout.LayoutError, match="more than"):
         list(layout.iter_paginate(iter(encoded), len(encoded) - 1, dict(base_meta), lines_per_page=11))
+
+
+def test_read_pages_to_spool_matches_compatibility_result():
+    data, lines = _document(b"spooled transcript" * 20)
+    expected_meta, expected_lines = layout.read_pages(iter(lines))
+    spool = io.BytesIO()
+    actual_meta, count = layout.read_pages_to_spool(iter(lines), spool)
+    spool.seek(0)
+    actual_lines = [line.decode().rstrip("\n") for line in spool]
+    assert actual_meta == expected_meta
+    assert actual_lines == expected_lines
+    assert count == len(expected_lines)
 
 
 def test_real_ocr_damage_to_human_metadata_is_display_only():
