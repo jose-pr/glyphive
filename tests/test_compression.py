@@ -41,7 +41,7 @@ def test_missing_zstd_backend_has_install_hint(monkeypatch):
         raise RuntimeError("zstd compression requires the optional 'zstandard' dependency")
 
     monkeypatch.setattr(zstd, "_zstd_module", missing_backend)
-    with pytest.raises(RuntimeError, match="pip install glyphive\[zstd\]"):
+    with pytest.raises(RuntimeError, match=r"pip install glyphive\[zstd\]"):
         compression.get("zstd").compress(b"payload")
 
 
