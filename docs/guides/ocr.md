@@ -49,9 +49,11 @@ python tools/document_to_images.py backup.pdf pages/ --dpi 300 --blur 0.6
 python tools/document_to_images.py backup.docx pages/ --dpi 240
 ```
 
-Install `glyphive[document-input]` for PDF rendering. DOCX conversion also
-requires LibreOffice on `PATH`. The tool prints each generated page path in
-order, making its output suitable for inspection or a later OCR run.
+Install `glyphive[document-input]` for PDF rendering. DOCX conversion uses
+`python-docx` and produces a diagnostic re-render of paragraph text with the
+bundled OCR-B font; it does not reproduce Microsoft Word's layout engine. The
+tool prints each generated page path in order, making its output suitable for
+inspection or a later OCR run.
 
 ## Print and scan guidance
 
