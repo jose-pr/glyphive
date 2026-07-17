@@ -170,7 +170,7 @@ def test_restore_rejects_unknown_codec_before_decode(tmp_path):
         "bytes": len(raw),
         "sha256": hashlib.sha256(raw).hexdigest(),
     }
-    pages = layout.paginate(encoded, meta, lines_per_page=11)
+    pages = layout.paginate(encoded, meta, lines_per_page=13)
     text_lines = [line for page in pages for line in page.text_lines]
 
     with pytest.raises(ValueError, match=r"unknown codec 'missing'.*base16c-crc16-rs"):
@@ -193,7 +193,7 @@ def test_restore_accepts_ocr_confusable_header_and_footer_tokens(tmp_path):
         "bytes": len(raw),
         "sha256": hashlib.sha256(raw).hexdigest(),
     }
-    pages = layout.paginate(encoded, meta, lines_per_page=11)
+    pages = layout.paginate(encoded, meta, lines_per_page=13)
     text_lines = [line for page in pages for line in page.text_lines]
 
     text_lines[0] = text_lines[0].replace("codec=base16c-crc16-rs", "codec=base16c-crl")

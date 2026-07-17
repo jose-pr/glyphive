@@ -18,7 +18,7 @@ def _document(data=b"protected metadata"):
         "sha256": hashlib.sha256(data).hexdigest(),
     }
     pages = layout.paginate(
-        codec.get("base16c-crc16-rs").encode(data), meta, lines_per_page=11
+        codec.get("base16c-crc16-rs").encode(data), meta, lines_per_page=13
     )
     return data, [line for page in pages for line in page.text_lines]
 
@@ -39,14 +39,14 @@ def test_iter_paginate_is_identical_and_checks_declared_count():
         "bytes": 400,
         "sha256": "0" * 64,
     }
-    expected = layout.paginate(encoded, dict(base_meta), lines_per_page=11)
+    expected = layout.paginate(encoded, dict(base_meta), lines_per_page=13)
     actual = list(
-        layout.iter_paginate(iter(encoded), len(encoded), dict(base_meta), lines_per_page=11)
+        layout.iter_paginate(iter(encoded), len(encoded), dict(base_meta), lines_per_page=13)
     )
     assert actual == expected
 
     with pytest.raises(layout.LayoutError, match="more than"):
-        list(layout.iter_paginate(iter(encoded), len(encoded) - 1, dict(base_meta), lines_per_page=11))
+        list(layout.iter_paginate(iter(encoded), len(encoded) - 1, dict(base_meta), lines_per_page=13))
 
 
 def test_read_pages_to_spool_matches_compatibility_result():
@@ -95,7 +95,7 @@ def test_compact_machine_and_payload_frames_restore_full_transcript():
     assert codec.get(meta["codec"]).decode(encoded) == data
 
 
-def test_corrupted_compact_machine_frame_still_fails_crc():
+def test_corrupted_compact_machine_frame_is_rs_recovered():
     _data, lines = _document()
     indexes = [i for i, line in enumerate(lines) if line.startswith("H")]
     for index in indexes[:2]:
@@ -103,8 +103,8 @@ def test_corrupted_compact_machine_frame_still_fails_crc():
         replacement = "A" if compact[6] != "A" else "B"
         lines[index] = compact[:6] + replacement + compact[7:]
 
-    with pytest.raises(layout.LayoutError, match="frame copies failed"):
-        layout.read_pages(lines)
+    meta, _encoded = layout.read_pages(lines)
+    assert meta["codec"] == "base16c-crc16-rs"
 
 
 def test_machine_header_uses_fixed_width_safe_frames():
@@ -127,11 +127,25 @@ def test_one_machine_header_copy_can_be_corrupted_without_guessing():
     assert meta["codec"] == "base16c-crc16-rs"
 
 
-def test_both_machine_header_copies_corrupted_fail_instead_of_guessing():
+def test_both_copies_of_one_chunk_corrupted_are_rs_recovered():
     _data, lines = _document()
     indexes = [i for i, line in enumerate(lines) if line.startswith("H")]
     lines[indexes[0]] = _mutate_safe_payload(lines[indexes[0]])
     lines[indexes[1]] = _mutate_safe_payload(lines[indexes[1]])
+
+    meta, _encoded = layout.read_pages(lines)
+    assert meta["codec"] == "base16c-crc16-rs"
+
+
+def test_two_distinct_chunks_corrupted_exceed_the_rs_budget():
+    _data, lines = _document()
+    indexes = [i for i, line in enumerate(lines) if line.startswith("H")]
+    # Damage both copies of two *different* chunk indices (0 and 2, i.e. the
+    # first two logical H frames) -- more erasures than the single-chunk RS
+    # parity can correct, so this must fail loud rather than guess.
+    for pair_start in (0, 2):
+        for index in indexes[pair_start:pair_start + 2]:
+            lines[index] = _mutate_safe_payload(lines[index])
 
     with pytest.raises(layout.LayoutError, match="frame copies failed"):
         layout.read_pages(lines)
