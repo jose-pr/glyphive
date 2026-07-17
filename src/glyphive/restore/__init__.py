@@ -6,11 +6,14 @@ pulls in no heavy optional dependencies.
 """
 
 from .decode import RestoreError, decode_document
+from .qr import QrTransportError, transcript_from_images
 from .unarchive import restore_document, unarchive_bytes
 
 __all__ = [
     "RestoreError",
     "decode_document",
+    "QrTransportError",
+    "transcript_from_images",
     "unarchive_bytes",
     "restore_document",
 ]
