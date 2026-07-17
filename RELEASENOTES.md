@@ -68,6 +68,14 @@ The timing baseline used Python 3.9.25 on Rocky Linux 9. Median times were
 21.65/49.45 ms for 1 KiB `g1` encode/decode and 299.07/734.10 ms for 16 KiB.
 These are local VM sanity measurements, not CI performance evidence.
 
+Historical Windows/Tesseract 5.4.0 probes are documented separately from the
+versioned VM results. Courier 8 pt measured 16/16 safe symbols with no length
+mismatch, while Courier 11 pt measured 15/16 and 2% mismatched lines. Older
+font probes preserved frame indices for Courier and Consolas (12/12 each), but
+not OCR-A Extended (0/12); Cascadia Mono's 0/12 was an embedding failure.
+Those exploratory cells have no publishable capacity number, and OCR-B remains
+unmeasured.
+
 ### Publication state
 
 Prepared but not published. No release tag has been pushed, and the first public
