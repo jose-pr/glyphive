@@ -43,8 +43,19 @@ class Extract(LoggingArgs):
     "Overwrite existing files that differ (default: refuse and stop)."
     ("--overwrite",)
 
+    temp_dir: "_ty.Optional[str]" = None
+    "Directory for private restore spools."
+    ("--temp-dir",)
+
+    chunk_size: int = 1024 * 1024
+    "Streaming I/O chunk size in bytes."
+    ("--chunk-size",)
+
+    max_output_bytes: "_ty.Optional[int]" = None
+    "Maximum permitted decompressed archive size."
+    ("--max-output-bytes",)
+
     def __call__(self) -> int:
-        from ..restore import decode as _decode
         from ..restore import unarchive as _unarchive
 
         dest = resolve_destination(self.directory)
@@ -54,8 +65,14 @@ class Extract(LoggingArgs):
         else:
             lines = load_input_lines(src, engine=self.ocr_engine)
 
-        meta, raw = _decode.decode_document(lines)
+        meta, written = _unarchive.restore_document_spooled(
+            lines,
+            dest,
+            overwrite=self.overwrite,
+            temp_dir=self.temp_dir,
+            chunk_size=self.chunk_size,
+            max_output_bytes=self.max_output_bytes,
+        )
         warn_page_integrity(self._logger_, meta)
-        written = _unarchive.unarchive_bytes(raw, dest, overwrite=self.overwrite)
         self._logger_.info("restored %d entries into %s", len(written), dest)
         return 0

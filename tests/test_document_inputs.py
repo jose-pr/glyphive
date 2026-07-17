@@ -97,9 +97,8 @@ def test_list_uses_auto_input_and_forwards_ocr_engine(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(
         decode,
-        "decode_document",
-        lambda lines: (
-            {
+        "decode_document_to_spool",
+        lambda lines, sink, **options: {
                 "v": 1,
                 "codec": "g1",
                 "comp": "none",
@@ -107,10 +106,8 @@ def test_list_uses_auto_input_and_forwards_ocr_engine(tmp_path, monkeypatch):
                 "bytes": 0,
                 "pages": 1,
             },
-            b"",
-        ),
     )
-    monkeypatch.setattr(list_command._archive, "iter_records", lambda raw: [])
+    monkeypatch.setattr(list_command._archive, "iter_record_events", lambda raw, **options: [])
 
     assert cli.run(
         ["list", "-f", str(tmp_path / "scan.pdf"), "--ocr-engine", "mock"]

@@ -37,6 +37,7 @@ repaired) are not fatal: :func:`glyphive.layout.read_pages` records them in
 from __future__ import annotations
 
 import hashlib
+import io
 import typing as _ty
 
 from .. import archive, codec, compression, layout
@@ -44,6 +45,7 @@ from .. import archive, codec, compression, layout
 __all__ = [
     "RestoreError",
     "decode_document",
+    "decode_document_to_spool",
 ]
 
 
@@ -55,6 +57,26 @@ class RestoreError(Exception):
     The message always names the concrete offender (expected-vs-got digest, or
     the offending relpath) so a failure is actionable, never silent.
     """
+
+
+class _VerifiedWriter:
+    def __init__(self, sink, limit: int):
+        self.sink = sink
+        self.limit = limit
+        self.count = 0
+        self.digest = hashlib.sha256()
+
+    def write(self, data):
+        if self.count + len(data) > self.limit:
+            raise RestoreError(
+                f"decompressed archive exceeds maximum output size {self.limit} bytes"
+            )
+        written = self.sink.write(data)
+        if written != len(data):
+            raise OSError("archive spool accepted a partial write")
+        self.count += written
+        self.digest.update(data)
+        return written
 
 
 def _resolve_codec(name: str) -> codec.Codec:
@@ -102,6 +124,19 @@ def decode_document(
     RestoreError:
         The decompressed archive's SHA-256 does not match the header's.
     """
+    sink = io.BytesIO()
+    meta = decode_document_to_spool(text_lines, sink)
+    return meta, sink.getvalue()
+
+
+def decode_document_to_spool(
+    text_lines: _ty.Iterable[str],
+    sink: _ty.BinaryIO,
+    *,
+    max_output_bytes: _ty.Optional[int] = None,
+    chunk_size: int = 1024 * 1024,
+) -> _ty.Dict[str, _ty.Any]:
+    """Decode and stream-decompress a document into a seekable quarantine spool."""
     # 1) transcript -> (header meta, framed codec lines). read_pages raises
     #    MissingPageError (naming pages) / LayoutError (no header) — let it.
     meta, encoded = layout.read_pages(text_lines)
@@ -115,11 +150,21 @@ def decode_document(
 
     # 3) compressed payload -> raw archive bytes, per the header's method.
     comp = str(meta["comp"])
-    raw = compression.get(comp).decompress(payload)
+    expected_bytes = int(meta["bytes"])
+    output_limit = expected_bytes if max_output_bytes is None else max_output_bytes
+    if output_limit < expected_bytes:
+        raise RestoreError(
+            f"maximum output size {output_limit} is below protected document size "
+            f"{expected_bytes}"
+        )
+    measured = _VerifiedWriter(sink, output_limit)
+    compression.get(comp).decompress_stream(
+        io.BytesIO(payload), measured, chunk_size=chunk_size
+    )
 
     # 4) Whole-document integrity gate. NEVER return unverified bytes.
     expected = meta.get("sha256")
-    got = hashlib.sha256(raw).hexdigest()
+    got = measured.digest.hexdigest()
     if not expected:
         raise RestoreError(
             "header carries no sha256= digest; cannot verify document "
@@ -133,14 +178,19 @@ def decode_document(
             "refusing to return corrupt data."
         )
 
-    expected_bytes = meta["bytes"]
-    if expected_bytes != len(raw):
+    if expected_bytes != measured.count:
         raise RestoreError(
             "document header byte count mismatch: "
-            f"header claims {expected_bytes}, archive contains {len(raw)}"
+            f"header claims {expected_bytes}, archive contains {measured.count}"
         )
 
-    record_count = sum(1 for _record in archive.iter_records(raw))
+    sink.seek(0)
+    record_count = sum(
+        isinstance(event, archive.RecordHeader)
+        for event in archive.iter_record_events(
+            sink, chunk_size=chunk_size, max_content_bytes=output_limit
+        )
+    )
     expected_records = meta["files"]
     if expected_records != record_count:
         raise RestoreError(
@@ -150,7 +200,8 @@ def decode_document(
 
     # The archive stream is the authority for the profile. A document header
     # may identify it explicitly, but an old header can omit the key.
-    stream_meta = archive.stream_metadata(raw)
+    sink.seek(0)
+    stream_meta = archive.stream_metadata(sink.read(len(archive.MAGIC) + 6))
     header_profile = meta.get("meta")
     if header_profile is not None:
         header_profile = str(header_profile)
@@ -170,4 +221,5 @@ def decode_document(
     meta["meta"] = header_profile
     meta["archive_version"] = stream_meta.version
 
-    return meta, raw
+    sink.seek(0)
+    return meta
