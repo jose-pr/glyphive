@@ -54,6 +54,8 @@ OCR-friendly printable pages and back to a verified tree.
   margins; `--minimal-margins` uses a compact 12-point profile, and long PDF
   display headers fit rather than clip. Output format is inferred from `-f`
   when `--format` is omitted.
+- **Bundled OCR-B PDF font**: `--font ocr-b` embeds a pinned, unmodified
+  SIL-OFL-1.1 font; PDF output also accepts explicit `.ttf`/`.otf` paths.
 - **Documentation and examples**: task-focused create, restore, wire-format,
   OCR, benchmark, and API pages plus a runnable create/restore example.
 
