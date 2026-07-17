@@ -2,7 +2,7 @@
 
 All optional backends (fpdf2, python-docx) are installed via ``[all]`` on this
 machine, so NONE of these tests skip here. The text renderer's round-trip through
-``layout.read_pages`` + ``codec.get("g1").decode`` is the key correctness check.
+``layout.read_pages`` + ``codec.get("base16c-crc16-rs").decode`` is the key correctness check.
 """
 
 import hashlib
@@ -15,7 +15,7 @@ import pytest
 from glyphive import codec, layout
 
 
-g1 = codec.get("g1")
+base16c = codec.get("base16c-crc16-rs")
 from glyphive import render as render_mod
 from glyphive.render import lines_per_page_for, render
 from glyphive.render.formats.text import FORM_FEED
@@ -26,9 +26,9 @@ from glyphive.render.formats.pdf import PdfRenderFormat
 def _make_pages(nbytes=800, seed=5):
     rng = random.Random(seed)
     data = bytes(rng.randrange(256) for _ in range(nbytes))
-    encoded = g1.encode(data)
+    encoded = base16c.encode(data)
     meta = {
-        "codec": "g1",
+        "codec": "base16c-crc16-rs",
         "comp": "none",
         "files": 1,
         "bytes": nbytes,
@@ -70,7 +70,7 @@ def test_text_render_roundtrips(tmp_path):
     text_lines = text.replace(FORM_FEED, "\n").splitlines()
 
     meta, encoded_lines = layout.read_pages(text_lines)
-    assert g1.decode(encoded_lines) == data
+    assert base16c.decode(encoded_lines) == data
     # sha of decoded matches the header's recorded digest.
     assert hashlib.sha256(data).hexdigest() == meta["sha256"]
 
@@ -229,7 +229,7 @@ def test_qr_pdf_renderers_when_extra_is_installed(tmp_path, fmt):
 
 # --------------------------------------------------------------------------- #
 # Structural frame parsing: layout._looks_like_encoded must agree
-# with codec.g1._parse_line's tolerance for OCR-inserted interior spaces.
+# with codec.base16c._parse_line's tolerance for OCR-inserted interior spaces.
 # --------------------------------------------------------------------------- #
 def test_looks_like_encoded_tolerates_captured_ocr_transcript_line():
     # Re-pinned for the new 5-char index token (INDEX_WIDTH 4 -> 5 alongside
@@ -243,7 +243,7 @@ def test_looks_like_encoded_tolerates_captured_ocr_transcript_line():
 
 def test_looks_like_encoded_tolerates_two_interior_spaces():
     data = bytes(range(40))
-    lines = g1.encode(data)
+    lines = base16c.encode(data)
     line = next(l for l in lines if l.startswith("L"))
     label, payload, check = line.split()
     noisy_payload = payload[:10] + " " + payload[10:20] + " " + payload[20:]

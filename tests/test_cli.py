@@ -57,7 +57,7 @@ def test_create_extract_list_roundtrip(tmp_path, capsys):
     # print the authoritative protected metadata, not the damaged summary.
     text = archive_file.read_text(encoding="utf-8")
     archive_file.write_text(
-        text.replace("codec=g1", "codec=gl", 1), encoding="utf-8"
+        text.replace("codec=base16c-crc16-rs", "codec=base16c-crl", 1), encoding="utf-8"
     )
 
     # list returns 0 and prints verified protected metadata.
@@ -66,7 +66,7 @@ def test_create_extract_list_roundtrip(tmp_path, capsys):
     assert rc == 0
     captured = capsys.readouterr()
     assert "glyphive" in captured.out
-    assert "codec=g1" in captured.out
+    assert "codec=base16c-crc16-rs" in captured.out
     assert "files=" in captured.out
     assert "meta=none" in captured.out
 
@@ -82,7 +82,7 @@ def test_tar_style_mode_flags_roundtrip(tmp_path, capsys):
 
     capsys.readouterr()
     assert cli.run(["-t", "-f", str(archive_file)]) == 0
-    assert "codec=g1" in capsys.readouterr().out
+    assert "codec=base16c-crc16-rs" in capsys.readouterr().out
 
 
 def test_create_uses_configured_spool_directory_and_chunk_size(tmp_path):
@@ -122,10 +122,10 @@ def test_plugins_flag_discovers_before_selector_validation(tmp_path, monkeypatch
         name = "plugin_codec"
 
         def encode(self, data, **options):
-            return codec.G1Codec().encode(data, **options)
+            return codec.Base16CCodec().encode(data, **options)
 
         def decode(self, lines, **options):
-            return codec.G1Codec().decode(lines, **options)
+            return codec.Base16CCodec().decode(lines, **options)
 
     codec.Codec._discard_implementation(PluginCodec)
     report = plugins.DiscoveryReport(
@@ -249,10 +249,10 @@ def test_generic_codec_and_compression_selectors_roundtrip(tmp_path):
         name = "test_codec"
 
         def encode(self, data, **options):
-            return codec.G1Codec().encode(data, **options)
+            return codec.Base16CCodec().encode(data, **options)
 
         def decode(self, lines, **options):
-            return codec.G1Codec().decode(lines, **options)
+            return codec.Base16CCodec().decode(lines, **options)
 
     class TestCompression(compression.CompressionMethod):
         name = "test_compression"

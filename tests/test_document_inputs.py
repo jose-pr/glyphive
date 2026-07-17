@@ -100,7 +100,7 @@ def test_list_uses_auto_input_and_forwards_ocr_engine(tmp_path, monkeypatch):
         "decode_document_to_spool",
         lambda lines, sink, **options: {
                 "v": 1,
-                "codec": "g1",
+                "codec": "base16c-crc16-rs",
                 "comp": "none",
                 "files": 0,
                 "bytes": 0,

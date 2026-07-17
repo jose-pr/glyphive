@@ -120,7 +120,7 @@ def decode_document(
     ------
     glyphive.layout.LayoutError / MissingPageError:
         No parseable header, or a whole page absent from the transcript.
-    glyphive.codec.g1.CodecError:
+    glyphive.codec.base16c.CodecError:
         A framed line failed CRC and RS could not correct it (line named).
     RestoreError:
         The decompressed archive's SHA-256 does not match the header's.
@@ -152,7 +152,7 @@ def decode_document_to_spool(
         selected_codec = _resolve_codec(str(meta["codec"]))
         meta["codec"] = selected_codec.name
         encoded_spool.seek(0)
-        if hasattr(selected_codec, "decode_spool") and selected_codec.name == "g1":
+        if hasattr(selected_codec, "decode_spool") and selected_codec.name == "base16c-crc16-rs":
             selected_codec.decode_spool(
                 encoded_spool, compressed_spool, temp_dir=temp_dir
             )

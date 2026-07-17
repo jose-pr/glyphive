@@ -49,10 +49,10 @@ def test_restore_decode_uses_compact_disk_backed_working_sets(tmp_path):
             stream.seek(size - 1)
             stream.write(b"x")
         raw = archive.archive_tree(source, use_ignore=False)
-        encoded = codec.get("g1").encode(raw)
+        encoded = codec.get("base16c-crc16-rs").encode(raw)
         meta = {
             "v": 1,
-            "codec": "g1",
+            "codec": "base16c-crc16-rs",
             "comp": "none",
             "meta": "none",
             "files": 1,

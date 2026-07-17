@@ -1,15 +1,15 @@
-"""Named printable codecs and the built-in ``g1`` registry entry."""
+"""Named printable codecs and the built-in ``base16c-crc16-rs`` registry entry."""
 
 from __future__ import annotations
 
 import typing as _ty
 
 from ._base import Codec
-from .g1 import G1Codec
+from .base16c import Base16CCodec
 
 __all__ = [
     "Codec",
-    "G1Codec",
+    "Base16CCodec",
     "available",
     "get",
     "names",
