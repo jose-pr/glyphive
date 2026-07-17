@@ -9,7 +9,7 @@ import typing as _ty
 from pathlib_next import Path
 
 from glyphive.layout import Page
-from glyphive.render._base import DEFAULT_DOCX_FONT, RenderFormat
+from glyphive.render._base import DEFAULT_DOCX_FONT, DEFAULT_PAGE_MARGIN_PT, RenderFormat
 
 
 class DocxRenderFormat(RenderFormat):
@@ -31,6 +31,7 @@ class DocxRenderFormat(RenderFormat):
         *,
         font: _ty.Optional[str] = None,
         font_size: float = 11.0,
+        page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
     ) -> None:
         try:
             import docx
@@ -43,9 +44,16 @@ class DocxRenderFormat(RenderFormat):
             ) from exc
         if font_size <= 0:
             raise ValueError("font_size must be > 0")
+        if page_margin_pt < 0 or page_margin_pt * 2 >= 612.0:
+            raise ValueError("page_margin_pt must leave positive printable width")
         family = font or DEFAULT_DOCX_FONT
         size = Pt(font_size)
         document = docx.Document()
+        for section in document.sections:
+            section.top_margin = Pt(page_margin_pt)
+            section.bottom_margin = Pt(page_margin_pt)
+            section.left_margin = Pt(page_margin_pt)
+            section.right_margin = Pt(page_margin_pt)
         normal = document.styles["Normal"]
         normal.font.name = family
         normal.font.size = size
