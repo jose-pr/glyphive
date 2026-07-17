@@ -193,3 +193,79 @@ def test_page_footer_verifier_rejects_damaged_protected_footer():
     ]
     assert layout.verify_page_footer(footer, page_lines)
     assert not layout.verify_page_footer(footer[:-1] + "A", [])
+
+
+def test_unreadable_index_token_is_surfaced_not_silently_dropped():
+    """A frame-shaped line with a corrupted label surfaces in _unreadable_lines.
+
+    Real-recovery findings #1/#2: a stray inserted/leading character corrupts a
+    line's index token so ``decode_index`` rejects it. Previously the line
+    vanished from ``read_pages`` with no signal, only surfacing much later as an
+    opaque RS-parameter error. It must now be reported with page + raw text.
+    """
+    data = b"protected metadata for the unreadable-index test path"
+    meta_in = {
+        "codec": "base16c-crc16-rs",
+        "comp": "none",
+        "meta": "none",
+        "files": 1,
+        "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    pages = layout.paginate(
+        codec.get("base16c-crc16-rs").encode(data), meta_in, lines_per_page=13
+    )
+    lines = [line for page in pages for line in page.text_lines]
+
+    li = next(i for i, line in enumerate(lines) if line.startswith("L"))
+    label, payload, check = lines[li].split()
+    # Insert a stray alphabet char into the label so decode_index rejects it.
+    corrupted_label = "L" + label[1] + "K" + label[2:]
+    lines[li] = f"{corrupted_label} {payload} {check}"
+
+    meta, _encoded = layout.read_pages(lines)
+    unreadable = meta["_unreadable_lines"]
+    assert len(unreadable) == 1
+    assert unreadable[0]["raw"] == lines[li]
+    assert unreadable[0]["page"] == 1  # single-page fixture; footer is page 1
+
+
+def test_conflicting_index_collision_fails_instead_of_silent_overwrite():
+    """Two CRC-valid lines claiming one index with different payloads must fail.
+
+    Real-recovery finding #3 (the most dangerous class): a corrupted label that
+    decodes to a real-but-wrong index used to silently overwrite a different
+    genuine line under blind last-write-wins. Detect the conflict and refuse.
+    """
+    from glyphive.codec.base16c import CodecError, _check_chars
+
+    data = bytes(range(256)) * 4
+    c = codec.get("base16c-crc16-rs")
+    lines = c.encode(data)
+
+    data_positions = [i for i, line in enumerate(lines) if line.startswith("L")]
+    assert len(data_positions) >= 2
+    # Build a genuinely CRC-valid line that claims line 0's index but carries a
+    # DIFFERENT payload (borrowed from line 1) -- i.e. finding #3 exactly: a
+    # corrupted label decoded to a real-but-wrong index, and the resulting line
+    # still passes its own CRC because the check is recomputed for the new label.
+    idx0_token = lines[data_positions[0]].split()[0][1:]
+    payload_from_line1 = lines[data_positions[1]].split()[1]
+    forged = f"L{idx0_token} {payload_from_line1} #{_check_chars(idx0_token, payload_from_line1)}"
+    lines[data_positions[1]] = forged
+
+    with pytest.raises(CodecError, match="conflicting duplicate line index"):
+        c.decode(lines)
+
+
+def test_benign_exact_duplicate_lines_do_not_trigger_collision():
+    """An exact duplicate line (page OCR'd twice) is not a conflict."""
+    data = bytes(range(256)) * 4
+    c = codec.get("base16c-crc16-rs")
+    lines = c.encode(data)
+    doubled = []
+    for line in lines:
+        doubled.append(line)
+        if line[:1] in ("L", "P"):
+            doubled.append(line)  # identical duplicate, same index + payload
+    assert c.decode(doubled) == data
