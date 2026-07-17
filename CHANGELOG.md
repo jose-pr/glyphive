@@ -49,7 +49,8 @@ OCR-friendly printable pages and back to a verified tree.
 - **Automatic document input**: `extract` and `list` classify each direct-child
   input independently by magic bytes, extension, then UTF-8 text, so transcript,
   image, PDF, and DOCX pages can be mixed in deterministic order. A conversion
-  helper renders PDF/DOCX pages to PNG with configurable DPI and blur.
+  helper renders PDF pages or diagnostic DOCX transcript pages to PNG with
+  configurable DPI and blur; DOCX restore uses `python-docx`, not an office suite.
 - **Capacity-aware rendering**: PDF/DOCX row budgets follow font size and page
   margins; `--minimal-margins` uses a compact 12-point profile, and long PDF
   display headers fit rather than clip. Output format is inferred from `-f`
