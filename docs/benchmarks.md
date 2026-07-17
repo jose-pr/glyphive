@@ -120,7 +120,13 @@ The historical Consolas recovery source was printed at 12 pt and scanned at
 These results make Courier 8 pt at 300 DPI the current starting profile, not
 proof that it is optimal for every renderer or OCR model. Subsequent VM sweeps
 found a promising constrained OCR-B cell but it has not passed a complete
-restore gate. See the public
+restore gate. In a 150-row layout diagnostic, 6 pt OCR-B with left alignment
+and no added character spacing retained 16/16 symbols with no erasures and
+yielded 5,050 usable bytes/page. Centering without spacing lost two symbols;
+0.1 pt spacing recovered them but reduced capacity to 5,000 bytes/page.
+Justification did not beat the left-aligned result and sometimes increased
+erasures. These are constrained character-grid diagnostics, not CI performance
+evidence. See the public
 [font candidate ledger](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/FONT_CANDIDATES.md)
 for exact files, model pins, measurements, and pending stroke/style tests.
 

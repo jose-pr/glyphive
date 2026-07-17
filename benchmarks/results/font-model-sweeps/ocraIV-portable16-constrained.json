@@ -1,0 +1,571 @@
+{
+  "results": [
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocraIV.ttf",
+      "font_label": "ocraIV.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.0,
+      "rows": 100,
+      "line_length": 110,
+      "chars_per_line": 110,
+      "lines_per_page": 100,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 1.0,
+      "length_mismatches": 100,
+      "per_char": {
+        "A": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "B": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "C": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "D": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "H": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "K": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "L": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "M": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "P": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "R": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "T": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "V": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "X": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "3": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "4": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        }
+      },
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "effective_bits": 0.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 11000,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocraIV.ttf",
+      "font_label": "ocraIV.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.8,
+      "rows": 100,
+      "line_length": 97,
+      "chars_per_line": 97,
+      "lines_per_page": 88,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 1.0,
+      "length_mismatches": 100,
+      "per_char": {
+        "A": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "B": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "C": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "D": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "H": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "K": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "L": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "M": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "P": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "R": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "T": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "V": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "X": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "3": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "4": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        }
+      },
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "effective_bits": 0.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 8536,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocraIV.ttf",
+      "font_label": "ocraIV.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 9.1,
+      "rows": 100,
+      "line_length": 73,
+      "chars_per_line": 73,
+      "lines_per_page": 65,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 1.0,
+      "length_mismatches": 100,
+      "per_char": {
+        "A": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "B": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "C": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "D": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "H": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "K": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "L": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "M": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "P": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "R": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "T": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "V": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "X": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "3": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "4": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        }
+      },
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "effective_bits": 0.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 4745,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocraIV.ttf",
+      "font_label": "ocraIV.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 10.2,
+      "rows": 100,
+      "line_length": 65,
+      "chars_per_line": 65,
+      "lines_per_page": 58,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 1.0,
+      "length_mismatches": 100,
+      "per_char": {
+        "A": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "B": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "C": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "D": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "H": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "K": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "L": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "M": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "P": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "R": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "T": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "V": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "X": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "3": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        },
+        "4": {
+          "samples": 0,
+          "errors": 0,
+          "error_rate": null,
+          "misreads": []
+        }
+      },
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "effective_bits": 0.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 3770,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "tesseract"
+    ],
+    "dense": {
+      "font": "ocraIV.ttf",
+      "size": 6.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "line_insert_rate": 1.0,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "ocraIV.ttf",
+      "size": 6.0,
+      "charset": "custom",
+      "engines": [
+        "tesseract"
+      ],
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "line_insert_rate": 1.0
+    },
+    "retype": {
+      "font": "ocraIV.ttf",
+      "size": 10.2,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "",
+      "safe_len": 0,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}
