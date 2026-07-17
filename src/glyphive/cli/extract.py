@@ -9,7 +9,7 @@ from pathlib_next import Path
 
 from ._common import (
     load_image_lines,
-    load_transcript_lines,
+    load_input_lines,
     resolve_destination,
     warn_page_integrity,
 )
@@ -24,7 +24,7 @@ class Extract(LoggingArgs):
     _parseraliases_ = ["x"]
 
     file: str
-    "Input file or directory of files (text, or images with --from-images)."
+    "Input file or directory (text, images, PDF, or DOCX; type detected by extension)."
     ("-f", "--file")
 
     directory: "_ty.Optional[str]" = None
@@ -52,7 +52,7 @@ class Extract(LoggingArgs):
         if self.from_images:
             lines = load_image_lines(src, engine=self.ocr_engine)
         else:
-            lines = load_transcript_lines(src)
+            lines = load_input_lines(src, engine=self.ocr_engine)
 
         meta, raw = _decode.decode_document(lines)
         warn_page_integrity(self._logger_, meta)

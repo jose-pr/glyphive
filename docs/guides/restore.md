@@ -9,6 +9,7 @@ and safe filesystem extraction.
 
 ```bash
 glyphive list -f backup.txt
+glyphive list -f backup.pdf --ocr-engine tesseract
 ```
 
 The command decodes and verifies the document before printing the manifest. It
@@ -36,23 +37,28 @@ through an existing symbolic link, duplicate/conflicting targets, and writes
 outside the destination. It validates all targets before writing the first
 entry.
 
-## Restore from an image
+## Restore from scans or generated documents
 
-Install a Python bridge and the corresponding OCR engine, then identify image
-input explicitly:
+Install a Python bridge, document renderer, and the corresponding OCR engine:
 
 ```bash
-pip install "glyphive[ocr]"
+pip install "glyphive[ocr,document-input]"
 glyphive extract \
-  -f scan.png \
-  --from-images \
+  -f scans/ \
   --ocr-engine tesseract \
   -C restored
 ```
 
-The current CLI accepts one page image per invocation. The Python OCR API also
-offers multi-image orchestration for applications that assemble page scans
-before decode. See [OCR](ocr.md).
+Both `extract` and `list` accept a transcript, image, PDF, DOCX, or a directory
+containing a mixture of those inputs. Direct child files are processed in
+deterministic filename order. Each file is detected independently using content
+signatures first, its extension second, and UTF-8 text as the fallback. This
+allows extensionless or renamed common images and PDFs to be read correctly.
+
+PDF pages are rendered with `pypdfium2`. DOCX page layout is rendered by
+LibreOffice, which must provide `libreoffice` or `soffice` on `PATH`.
+`--from-images` remains available as an explicit override when every supplied
+file is an image. See [OCR](ocr.md).
 
 ## What failures mean
 
