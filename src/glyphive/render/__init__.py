@@ -9,6 +9,8 @@ from ._base import (
     DEFAULT_DOCX_FONT,
     DEFAULT_MONO_FONT,
     DEFAULT_PDF_FONT,
+    DEFAULT_PAGE_MARGIN_PT,
+    MINIMAL_PAGE_MARGIN_PT,
     RenderFormat,
 )
 from .formats import DocxRenderFormat, PdfRenderFormat, TextRenderFormat
@@ -20,6 +22,8 @@ __all__ = [
     "DEFAULT_MONO_FONT",
     "DEFAULT_PDF_FONT",
     "DEFAULT_DOCX_FONT",
+    "DEFAULT_PAGE_MARGIN_PT",
+    "MINIMAL_PAGE_MARGIN_PT",
     "RenderFormat",
     "available",
     "get",
@@ -45,7 +49,7 @@ def lines_per_page_for(
     font_size: float,
     *,
     page_height_pt: float = 792.0,
-    page_margin_pt: float = 36.0,
+    page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
 ) -> int:
     if font_size <= 0:
         raise ValueError("font_size must be > 0")
@@ -63,6 +67,13 @@ def render(
     *,
     font: _ty.Optional[str] = None,
     font_size: float = 11.0,
+    page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
 ) -> None:
     """Resolve ``fmt`` and delegate one time to its registered implementation."""
-    get(fmt).render(pages, out, font=font, font_size=font_size)
+    get(fmt).render(
+        pages,
+        out,
+        font=font,
+        font_size=font_size,
+        page_margin_pt=page_margin_pt,
+    )
