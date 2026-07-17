@@ -61,15 +61,18 @@ pip install "glyphive[pdf,zstd]"
 glyphive create -f backup.pdf --compression zstd -C project .
 ```
 
-Restore one scanned page image with Tesseract:
+Restore scans or generated documents with Tesseract. Input type is detected
+from file contents first and the extension second:
 
 ```bash
-pip install "glyphive[ocr]"
-glyphive extract -f scan.png --from-images --ocr-engine tesseract -C restored
+pip install "glyphive[ocr,document-input]"
+glyphive extract -f scans/ --ocr-engine tesseract -C restored
+glyphive list -f backup.pdf --ocr-engine tesseract
 ```
 
 The operating-system Tesseract executable and language data must also be
-installed. See the [create guide](https://jose-pr.github.io/glyphive/guides/create/),
+installed. PDF input uses `pypdfium2`; DOCX input additionally requires the
+LibreOffice command on `PATH`. See the [create guide](https://jose-pr.github.io/glyphive/guides/create/),
 [restore guide](https://jose-pr.github.io/glyphive/guides/restore/), and
 [OCR guide](https://jose-pr.github.io/glyphive/guides/ocr/) for details.
 
