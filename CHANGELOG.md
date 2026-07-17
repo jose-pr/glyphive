@@ -21,8 +21,9 @@ OCR-friendly printable pages and back to a verified tree.
 
 - **Isolated QR transport primitives**: the optional `qr` extra provides
   deterministic, versioned 1000-byte envelopes, level-H Segno PNG generation,
-  and Pillow/ZXing-C++ raw-byte decoding without OpenCV. Renderer and CLI
-  integration remain a later slice of the in-progress QR plan.
+  and Pillow/ZXing-C++ raw-byte decoding without OpenCV. Extract/list accept
+  explicit `--from-qr` image or directory input; ordinary image OCR behavior is
+  unchanged. QR PDF rendering remains a later slice of the in-progress plan.
 - **Constrained Tesseract profile** (`tesseract-glyphive`): an opt-in OCR
   provider using PSM 6, Glyphive's exact machine alphabet, and disabled general
   language dictionaries. The existing `tesseract` provider remains unchanged.

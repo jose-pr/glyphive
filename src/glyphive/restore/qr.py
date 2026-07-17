@@ -186,6 +186,20 @@ def transcript_from_images(path: _ty.Union[str, Path]) -> bytes:
     paths = sorted(item for item in source.iterdir() if item.is_file()) if source.is_dir() else [source]
     symbols: _ty.List[bytes] = []
     for image_path in paths:
+        with image_path.open("rb") as stream:
+            prefix = stream.read(16)
+        image_magic = (
+            prefix.startswith(b"\x89PNG\r\n\x1a\n")
+            or prefix.startswith(b"\xff\xd8\xff")
+            or prefix.startswith((b"GIF87a", b"GIF89a"))
+            or prefix.startswith(b"BM")
+            or prefix.startswith((b"II*\x00", b"MM\x00*"))
+            or (prefix.startswith(b"RIFF") and prefix[8:12] == b"WEBP")
+        )
+        if not image_magic:
+            raise QrTransportError(
+                f"QR input is not a supported page image by magic bytes: {image_path}"
+            )
         with Image.open(image_path) as image:
             decoded = symbols_from_image(image)
         if not decoded:
