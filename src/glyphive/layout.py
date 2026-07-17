@@ -70,6 +70,11 @@ _MACHINE_META_MAGIC: _ty.Final[bytes] = b"GH1"
 _MACHINE_FOOTER_MAGIC: _ty.Final[bytes] = b"GT1"
 _MACHINE_META_DIGEST_BYTES: _ty.Final[int] = 8
 _MACHINE_HEADER_COPIES: _ty.Final[int] = 2
+#: Reed-Solomon parity bytes appended after the header's data chunks. Sized to
+#: fully reconstruct one lost/corrupted data chunk (60 safe chars = 30 bytes),
+#: since CRC+duplication alone cannot recover a chunk whose copies are
+#: identically misread by a deterministic OCR engine (see Known Facts).
+_MACHINE_HEADER_PARITY_BYTES: _ty.Final[int] = 30
 
 #: Header keys whose values are parsed/returned as ``int``.
 _INT_KEYS: _ty.Final[_ty.FrozenSet[str]] = frozenset(
@@ -324,13 +329,21 @@ def _machine_header_bytes(meta: _ty.Mapping[str, _ty.Any]) -> bytes:
 
 
 def _format_machine_header(meta: _ty.Mapping[str, _ty.Any]) -> _ty.List[str]:
-    from .codec.base16c import nibble_encode
+    from .codec.base16c import _rs_encode, nibble_encode
 
-    payload = nibble_encode(_machine_header_bytes(meta))
+    envelope = _machine_header_bytes(meta)
+    _data, parity, _nblocks = _rs_encode(envelope, _MACHINE_HEADER_PARITY_BYTES)
+    payload = nibble_encode(envelope)
+    parity_payload = nibble_encode(parity)
     chunks = [
         payload[start:start + _MACHINE_PAYLOAD_CHARS]
         for start in range(0, len(payload), _MACHINE_PAYLOAD_CHARS)
     ]
+    parity_chunks = [
+        parity_payload[start:start + _MACHINE_PAYLOAD_CHARS]
+        for start in range(0, len(parity_payload), _MACHINE_PAYLOAD_CHARS)
+    ]
+    chunks.extend(parity_chunks)
     frames = [
         _format_machine_frame(_MACHINE_HEADER_KIND, idx, chunk)
         for idx, chunk in enumerate(chunks)
@@ -355,10 +368,15 @@ def _take_machine_text(data: bytes, cursor: int, key: str) -> _ty.Tuple[str, int
     return value, cursor + size
 
 
+def _num_header_parity_chunks() -> int:
+    parity_chars = _MACHINE_HEADER_PARITY_BYTES * 2
+    return -(-parity_chars // _MACHINE_PAYLOAD_CHARS)  # ceil div
+
+
 def _decode_machine_header(
     frames: _ty.Sequence[_ParsedMachineFrame],
 ) -> _ty.Dict[str, _ty.Any]:
-    from .codec.base16c import nibble_decode
+    from .codec.base16c import _rs_decode, nibble_decode, nibble_encode
 
     if not frames:
         raise LayoutError("no integrity-protected machine header found")
@@ -374,26 +392,76 @@ def _decode_machine_header(
         if previous is not None and previous != frame.payload:
             raise LayoutError(f"conflicting machine header frame H{frame.idx}")
         indexed[frame.idx] = frame.payload
-    if not indexed:
+    if not observed_indices:
         raise LayoutError("machine header frames failed their integrity checks")
-    failed = sorted(observed_indices - set(indexed))
-    if failed:
-        raise LayoutError(
-            "machine header frame copies failed their integrity checks at "
-            f"index(es) {failed}"
-        )
-    expected_indices = list(range(max(indexed) + 1))
-    if sorted(indexed) != expected_indices:
-        missing = sorted(set(expected_indices) - set(indexed))
-        raise LayoutError(f"machine header is missing frame index(es) {missing}")
 
-    encoded = "".join(indexed[idx] for idx in expected_indices)
-    if len(encoded) % 2:
-        raise LayoutError("machine header has an odd safe-alphabet payload length")
-    try:
-        raw = nibble_decode(encoded, len(encoded) // 2)
-    except ValueError as exc:
-        raise LayoutError(f"machine header payload is invalid: {exc}") from None
+    num_parity_chunks = _num_header_parity_chunks()
+    max_index = max(observed_indices)
+    expected_indices = list(range(max_index + 1))
+    missing_frames = sorted(set(expected_indices) - observed_indices)
+    if missing_frames and max_index < num_parity_chunks:
+        # Cannot tell data chunks from parity chunks without at least one
+        # surviving frame at or past the parity boundary.
+        raise LayoutError(
+            f"machine header is missing frame index(es) {missing_frames}"
+        )
+    data_indices = [i for i in expected_indices if i < max_index + 1 - num_parity_chunks]
+    parity_indices = [i for i in expected_indices if i >= max_index + 1 - num_parity_chunks]
+
+    # Erasures: any expected index whose CRC-checked payload isn't available.
+    erased = sorted(set(expected_indices) - set(indexed))
+    if erased:
+        # Reconstruct via RS using the last-known-good chunk lengths; a chunk
+        # shorter than the full width only ever occurs at the boundary
+        # between data and parity, which is exactly index ``max_index`` when
+        # a trailing partial chunk exists. Use zero-fill for erased chunks
+        # (RS erasure correction ignores their content and repairs it).
+        chunk_chars = _MACHINE_PAYLOAD_CHARS
+        placeholder = "A" * chunk_chars  # 'A' == alphabet value 0; RS ignores erased content
+        data_payload = "".join(
+            indexed.get(i, placeholder) for i in data_indices
+        )
+        parity_payload = "".join(
+            indexed.get(i, placeholder) for i in parity_indices
+        )
+        if len(data_payload) % 2 or len(parity_payload) % 2:
+            raise LayoutError("machine header has an odd safe-alphabet payload length")
+        data_bytes = bytearray(nibble_decode(data_payload, len(data_payload) // 2))
+        parity_bytes = bytearray(nibble_decode(parity_payload, len(parity_payload) // 2))
+        data_erasure_bytes: _ty.List[int] = []
+        parity_erasure_bytes: _ty.List[int] = []
+        bytes_per_chunk = chunk_chars // 2
+        for i in erased:
+            if i < len(data_indices):
+                start = i * bytes_per_chunk
+                data_erasure_bytes.extend(range(start, min(start + bytes_per_chunk, len(data_bytes))))
+            else:
+                local = i - len(data_indices)
+                start = local * bytes_per_chunk
+                parity_erasure_bytes.extend(range(start, min(start + bytes_per_chunk, len(parity_bytes))))
+        try:
+            raw_bytes = _rs_decode(
+                data_bytes,
+                data_erasure_bytes,
+                parity_bytes,
+                parity_erasure_bytes,
+                _MACHINE_HEADER_PARITY_BYTES,
+                1,
+            )
+        except Exception as exc:  # pragma: no cover - reedsolo error type varies
+            raise LayoutError(
+                "machine header frame copies failed their integrity checks at "
+                f"index(es) {erased}"
+            ) from exc
+        raw = bytes(raw_bytes)
+    else:
+        encoded = "".join(indexed[idx] for idx in data_indices)
+        if len(encoded) % 2:
+            raise LayoutError("machine header has an odd safe-alphabet payload length")
+        try:
+            raw = nibble_decode(encoded, len(encoded) // 2)
+        except ValueError as exc:
+            raise LayoutError(f"machine header payload is invalid: {exc}") from None
 
     prefix_size = len(_MACHINE_META_MAGIC) + 2
     if len(raw) < prefix_size + _MACHINE_META_DIGEST_BYTES:
