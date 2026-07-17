@@ -29,4 +29,5 @@ class TextRenderFormat(RenderFormat):
         document = FORM_FEED.join(page_blocks)
         if document and not document.endswith("\n"):
             document += "\n"
-        Path(_os.fspath(out)).write_text(document, encoding="utf-8", newline="")
+        with Path(_os.fspath(out)).open("w", encoding="utf-8", newline="") as stream:
+            stream.write(document)
