@@ -24,7 +24,7 @@ class Extract(LoggingArgs):
     _parseraliases_ = ["x"]
 
     file: str
-    "Input document (a text transcript, or page image with --from-images)."
+    "Input file or directory of files (text, or images with --from-images)."
     ("-f", "--file")
 
     directory: "_ty.Optional[str]" = None
@@ -32,7 +32,7 @@ class Extract(LoggingArgs):
     ("-C", "--directory")
 
     from_images: bool = False
-    "Treat -f as a page image and OCR it first."
+    "Treat -f as a page image or directory of images and OCR them first."
     ("--from-images",)
 
     ocr_engine: "_ty.Optional[str]" = None

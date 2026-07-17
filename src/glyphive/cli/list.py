@@ -18,7 +18,7 @@ class List(LoggingArgs):
     _parseraliases_ = ["t"]
 
     file: str
-    "Input document (text transcript)."
+    "Input text transcript or directory of transcript files."
     ("-f", "--file")
 
     def __call__(self) -> int:
