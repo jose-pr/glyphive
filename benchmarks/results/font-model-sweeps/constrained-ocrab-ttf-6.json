@@ -1,0 +1,960 @@
+{
+  "results": [
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocrab.ttf",
+      "font_label": "ocrab.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.0,
+      "rows": 150,
+      "line_length": 60,
+      "chars_per_line": 121,
+      "lines_per_page": 100,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "line_insert_rate": 0.5933333333333334,
+      "length_mismatches": 89,
+      "per_char": {
+        "A": {
+          "samples": 200,
+          "errors": 8,
+          "error_rate": 0.04,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "3",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "B": {
+          "samples": 246,
+          "errors": 11,
+          "error_rate": 0.044715447154471545,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "C": {
+          "samples": 239,
+          "errors": 5,
+          "error_rate": 0.02092050209205021,
+          "misreads": [
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "D": {
+          "samples": 240,
+          "errors": 11,
+          "error_rate": 0.04583333333333333,
+          "misreads": [
+            {
+              "target": "R",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "3",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "H": {
+          "samples": 230,
+          "errors": 4,
+          "error_rate": 0.017391304347826087,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "K": {
+          "samples": 214,
+          "errors": 7,
+          "error_rate": 0.03271028037383177,
+          "misreads": [
+            {
+              "target": "X",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "3",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "L": {
+          "samples": 205,
+          "errors": 5,
+          "error_rate": 0.024390243902439025,
+          "misreads": [
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "M": {
+          "samples": 215,
+          "errors": 11,
+          "error_rate": 0.05116279069767442,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "3",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "P": {
+          "samples": 246,
+          "errors": 8,
+          "error_rate": 0.032520325203252036,
+          "misreads": [
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "R": {
+          "samples": 243,
+          "errors": 15,
+          "error_rate": 0.06172839506172839,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "T": {
+          "samples": 241,
+          "errors": 10,
+          "error_rate": 0.04149377593360996,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "V": {
+          "samples": 248,
+          "errors": 12,
+          "error_rate": 0.04838709677419355,
+          "misreads": [
+            {
+              "target": "X",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "X": {
+          "samples": 237,
+          "errors": 16,
+          "error_rate": 0.06751054852320675,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "Y": {
+          "samples": 246,
+          "errors": 10,
+          "error_rate": 0.04065040650406504,
+          "misreads": [
+            {
+              "target": "B",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "3": {
+          "samples": 212,
+          "errors": 22,
+          "error_rate": 0.10377358490566038,
+          "misreads": [
+            {
+              "target": "D",
+              "count": 6,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 2,
+              "corrupting": true
+            }
+          ]
+        },
+        "4": {
+          "samples": 198,
+          "errors": 156,
+          "error_rate": 0.7878787878787878,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 141,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 7,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "3",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "effective_bits": 0.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.0,
+      "corrupting_pairs": [
+        [
+          "A",
+          "Y",
+          2
+        ],
+        [
+          "A",
+          "L",
+          1
+        ],
+        [
+          "A",
+          "3",
+          1
+        ],
+        [
+          "A",
+          "K",
+          1
+        ],
+        [
+          "A",
+          "R",
+          1
+        ],
+        [
+          "B",
+          "Y",
+          2
+        ],
+        [
+          "B",
+          "C",
+          2
+        ],
+        [
+          "B",
+          "R",
+          2
+        ],
+        [
+          "B",
+          "D",
+          2
+        ],
+        [
+          "B",
+          "V",
+          1
+        ],
+        [
+          "C",
+          "V",
+          2
+        ],
+        [
+          "C",
+          "T",
+          2
+        ],
+        [
+          "C",
+          "Y",
+          1
+        ],
+        [
+          "D",
+          "R",
+          3
+        ],
+        [
+          "D",
+          "Y",
+          2
+        ],
+        [
+          "D",
+          "P",
+          2
+        ],
+        [
+          "D",
+          "V",
+          2
+        ],
+        [
+          "D",
+          "3",
+          1
+        ],
+        [
+          "H",
+          "Y",
+          1
+        ],
+        [
+          "H",
+          "D",
+          1
+        ],
+        [
+          "H",
+          "C",
+          1
+        ],
+        [
+          "H",
+          "K",
+          1
+        ],
+        [
+          "K",
+          "X",
+          3
+        ],
+        [
+          "K",
+          "B",
+          1
+        ],
+        [
+          "K",
+          "M",
+          1
+        ],
+        [
+          "K",
+          "T",
+          1
+        ],
+        [
+          "K",
+          "3",
+          1
+        ],
+        [
+          "L",
+          "V",
+          1
+        ],
+        [
+          "L",
+          "B",
+          1
+        ],
+        [
+          "L",
+          "H",
+          1
+        ],
+        [
+          "L",
+          "D",
+          1
+        ],
+        [
+          "L",
+          "M",
+          1
+        ],
+        [
+          "M",
+          "Y",
+          3
+        ],
+        [
+          "M",
+          "B",
+          2
+        ],
+        [
+          "M",
+          "3",
+          2
+        ],
+        [
+          "M",
+          "L",
+          1
+        ],
+        [
+          "M",
+          "4",
+          1
+        ],
+        [
+          "P",
+          "V",
+          2
+        ],
+        [
+          "P",
+          "X",
+          2
+        ],
+        [
+          "P",
+          "4",
+          1
+        ],
+        [
+          "P",
+          "R",
+          1
+        ],
+        [
+          "P",
+          "M",
+          1
+        ],
+        [
+          "R",
+          "A",
+          2
+        ],
+        [
+          "R",
+          "M",
+          2
+        ],
+        [
+          "R",
+          "T",
+          2
+        ],
+        [
+          "R",
+          "V",
+          2
+        ],
+        [
+          "R",
+          "C",
+          1
+        ],
+        [
+          "T",
+          "Y",
+          3
+        ],
+        [
+          "T",
+          "X",
+          3
+        ],
+        [
+          "T",
+          "M",
+          2
+        ],
+        [
+          "T",
+          "P",
+          1
+        ],
+        [
+          "T",
+          "B",
+          1
+        ],
+        [
+          "V",
+          "X",
+          3
+        ],
+        [
+          "V",
+          "Y",
+          2
+        ],
+        [
+          "V",
+          "K",
+          2
+        ],
+        [
+          "V",
+          "C",
+          1
+        ],
+        [
+          "V",
+          "M",
+          1
+        ],
+        [
+          "X",
+          "Y",
+          4
+        ],
+        [
+          "X",
+          "R",
+          3
+        ],
+        [
+          "X",
+          "4",
+          2
+        ],
+        [
+          "X",
+          "L",
+          2
+        ],
+        [
+          "X",
+          "A",
+          1
+        ],
+        [
+          "Y",
+          "B",
+          2
+        ],
+        [
+          "Y",
+          "A",
+          2
+        ],
+        [
+          "Y",
+          "M",
+          1
+        ],
+        [
+          "Y",
+          "H",
+          1
+        ],
+        [
+          "Y",
+          "P",
+          1
+        ],
+        [
+          "3",
+          "D",
+          6
+        ],
+        [
+          "3",
+          "A",
+          4
+        ],
+        [
+          "3",
+          "T",
+          2
+        ],
+        [
+          "3",
+          "Y",
+          2
+        ],
+        [
+          "3",
+          "K",
+          2
+        ],
+        [
+          "4",
+          "Y",
+          141
+        ],
+        [
+          "4",
+          "H",
+          7
+        ],
+        [
+          "4",
+          "X",
+          2
+        ],
+        [
+          "4",
+          "R",
+          2
+        ],
+        [
+          "4",
+          "3",
+          1
+        ]
+      ],
+      "chars_per_page": 6000,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "tesseract"
+    ],
+    "dense": {
+      "font": "ocrab.ttf",
+      "size": 6.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "line_insert_rate": 0.5933333333333334,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "ocrab.ttf",
+      "size": 6.0,
+      "charset": "custom",
+      "engines": [
+        "tesseract"
+      ],
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "line_insert_rate": 0.5933333333333334
+    },
+    "retype": {
+      "font": "ocrab.ttf",
+      "size": 6.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "safe": "",
+      "safe_len": 0,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}
