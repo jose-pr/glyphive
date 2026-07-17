@@ -7,12 +7,12 @@ lets each layer validate the kind of damage it understands.
 file tree
   -> archive record stream (GLYPHIV1, version 2)
   -> whole-stream compression (none, gzip, or zstd)
-  -> g1 data/parity frames
+  -> base16c-crc16-rs data/parity frames
   -> protected header/footer frames and physical pages
 ```
 
-The printable layout version and codec identifier are both currently `1`/`g1`,
-but they are separate versioning points.
+The printable layout version and codec identifier are `1` and
+`base16c-crc16-rs` respectively, but they are separate versioning points.
 
 ## Archive record stream
 
@@ -40,7 +40,7 @@ Compression covers the entire archive stream, never each file separately. The
 selected registry name (`none`, `gzip`, or `zstd`) is carried by the protected
 machine header, so restore chooses the inverse deterministically.
 
-## `g1` payload frames
+## `base16c-crc16-rs` payload frames
 
 The exact safe alphabet is:
 
@@ -65,10 +65,10 @@ Data and parity lines use one grammar:
 - `<check4>` stores the full CRC-16/CCITT (`0x1021`, initial `0xFFFF`) over the
   printed index token and payload. Four safe characters hold exactly 16 bits.
 
-The protected byte stream begins with an eight-byte `g1` header:
+The protected byte stream begins with an eight-byte `base16c-crc16-rs` header:
 
 ```text
-"G1" | version:u8 | parity_symbols:u8 | original_length:u32-big-endian
+"B1" | version:u8 | parity_symbols:u8 | original_length:u32-big-endian
 ```
 
 Reed-Solomon parity is computed over that header and the compressed archive
@@ -102,7 +102,7 @@ block's budget; one concentrated block can fail sooner.
 Each document also prints a human-readable summary:
 
 ```text
-#!glyphive v=1 codec=g1 comp=gzip meta=none files=25 bytes=211233 pages=61 sha256=<64 hex>
+#!glyphive v=1 codec=base16c-crc16-rs comp=gzip meta=none files=25 bytes=211233 pages=61 sha256=<64 hex>
 ```
 
 This line is not authoritative. The same values are stored in one or more
@@ -129,12 +129,23 @@ frames. Pages may arrive out of order. Duplicate/conflicting identities, a
 missing page, a bad page hash, or damaged machine metadata causes restore to
 fail loudly.
 
-`H`/`T` frames have CRC and envelope/hash protection, but they are not currently
-Reed-Solomon-corrected. A wholly missing page is detected rather than rebuilt.
+`H`/`T` frames have CRC and envelope/hash protection. Each `H` frame is also
+printed as two identical, independently CRC-checked copies
+(`_MACHINE_HEADER_COPIES = 2`), and the header envelope carries one extra
+Reed-Solomon parity chunk (`_MACHINE_HEADER_PARITY_BYTES = 30`) covering the
+whole envelope. Duplication alone cannot recover a chunk whose two copies are
+misread identically by a deterministic OCR engine — measured on the real
+Tesseract 5.4.0 gate — so restore reconstructs one damaged data or parity
+chunk via RS erasure correction before falling back to accepting a surviving
+CRC-checked copy. Corruption spanning more than one distinct chunk still
+fails loud rather than guessing. `T` frames remain CRC/duplication-only (no
+RS): a wholly missing page is still detected rather than rebuilt, and a
+footer hash mismatch is a non-fatal warning (the page's `L`/`P` frames carry
+their own CRC/RS protection independently of the footer's advisory hash).
 
 ## Compatibility rule
 
 Treat the exact codec name, compression name, frame kinds, and alphabet as wire
 data. A new alphabet or framing rule needs a new codec identifier and must be
-validated with print/OCR/restore measurements; silently changing `g1` would
-make existing pages undecodable.
+validated with print/OCR/restore measurements; silently changing
+`base16c-crc16-rs` would make existing pages undecodable.

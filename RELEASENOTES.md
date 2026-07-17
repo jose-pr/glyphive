@@ -14,7 +14,7 @@ line, page, and whole-document integrity checks pass.
 
 ### Behavior and compatibility
 
-- The current wire identifier is `g1`. Its payload alphabet is exactly
+- The current wire identifier is `base16c-crc16-rs`. Its payload alphabet is exactly
   `ABCDHKLMPRTVXY34`; excluded glyphs are errors, not aliases.
 - Reed-Solomon parity is interleaved across the document. It corrects scattered
   damaged lines within its budget, but it does not recreate a missing page.
@@ -37,7 +37,7 @@ bytes per page and capacity adjusted for line-length erasures.
 | --- | ---: | ---: |
 | Create printable text | Not released | Not isolated by the current harness |
 | Decode transcript | Not released | Not isolated by the current harness |
-| `g1` codec encode/decode | Not released | VM sanity baseline recorded |
+| `base16c-crc16-rs` codec encode/decode | Not released | VM sanity baseline recorded |
 | OCR-safe bytes per page | Not released | 2,250 portable; 3,375 experimental Paddle-only |
 
 **Target for the first release:** establish repeatable baselines without
@@ -65,7 +65,7 @@ radix-64 density at 3,375 bytes/page with zero insertions, but no dense wire
 preset or end-to-end restore gate exists yet.
 
 The timing baseline used Python 3.9.25 on Rocky Linux 9. Median times were
-21.65/49.45 ms for 1 KiB `g1` encode/decode and 299.07/734.10 ms for 16 KiB.
+21.65/49.45 ms for 1 KiB `base16c-crc16-rs` encode/decode and 299.07/734.10 ms for 16 KiB.
 These are local VM sanity measurements, not CI performance evidence.
 
 Historical Windows/Tesseract 5.4.0 probes are documented separately from the
