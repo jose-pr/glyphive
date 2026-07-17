@@ -14,7 +14,13 @@ from ._base import (
     MINIMAL_PAGE_MARGIN_PT,
     RenderFormat,
 )
-from .formats import DocxRenderFormat, PdfRenderFormat, TextRenderFormat
+from .formats import (
+    DocxRenderFormat,
+    HybridRenderFormat,
+    PdfRenderFormat,
+    QrRenderFormat,
+    TextRenderFormat,
+)
 
 FORMATS: _ty.Final[_ty.FrozenSet[str]] = frozenset(RenderFormat.names())
 
