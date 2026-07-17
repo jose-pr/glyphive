@@ -10,8 +10,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 The first public release provides an end-to-end path from a file tree to
 OCR-friendly printable pages and back to a verified tree.
 
+### Changed
+
+- **Codec identifier renamed `g1` -> `base16c-crc16-rs`**: exposes the
+  composable parts (16-char OCR-safe alphabet / CRC-16 / Reed-Solomon) instead
+  of an opaque version tag. `codec/g1.py` -> `codec/base16c.py`; `G1Codec` ->
+  `Base16CCodec`; `--codec` default and `codec.names()` updated. Nothing was
+  published under the old name, so this is an in-place rename with no
+  migration path or dual-format compatibility.
+- **Dense preset documented**: the bundled `ocr-b` font (SIL OFL 1.1, OCR-B by
+  Raisty) at 6pt measures 5,050 usable bytes/page — 23% denser than the
+  Courier 8pt `safe` default — and remains safe on both tested engines
+  (Tesseract and PaddleOCR). Select it with `--font ocr-b --font-size 6`; the
+  shipped default stays Courier 8pt per the project's font-selection design.
+
 ### Fixed
 
+- **Machine header now Reed-Solomon protected**: the real Tesseract 5.4.0
+  end-to-end gate (`create` -> rasterize 300 DPI -> `extract --from-images`
+  -> diff) found that `--compression zstd` deterministically failed restore:
+  a wider header caused Tesseract to misread one `H` frame's two duplicate
+  copies identically, so CRC+duplication alone could not recover it.
+  `layout.py` now adds one Reed-Solomon parity chunk over the header
+  envelope so restore reconstructs a single damaged chunk instead of only
+  detecting it; corruption spanning more than one distinct chunk still fails
+  loud. Both `--compression none` and `--compression zstd` now restore
+  byte-for-byte through the real OCR gate.
 - **Large-document parity overhead**: `parity_ratio` now targets aggregate
   Reed-Solomon parity across all GF(255) blocks. The default is approximately
   12% for large streams instead of repeating a capped whole-stream budget per
@@ -38,8 +62,9 @@ OCR-friendly printable pages and back to a verified tree.
   I/O granularity. Restore stream-decompresses into a size-limited spool,
   validates the global digest and archive framing, stages files privately, and
   only then publishes final paths; `--max-output-bytes` caps expansion.
-  Transcript parsing spools normalized frames in one pass, while `g1` retains
-  only compact line offsets and processes Reed-Solomon codewords blockwise.
+  Transcript parsing spools normalized frames in one pass, while
+  `base16c-crc16-rs` retains only compact line offsets and processes
+  Reed-Solomon codewords blockwise.
 - **Explicit plugin discovery** (`glyphive.plugins`): trusted installed
   distributions can provide typed codecs, compression methods, render formats,
   or OCR providers through four documented entry-point groups. Discovery is
@@ -51,17 +76,20 @@ OCR-friendly printable pages and back to a verified tree.
   with optional integrations. Lightweight OCR Python shims are optional;
   heavyweight OCR engines and models remain external.
 - **Codec registry** (`glyphive.codec`): typed named lookup with the built-in
-  `g1` codec.
+  `base16c-crc16-rs` codec.
 - **Compression registry** (`glyphive.compression`): named `none`, `gzip`, and
   lazy optional `zstd` methods.
 - **Renderer and OCR registries** (`glyphive.render`,
   `glyphive.restore.ocr`): text, PDF, Word, and optional OCR providers use
   explicit registries with lazy backend imports.
-- **Codec `g1`**: the measured-safe `ABCDHKLMPRTVXY34` alphabet (16 symbols,
-  4-bit packing), a full CRC-16 per line, masked five-character indices, and
-  document-wide interleaved Reed-Solomon parity. Scattered OCR errors can
-  self-heal; correctness is judged by CRC and parity rather than speculative
-  character substitution.
+- **Codec `base16c-crc16-rs`**: the measured-safe `ABCDHKLMPRTVXY34` alphabet
+  (16 symbols, 4-bit packing), a full CRC-16 per line, masked five-character
+  indices, and document-wide interleaved Reed-Solomon parity. Scattered OCR
+  errors can self-heal; correctness is judged by CRC and parity rather than
+  speculative character substitution. (Named for its composable parts —
+  16-symbol OCR-safe alphabet / CRC-16 / Reed-Solomon — instead of an opaque
+  `g1` version tag; renamed before the first release, so no migration shim
+  was needed.)
 - **Binary-safe archive stream** (`glyphive.archive`): length-prefixed records
   for arbitrary bytes, deterministic ordering, root-level
   `.gitignore`/`.ignore` filtering, empty-directory records, and `none`, `gzip`,
