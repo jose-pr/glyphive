@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import typing as _ty
+import zipfile
 
 from pathlib_next import Path
 
 __all__ = [
     "format_selector_error",
     "load_image_lines",
+    "load_input_lines",
     "load_transcript_lines",
     "resolve_destination",
     "warn_page_integrity",
@@ -58,6 +60,88 @@ def load_image_lines(
 
     pages = ocr.ocr_pages(_input_files(source), engine=engine)
     return [line for page in pages for line in page]
+
+
+def load_input_lines(
+    source: _ty.Union[str, "Path"], *, engine: _ty.Optional[str] = None
+) -> _ty.List[str]:
+    """Read transcripts and OCR images/PDFs/DOCX files based on extension."""
+    from tempfile import TemporaryDirectory
+
+    from ..restore import ocr
+    from ..restore.document_images import render_document_images
+
+    image_suffixes = {
+        ".bmp",
+        ".gif",
+        ".jpeg",
+        ".jpg",
+        ".png",
+        ".tif",
+        ".tiff",
+        ".webp",
+    }
+    document_suffixes = {".docx", ".pdf"}
+    lines: _ty.List[str] = []
+    with TemporaryDirectory(prefix="glyphive-input-") as temp:
+        for index, path in enumerate(_input_files(source)):
+            kind = _input_kind(path, image_suffixes, document_suffixes)
+            if kind == "document":
+                pages = render_document_images(path, Path(temp) / str(index))
+                lines.extend(
+                    line
+                    for page in ocr.ocr_pages(pages, engine=engine)
+                    for line in page
+                )
+            elif kind == "image":
+                lines.extend(
+                    line
+                    for page in ocr.ocr_pages([path], engine=engine)
+                    for line in page
+                )
+            else:
+                try:
+                    text = path.read_text(encoding="utf-8")
+                except UnicodeDecodeError as exc:
+                    raise ValueError(
+                        f"cannot detect supported input type for {path}; expected "
+                        "a UTF-8 transcript, image, PDF, or DOCX"
+                    ) from exc
+                lines.extend(text.replace("\f", "\n").splitlines())
+    return lines
+
+
+def _input_kind(
+    path: "Path", image_suffixes: _ty.Set[str], document_suffixes: _ty.Set[str]
+) -> str:
+    """Classify by magic bytes first and filename extension second."""
+    with path.open("rb") as stream:
+        prefix = stream.read(16)
+    if prefix.startswith(b"%PDF-"):
+        return "document"
+    if prefix.startswith(b"PK\x03\x04"):
+        try:
+            with zipfile.ZipFile(str(path)) as archive:
+                if "word/document.xml" in archive.namelist():
+                    return "document"
+        except (OSError, zipfile.BadZipFile):
+            pass
+    image_magic = (
+        prefix.startswith(b"\x89PNG\r\n\x1a\n")
+        or prefix.startswith(b"\xff\xd8\xff")
+        or prefix.startswith((b"GIF87a", b"GIF89a"))
+        or prefix.startswith(b"BM")
+        or prefix.startswith((b"II*\x00", b"MM\x00*"))
+        or (prefix.startswith(b"RIFF") and prefix[8:12] == b"WEBP")
+    )
+    if image_magic:
+        return "image"
+    suffix = path.suffix.lower()
+    if suffix in document_suffixes:
+        return "document"
+    if suffix in image_suffixes:
+        return "image"
+    return "text"
 
 
 def _input_files(source: _ty.Union[str, "Path"]) -> _ty.List["Path"]:
