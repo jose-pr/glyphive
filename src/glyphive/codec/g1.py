@@ -89,6 +89,7 @@ exact failing line label. It never guesses or mutates data to make it "work".
 """
 
 import mmap as _mmap
+import io as _io
 import tempfile as _tempfile
 import typing as _ty
 
@@ -631,6 +632,51 @@ def _frame_stream(kind: str, source, length: int, bytes_per_line: int):
         raise ValueError(f"{kind} spool has trailing bytes")
 
 
+def _read_spooled_line(source, offset: int) -> _ParsedLine:
+    source.seek(offset)
+    parsed = _parse_line(source.readline().decode("utf-8").rstrip("\r\n"))
+    if parsed is None:
+        raise ValueError("indexed codec line is no longer parseable")
+    return parsed
+
+
+def _assemble_to_spool(source, index, sink, bytes_per_line: int):
+    erasures = []
+    if not index:
+        return 0, erasures
+    max_idx = max(index)
+    written = 0
+    for idx in range(max_idx + 1):
+        entry = index.get(idx)
+        parsed = _read_spooled_line(source, entry[0]) if entry is not None else None
+        is_last = idx == max_idx
+        if parsed is not None:
+            span = _payload_byte_len(parsed.payload, bytes_per_line, is_last)
+        else:
+            span = bytes_per_line
+        if parsed is not None and parsed.ok:
+            try:
+                chunk = nibble_decode(parsed.payload, span)
+            except ValueError:
+                chunk = b"\x00" * span
+                erasures.extend(range(written, written + span))
+        else:
+            chunk = b"\x00" * span
+            erasures.extend(range(written, written + span))
+        sink.write(chunk)
+        written += span
+    return written, erasures
+
+
+def _copy_stream(source, sink, chunk_size=1024 * 1024):
+    source.seek(0)
+    while True:
+        chunk = source.read(chunk_size)
+        if not chunk:
+            return
+        sink.write(chunk)
+
+
 def _assemble(
     parsed: _ty.Dict[int, "_ParsedLine"],
     bytes_per_line: int,
@@ -826,76 +872,134 @@ class G1Codec(Codec):
 
     def decode(self, lines: _ty.Iterable[str]) -> bytes:
         """Decode framed lines using only CRC and RS as correctness oracles."""
-        data_lines: _ty.Dict[int, _ParsedLine] = {}
-        parity_lines: _ty.Dict[int, _ParsedLine] = {}
-        for raw in lines:
-            parsed = _parse_line(raw)
+        encoded = _io.BytesIO()
+        for line in lines:
+            encoded.write(line.encode("utf-8") + b"\n")
+        encoded.seek(0)
+        output = _io.BytesIO()
+        self.decode_spool(encoded, output)
+        return output.getvalue()
+
+    def decode_spool(
+        self,
+        encoded_source: _ty.BinaryIO,
+        payload_sink: _ty.BinaryIO,
+        *,
+        temp_dir: _ty.Optional[str] = None,
+    ) -> None:
+        """Decode an encoded-line spool with only offsets and RS blocks in RAM."""
+        data_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
+        parity_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
+        max_payload = 0
+        encoded_source.seek(0)
+        while True:
+            offset = encoded_source.tell()
+            raw = encoded_source.readline()
+            if not raw:
+                break
+            parsed = _parse_line(raw.decode("utf-8").rstrip("\r\n"))
             if parsed is None:
                 continue
             target = data_lines if parsed.kind == "L" else parity_lines
-            target[parsed.idx] = parsed
+            target[parsed.idx] = (offset, parsed.ok, len(parsed.payload))
+            max_payload = max(max_payload, len(parsed.payload))
 
         if not data_lines:
             raise ValueError("no data lines found to decode")
-
-        all_parsed = list(data_lines.values()) + list(parity_lines.values())
-        max_payload = max(len(p.payload) for p in all_parsed)
         bytes_per_line = (max_payload * 4) // 8
-        data_bytes, data_erasures = _assemble(data_lines, bytes_per_line)
-        parity_bytes, parity_erasures = _assemble(parity_lines, bytes_per_line)
-
-        if len(data_bytes) < _HEADER_LEN:
-            raise ValueError("data stream shorter than the group header")
-
-        candidates = _candidate_nsym(len(data_bytes), len(parity_bytes))
-        if not candidates:
-            raise ValueError(
-                "cannot recover RS parameters: data/parity line counts are "
-                "inconsistent (missing or spurious lines)"
+        with _tempfile.TemporaryFile(dir=temp_dir) as data_spool, _tempfile.TemporaryFile(
+            dir=temp_dir
+        ) as parity_spool:
+            data_len, data_erasures = _assemble_to_spool(
+                encoded_source, data_lines, data_spool, bytes_per_line
             )
-
-        rs_budget_exceeded = False
-        for nsym in candidates:
-            nblocks = _num_blocks(len(data_bytes), nsym)
-            expected_parity_len = nblocks * nsym
-            trial_data = bytearray(data_bytes)
-            trial_parity = bytearray(parity_bytes)
-            trial_parity_erasures = list(parity_erasures)
-            if len(trial_parity) < expected_parity_len:
-                for pos in range(len(trial_parity), expected_parity_len):
-                    trial_parity_erasures.append(pos)
-                trial_parity.extend(
-                    b"\x00" * (expected_parity_len - len(trial_parity))
+            parity_len, parity_erasures = _assemble_to_spool(
+                encoded_source, parity_lines, parity_spool, bytes_per_line
+            )
+            if data_len < _HEADER_LEN:
+                raise ValueError("data stream shorter than the group header")
+            candidates = _candidate_nsym(data_len, parity_len)
+            if not candidates:
+                raise ValueError(
+                    "cannot recover RS parameters: data/parity line counts are "
+                    "inconsistent (missing or spurious lines)"
                 )
-            elif len(trial_parity) > expected_parity_len:
-                trial_parity = trial_parity[:expected_parity_len]
-
+            data_erasure_set = set(data_erasures)
+            parity_erasure_set = set(parity_erasures)
+            data_spool.flush()
+            parity_spool.flush()
+            data_map = _mmap.mmap(data_spool.fileno(), 0, access=_mmap.ACCESS_READ)
+            parity_map = _mmap.mmap(parity_spool.fileno(), 0, access=_mmap.ACCESS_READ)
             try:
-                corrected = _rs_decode(
-                    trial_data,
-                    data_erasures,
-                    trial_parity,
-                    trial_parity_erasures,
-                    nsym,
-                    nblocks,
-                )
-            except _reedsolo.ReedSolomonError:
-                rs_budget_exceeded = True
-                continue
-
-            try:
-                hdr_nsym, orig_len = _parse_header(corrected)
-            except ValueError:
-                continue
-            if hdr_nsym != nsym or orig_len > len(corrected) - _HEADER_LEN:
-                continue
-            return corrected[_HEADER_LEN:_HEADER_LEN + orig_len]
+                rs_budget_exceeded = False
+                for nsym in candidates:
+                    nblocks = _num_blocks(data_len, nsym)
+                    expected_parity_len = nblocks * nsym
+                    with _tempfile.TemporaryFile(dir=temp_dir) as corrected:
+                        _copy_stream(data_spool, corrected)
+                        rs = _reedsolo.RSCodec(nsym)
+                        failed = False
+                        for block_index in range(nblocks):
+                            positions = list(range(block_index, data_len, nblocks))
+                            block_data = bytes(data_map[pos] for pos in positions)
+                            parity_base = block_index * nsym
+                            block_parity = bytes(
+                                parity_map[pos] if pos < parity_len else 0
+                                for pos in range(parity_base, parity_base + nsym)
+                            )
+                            erase_pos = [
+                                local for local, pos in enumerate(positions)
+                                if pos in data_erasure_set
+                            ]
+                            erase_pos.extend(
+                                len(positions) + offset
+                                for offset in range(nsym)
+                                if parity_base + offset in parity_erasure_set
+                                or parity_base + offset >= parity_len
+                            )
+                            try:
+                                decoded = rs.decode(
+                                    bytearray(block_data + block_parity),
+                                    erase_pos=erase_pos or None,
+                                )[0]
+                            except _reedsolo.ReedSolomonError:
+                                rs_budget_exceeded = True
+                                failed = True
+                                break
+                            for local, pos in enumerate(positions):
+                                if decoded[local] != data_map[pos]:
+                                    corrected.seek(pos)
+                                    corrected.write(bytes([decoded[local]]))
+                        if failed:
+                            continue
+                        corrected.seek(0)
+                        prefix = corrected.read(_HEADER_LEN)
+                        try:
+                            hdr_nsym, orig_len = _parse_header(prefix)
+                        except ValueError:
+                            continue
+                        if hdr_nsym != nsym or orig_len > data_len - _HEADER_LEN:
+                            continue
+                        remaining = orig_len
+                        while remaining:
+                            chunk = corrected.read(min(1024 * 1024, remaining))
+                            if not chunk:
+                                raise ValueError("corrected payload spool is truncated")
+                            payload_sink.write(chunk)
+                            remaining -= len(chunk)
+                        return
+            finally:
+                data_map.close()
+                parity_map.close()
 
         if rs_budget_exceeded:
-            bad = _first_failed_label(data_lines, parity_lines)
-            raise CodecError(
-                f"line {bad} failed CRC and exceeds RS correction budget"
-            )
-        raise ValueError(
-            "decode failed: corrected stream did not yield a valid group header"
-        )
+            for kind, index in (("L", data_lines), ("P", parity_lines)):
+                if index:
+                    for idx in range(max(index) + 1):
+                        entry = index.get(idx)
+                        if entry is None or not entry[1]:
+                            raise CodecError(
+                                f"line {kind}{idx:05d} failed CRC and exceeds RS correction budget"
+                            )
+            raise CodecError("line L00000 failed CRC and exceeds RS correction budget")
+        raise ValueError("decode failed: corrected stream did not yield a valid group header")

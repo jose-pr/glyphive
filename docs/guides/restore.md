@@ -38,6 +38,9 @@ outside the destination. Decompression is streamed into a private spool and
 checked against the protected byte count and whole-document digest. Files are
 then written into a private sibling staging directory; final paths are not
 published until archive framing and every target have validated.
+The transcript is parsed once into a normalized line spool. Glyphive indexes
+line offsets rather than retaining line payloads, reconstructs data/parity into
+spools, and corrects one Reed-Solomon codeword at a time.
 
 For constrained systems, `--temp-dir PATH` selects spool placement,
 `--chunk-size BYTES` tunes sequential I/O, and `--max-output-bytes BYTES` sets a
