@@ -11,6 +11,7 @@ class CompressionMethod(ABC):
     """Base class for stateless, no-argument compression implementations."""
 
     _registry: _ty.ClassVar[_ty.Dict[str, _ty.Type["CompressionMethod"]]] = {}
+    _external: _ty.ClassVar[_ty.Set[str]] = set()
     name: _ty.ClassVar[str]
 
     def __init_subclass__(cls, **kwargs: _ty.Any) -> None:
@@ -65,6 +66,26 @@ class CompressionMethod(ABC):
     def is_available(cls) -> bool:
         """Return whether this method can be selected without an extra."""
         return True
+
+    @classmethod
+    def _register_external(cls, name: str, implementation: _ty.Type["CompressionMethod"]) -> None:
+        if name in CompressionMethod._registry:
+            raise ValueError(f"duplicate compression name {name!r}")
+        CompressionMethod._registry[name] = implementation
+        CompressionMethod._external.add(name)
+
+    @classmethod
+    def _discard_implementation(cls, implementation: _ty.Type["CompressionMethod"]) -> None:
+        for name, registered in list(CompressionMethod._registry.items()):
+            if registered is implementation:
+                CompressionMethod._registry.pop(name)
+                CompressionMethod._external.discard(name)
+
+    @classmethod
+    def _reset_external(cls) -> None:
+        for name in CompressionMethod._external:
+            CompressionMethod._registry.pop(name, None)
+        CompressionMethod._external.clear()
 
     @abstractmethod
     def compress(self, data: bytes, level: _ty.Optional[int] = None) -> bytes:

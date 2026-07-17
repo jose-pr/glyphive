@@ -11,6 +11,7 @@ class OcrProvider(ABC):
     """Base class for stateless, no-argument image OCR providers."""
 
     _registry: _ty.ClassVar[_ty.Dict[str, _ty.Type["OcrProvider"]]] = {}
+    _external: _ty.ClassVar[_ty.Set[str]] = set()
     name: _ty.ClassVar[str]
 
     def __init_subclass__(cls, **kwargs: _ty.Any) -> None:
@@ -55,6 +56,26 @@ class OcrProvider(ABC):
     @classmethod
     def is_available(cls) -> bool:
         return True
+
+    @classmethod
+    def _register_external(cls, name: str, implementation: _ty.Type["OcrProvider"]) -> None:
+        if name in OcrProvider._registry:
+            raise ValueError(f"duplicate OCR provider name {name!r}")
+        OcrProvider._registry[name] = implementation
+        OcrProvider._external.add(name)
+
+    @classmethod
+    def _discard_implementation(cls, implementation: _ty.Type["OcrProvider"]) -> None:
+        for name, registered in list(OcrProvider._registry.items()):
+            if registered is implementation:
+                OcrProvider._registry.pop(name)
+                OcrProvider._external.discard(name)
+
+    @classmethod
+    def _reset_external(cls) -> None:
+        for name in OcrProvider._external:
+            OcrProvider._registry.pop(name, None)
+        OcrProvider._external.clear()
 
     @abstractmethod
     def ocr_image(self, image_path: _ty.Any) -> _ty.List[str]:

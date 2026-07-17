@@ -64,6 +64,34 @@ glyphive -t -f backup.txt
 glyphive -x -f backup.txt -C restored
 ```
 
+### Installed plugins
+
+Glyphive can explicitly discover implementations supplied by installed Python
+distributions. Pass the global `--plugins` flag to opt in for that invocation:
+
+```bash
+glyphive --plugins create -f backup.txt --codec vendor_codec -C project .
+```
+
+Plugin distributions register a concrete typed class under one of these entry
+point groups:
+
+| Entry-point group | Required base class |
+| --- | --- |
+| `glyphive.codecs` | `glyphive.codec.Codec` |
+| `glyphive.compression` | `glyphive.compression.CompressionMethod` |
+| `glyphive.render_formats` | `glyphive.render.RenderFormat` |
+| `glyphive.ocr_providers` | `glyphive.restore.ocr.OcrProvider` |
+
+The entry-point name must exactly match the class's lowercase registry `name`.
+Library callers use `glyphive.plugins.discover()`; normal imports and registry
+lookups never discover plugins. Discovery is deterministic and cached, and a
+bad candidate is reported without preventing valid candidates from loading.
+
+Installed plugin code executes with the same permissions as Glyphive and is
+not sandboxed. Use `--plugins` only when you trust every installed distribution
+that declares one of these groups. Discovery does not download or update code.
+
 Create a PDF instead:
 
 ```bash
@@ -129,6 +157,7 @@ Optional, platform-specific artifacts can be built with `--extras`; use
 | `glyphive.codec` | Resolve printable codecs; includes `g1` |
 | `glyphive.compression` | Resolve `none`, `gzip`, and optional `zstd` compression |
 | `glyphive.layout` | Paginate frames and verify protected page metadata |
+| `glyphive.plugins` | Explicitly discover trusted installed entry points |
 | `glyphive.render` | Render pages as text, PDF, or Word |
 | `glyphive.restore` | Decode documents and safely restore file trees |
 | `glyphive.restore.ocr` | Select OCR providers and OCR page images |

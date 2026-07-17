@@ -26,6 +26,25 @@ def _expand_mode_flag(argv):
     return args
 
 
+def _discover_plugins(args):
+    """Consume the global opt-in flag and report non-fatal plugin failures."""
+    enabled = "--plugins" in args
+    args = [arg for arg in args if arg != "--plugins"]
+    if enabled:
+        from ..plugins import discover
+
+        report = discover()
+        for error in report.errors:
+            entry = error.entry
+            source = f" from {entry.distribution}" if entry.distribution else ""
+            print(
+                f"warning: plugin {entry.group}:{entry.name}{source}: "
+                f"{error.message}",
+                file=sys.stderr,
+            )
+    return args
+
+
 class Glyphive(LoggingArgs):
     """Archive trees to printable pages and restore them.
 
@@ -38,7 +57,11 @@ class Glyphive(LoggingArgs):
     _version_ = duho.AUTO
     _subcommands_ = [Create, Extract, List]
 
+    plugins: bool = False
+    "Discover trusted installed glyphive plugins before dispatch."
+    ("--plugins",)
+
 
 def run(argv=None) -> int:
     """Console-script / ``python -m glyphive`` entry point."""
-    return duho.main(Glyphive, _expand_mode_flag(argv))
+    return duho.main(Glyphive, _discover_plugins(_expand_mode_flag(argv)))

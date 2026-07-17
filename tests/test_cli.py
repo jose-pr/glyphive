@@ -85,6 +85,65 @@ def test_tar_style_mode_flags_roundtrip(tmp_path, capsys):
     assert "codec=g1" in capsys.readouterr().out
 
 
+def test_plugins_flag_discovers_before_selector_validation(tmp_path, monkeypatch):
+    from glyphive import plugins
+    from glyphive.cli import create as create_command
+
+    src = _make_srcdir(tmp_path)
+    archive_file = tmp_path / "plugin.txt"
+
+    class PluginCodec(codec.Codec):
+        name = "plugin_codec"
+
+        def encode(self, data, **options):
+            return codec.G1Codec().encode(data, **options)
+
+        def decode(self, lines, **options):
+            return codec.G1Codec().decode(lines, **options)
+
+    codec.Codec._discard_implementation(PluginCodec)
+    report = plugins.DiscoveryReport(
+        (plugins.PluginEntry("glyphive.codecs", "plugin_codec", "test"),), ()
+    )
+
+    def discover():
+        codec.Codec._register_external("plugin_codec", PluginCodec)
+        return report
+
+    monkeypatch.setattr(plugins, "discover", discover)
+    try:
+        assert cli.run(
+            [
+                "--plugins",
+                "create",
+                "-f",
+                str(archive_file),
+                "-C",
+                str(src),
+                "--codec",
+                "plugin_codec",
+                ".",
+            ]
+        ) == 0
+        assert "codec=plugin_codec" in archive_file.read_text(encoding="utf-8")
+    finally:
+        codec.Codec._reset_external()
+
+
+def test_plugins_flag_surfaces_nonfatal_diagnostics(monkeypatch, capsys):
+    from glyphive import plugins
+
+    error = plugins.PluginError(
+        plugins.PluginEntry("glyphive.codecs", "bad", "broken-dist"),
+        "load failed: boom",
+    )
+    monkeypatch.setattr(
+        plugins, "discover", lambda: plugins.DiscoveryReport((), (error,))
+    )
+    assert cli._discover_plugins(["--plugins", "create"]) == ["create"]
+    assert "warning: plugin glyphive.codecs:bad from broken-dist" in capsys.readouterr().err
+
+
 def test_old_header_without_metadata_remains_readable(tmp_path):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "a.txt"

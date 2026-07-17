@@ -16,6 +16,7 @@ class Codec(ABC):
     """
 
     _registry: _ty.ClassVar[_ty.Dict[str, _ty.Type["Codec"]]] = {}
+    _external: _ty.ClassVar[_ty.Set[str]] = set()
     name: _ty.ClassVar[str]
 
     def __init_subclass__(cls, **kwargs: _ty.Any) -> None:
@@ -70,6 +71,26 @@ class Codec(ABC):
     def is_available(cls) -> bool:
         """Return whether this implementation can be selected."""
         return True
+
+    @classmethod
+    def _register_external(cls, name: str, implementation: _ty.Type["Codec"]) -> None:
+        if name in Codec._registry:
+            raise ValueError(f"duplicate codec name {name!r}")
+        Codec._registry[name] = implementation
+        Codec._external.add(name)
+
+    @classmethod
+    def _discard_implementation(cls, implementation: _ty.Type["Codec"]) -> None:
+        for name, registered in list(Codec._registry.items()):
+            if registered is implementation:
+                Codec._registry.pop(name)
+                Codec._external.discard(name)
+
+    @classmethod
+    def _reset_external(cls) -> None:
+        for name in Codec._external:
+            Codec._registry.pop(name, None)
+        Codec._external.clear()
 
     @abstractmethod
     def encode(self, data: bytes, **options: _ty.Any) -> _ty.List[str]:
