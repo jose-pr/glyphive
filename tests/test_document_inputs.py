@@ -119,14 +119,24 @@ def test_list_uses_auto_input_and_forwards_ocr_engine(tmp_path, monkeypatch):
     assert seen["engine"] == "mock"
 
 
-def test_docx_requires_libreoffice(tmp_path, monkeypatch):
-    from glyphive.restore import document_images
+def test_docx_transcript_is_read_directly_and_diagnostic_pages_render(tmp_path):
+    import docx
+    from docx.enum.text import WD_BREAK
+
+    from glyphive.cli._common import load_input_lines
+    from glyphive.restore.document_images import render_document_images
 
     source = tmp_path / "scan.docx"
-    source.write_bytes(b"docx")
-    monkeypatch.setattr(document_images.shutil, "which", lambda name: None)
-    with pytest.raises(RuntimeError, match="requires LibreOffice"):
-        document_images.render_document_images(source, tmp_path / "pages")
+    document = docx.Document()
+    document.add_paragraph("first")
+    document.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+    document.add_paragraph("second")
+    document.save(source)
+
+    assert load_input_lines(source) == ["first", "second"]
+    outputs = render_document_images(source, tmp_path / "pages", dpi=72)
+    assert [path.name for path in outputs] == ["scan-0001.png", "scan-0002.png"]
+    assert all(path.read_bytes().startswith(b"\x89PNG") for path in outputs)
 
 
 @pytest.mark.parametrize("dpi,blur", [(0, 0), (300, -1)])

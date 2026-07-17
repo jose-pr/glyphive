@@ -81,8 +81,9 @@ glyphive list -f backup.pdf --ocr-engine tesseract
 ```
 
 The operating-system Tesseract executable and language data must also be
-installed. PDF input uses `pypdfium2`; DOCX input additionally requires the
-LibreOffice command on `PATH`. See the [create guide](https://jose-pr.github.io/glyphive/guides/create/),
+installed. PDF input uses `pypdfium2`; Glyphive-generated DOCX transcripts are
+read directly with `python-docx`, without Microsoft Word or LibreOffice. See the
+[create guide](https://jose-pr.github.io/glyphive/guides/create/),
 [restore guide](https://jose-pr.github.io/glyphive/guides/restore/), and
 [OCR guide](https://jose-pr.github.io/glyphive/guides/ocr/) for details.
 
