@@ -15,7 +15,7 @@ from .. import compression as _compression
 from .. import layout as _layout
 from .. import render as _render
 from ..codec.base16c import encoded_line_count as _base16c_encoded_line_count
-from ._common import format_selector_error, resolve_destination
+from ._common import format_selector_error, progress_logger, resolve_destination
 
 __all__ = ["Create"]
 
@@ -254,6 +254,7 @@ class Create(LoggingArgs):
         else:
             line_width = measured_capacity or 60
         out = Path(self.file)
+        report = progress_logger(self._logger_)
         with _tempfile.TemporaryFile(dir=self.temp_dir) as raw_spool:
             measured_raw = _DigestWriter(raw_spool)
             _archive.write_archive(
@@ -263,6 +264,7 @@ class Create(LoggingArgs):
                 metadata=self.metadata,
                 chunk_size=self.chunk_size,
             )
+            report("archived", files=len(paths), bytes=measured_raw.count)
             meta = {
                 "v": 1,
                 "codec": codec_name,
@@ -281,6 +283,7 @@ class Create(LoggingArgs):
                     chunk_size=self.chunk_size,
                 )
                 compressed_len = compressed_spool.tell()
+                report("compressed", bytes=compressed_len, method=compression_name)
                 compressed_spool.seek(0)
                 if hasattr(codec, "iter_encode") and codec_name == "base16c-crc16-rs":
                     encoded = codec.iter_encode(
@@ -296,6 +299,7 @@ class Create(LoggingArgs):
                     options = {"line_width": line_width} if codec_name == "base16c-crc16-rs" else {}
                     materialized = codec.encode(compressed_spool.read(), **options)
                     encoded, n_encoded = iter(materialized), len(materialized)
+                report("encoded", lines=n_encoded)
                 pages = _layout.iter_paginate(
                     encoded,
                     n_encoded,
@@ -311,6 +315,7 @@ class Create(LoggingArgs):
                     horizontal_alignment=self.horizontal_alignment,
                     character_spacing_pt=self.character_spacing,
                 )
+                report("rendered", pages=meta["pages"], format=format_name)
         self._logger_.info(
             "wrote %s (%d files, %d bytes, codec=%s, comp=%s, meta=%s, "
             "%d pages, format=%s)",
