@@ -86,6 +86,7 @@ compression or adding per-file checks.
 from __future__ import annotations
 
 import struct
+import io
 import typing as _ty
 
 from pathlib_next import Path
@@ -99,10 +100,14 @@ __all__ = [
     "REC_EMPTY_DIR",
     "Record",
     "ArchiveMetadata",
+    "RecordHeader",
+    "RecordChunk",
     "stream_metadata",
+    "write_archive",
     "archive_tree",
     "list_paths",
     "iter_records",
+    "iter_record_events",
 ]
 
 # ---------------------------------------------------------------------------
@@ -155,6 +160,22 @@ class ArchiveMetadata(_ty.NamedTuple):
 
     version: int
     metadata: str
+
+
+class RecordHeader(_ty.NamedTuple):
+    """Metadata preceding one record's streamed content."""
+
+    type: int
+    path: str
+    mode: int
+    mtime: float
+    content_length: int
+
+
+class RecordChunk(_ty.NamedTuple):
+    """A bounded piece of the content belonging to the preceding header."""
+
+    data: bytes
 
 
 # ---------------------------------------------------------------------------
@@ -357,6 +378,90 @@ def _validate_metadata(metadata: str) -> str:
     return metadata
 
 
+def _validate_chunk_size(chunk_size: int) -> int:
+    if not isinstance(chunk_size, int) or isinstance(chunk_size, bool) or chunk_size <= 0:
+        raise ValueError("chunk_size must be a positive integer")
+    return chunk_size
+
+
+def write_archive(
+    root: PathLike,
+    sink: _ty.BinaryIO,
+    *,
+    use_ignore: bool = True,
+    extra_ignore: _ty.Optional[_ty.Sequence[str]] = None,
+    metadata: str = "none",
+    chunk_size: int = 1024 * 1024,
+) -> None:
+    """Serialize ``root`` to a binary sink without buffering file contents.
+
+    The sorted manifest is retained in memory, but payload bytes are copied in
+    chunks. File length is captured before the header is emitted; a concurrent
+    truncation or growth raises instead of producing a malformed archive.
+    """
+    metadata = _validate_metadata(metadata)
+    chunk_size = _validate_chunk_size(chunk_size)
+    root = _validate_root(root)
+    entries = sorted(
+        _walk_entries(root, use_ignore=use_ignore, extra_ignore=extra_ignore),
+        key=lambda item: item[0],
+    )
+    manifest = []
+    for relposix, path, is_empty_dir in entries:
+        mode, mtime, length = 0, 0.0, 0
+        if not is_empty_dir or metadata == "basic":
+            try:
+                stat = path.stat()
+            except OSError:
+                if not is_empty_dir:
+                    raise
+            else:
+                if metadata == "basic":
+                    mode, mtime = stat.st_mode, stat.st_mtime
+                if not is_empty_dir:
+                    length = stat.st_size
+        manifest.append((relposix, path, is_empty_dir, mode, mtime, length))
+
+    sink.write(MAGIC)
+    sink.write(_HEADER_V2.pack(FORMAT_VERSION, _METADATA_FLAGS[metadata], len(manifest)))
+    for relposix, path, is_empty_dir, mode, mtime, length in manifest:
+        path_bytes = relposix.encode("utf-8")
+        sink.write(_REC_PREFIX.pack(REC_EMPTY_DIR if is_empty_dir else REC_FILE, len(path_bytes)))
+        sink.write(path_bytes)
+        if metadata == "basic":
+            try:
+                millis = int(round(float(mtime) * 1000.0))
+            except (OverflowError, TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"mtime for {relposix!r} cannot be represented as milliseconds"
+                ) from exc
+            if not -(1 << 63) <= millis <= (1 << 63) - 1:
+                raise ValueError(
+                    f"mtime for {relposix!r} is outside the signed millisecond range"
+                )
+            sink.write(_REC_META_BASIC.pack(int(mode) & 0o7777, millis, length))
+        else:
+            sink.write(_CONTENT_LEN.pack(length))
+        if is_empty_dir:
+            continue
+        copied = 0
+        with path.open("rb") as source:
+            while copied < length:
+                chunk = source.read(min(chunk_size, length - copied))
+                if not chunk:
+                    raise ValueError(
+                        f"file {relposix!r} was truncated while being archived "
+                        f"(expected {length} bytes, read {copied})"
+                    )
+                sink.write(chunk)
+                copied += len(chunk)
+            if source.read(1):
+                raise ValueError(
+                    f"file {relposix!r} grew while being archived "
+                    f"(expected {length} bytes)"
+                )
+
+
 def archive_tree(
     root: PathLike,
     *,
@@ -375,50 +480,15 @@ def archive_tree(
     ordinary permission bits and mtime. Compression is *not* applied here — the
     caller compresses the whole result via :func:`compress`.
     """
-    metadata = _validate_metadata(metadata)
-    root = _validate_root(root)
-
-    entries = sorted(
-        _walk_entries(root, use_ignore=use_ignore, extra_ignore=extra_ignore),
-        key=lambda item: item[0],
+    sink = io.BytesIO()
+    write_archive(
+        root,
+        sink,
+        use_ignore=use_ignore,
+        extra_ignore=extra_ignore,
+        metadata=metadata,
     )
-
-    records: list[bytes] = []
-    for relposix, path, is_empty_dir in entries:
-        if is_empty_dir:
-            mode, mtime = 0, 0.0
-            if metadata == "basic":
-                try:
-                    st = path.stat()
-                    mode, mtime = st.st_mode, st.st_mtime
-                except OSError:
-                    pass
-            records.append(
-                _encode_record(
-                    REC_EMPTY_DIR, relposix, mode, mtime, b"", metadata
-                )
-            )
-        else:
-            content = path.read_bytes()
-            mode, mtime = 0, 0.0
-            if metadata == "basic":
-                try:
-                    st = path.stat()
-                    mode, mtime = st.st_mode, st.st_mtime
-                except OSError:
-                    pass
-            records.append(
-                _encode_record(REC_FILE, relposix, mode, mtime, content, metadata)
-            )
-
-    out = [
-        MAGIC,
-        _HEADER_V2.pack(
-            FORMAT_VERSION, _METADATA_FLAGS[metadata], len(records)
-        ),
-    ]
-    out.extend(records)
-    return b"".join(out)
+    return sink.getvalue()
 
 
 def list_paths(
@@ -489,6 +559,97 @@ def stream_metadata(data: bytes) -> ArchiveMetadata:
     return ArchiveMetadata(version, profile)
 
 
+def _read_exact(source: _ty.BinaryIO, length: int, label: str) -> bytes:
+    parts = []
+    remaining = length
+    while remaining:
+        chunk = source.read(remaining)
+        if not chunk:
+            raise ValueError(f"truncated {label}")
+        parts.append(chunk)
+        remaining -= len(chunk)
+    return b"".join(parts)
+
+
+def _read_stream_header(source: _ty.BinaryIO) -> _ty.Tuple[int, str, int]:
+    if _read_exact(source, len(MAGIC), "archive header") != MAGIC:
+        raise ValueError("bad archive magic (not a glyphive stream)")
+    version_raw = _read_exact(source, 1, "archive version")
+    version = version_raw[0]
+    if version == V1_FORMAT_VERSION:
+        rec_count = struct.unpack("<I", _read_exact(source, 4, "version 1 header"))[0]
+        return version, "basic", rec_count
+    if version == FORMAT_VERSION:
+        flags, rec_count = struct.unpack("<BI", _read_exact(source, 5, "version 2 header"))
+        if flags not in (0, 1):
+            raise ValueError(f"unknown archive metadata flags 0x{flags:02x}")
+        return version, "basic" if flags else "none", rec_count
+    raise ValueError(
+        f"unsupported archive format version {version} "
+        f"(this build handles {V1_FORMAT_VERSION} and {FORMAT_VERSION})"
+    )
+
+
+def iter_record_events(
+    source: _ty.BinaryIO,
+    *,
+    chunk_size: int = 1024 * 1024,
+    max_content_bytes: _ty.Optional[int] = None,
+) -> _ty.Iterator[_ty.Union[RecordHeader, RecordChunk]]:
+    """Yield record headers and bounded content chunks from a binary source.
+
+    A :class:`RecordHeader` is followed by zero or more :class:`RecordChunk`
+    events totaling exactly ``content_length``. ``max_content_bytes`` rejects a
+    declared per-record size before payload bytes are consumed.
+    """
+    chunk_size = _validate_chunk_size(chunk_size)
+    if max_content_bytes is not None and max_content_bytes < 0:
+        raise ValueError("max_content_bytes must be non-negative")
+    version, profile, rec_count = _read_stream_header(source)
+    for index in range(rec_count):
+        prefix = _read_exact(source, _REC_PREFIX.size, f"record {index} (prefix)")
+        rec_type, path_len = _REC_PREFIX.unpack(prefix)
+        if rec_type not in (REC_FILE, REC_EMPTY_DIR):
+            raise ValueError(f"unknown record type {rec_type} at index {index}")
+        try:
+            relposix = _read_exact(source, path_len, f"record {index} (path)").decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ValueError(f"record {index} path is not valid UTF-8") from exc
+        if version == V1_FORMAT_VERSION:
+            mode, mtime, content_len = _REC_META_V1.unpack(
+                _read_exact(source, _REC_META_V1.size, f"record {index} (metadata)")
+            )
+        elif profile == "basic":
+            mode, millis, content_len = _REC_META_BASIC.unpack(
+                _read_exact(source, _REC_META_BASIC.size, f"record {index} (metadata)")
+            )
+            mtime = millis / 1000.0
+        else:
+            mode, mtime = 0, 0.0
+            content_len = _CONTENT_LEN.unpack(
+                _read_exact(source, _CONTENT_LEN.size, f"record {index} (content length)")
+            )[0]
+        if rec_type == REC_EMPTY_DIR and content_len:
+            raise ValueError(
+                f"empty-directory record {index} has nonzero content length"
+            )
+        if max_content_bytes is not None and content_len > max_content_bytes:
+            raise ValueError(
+                f"record {index} content length {content_len} exceeds limit "
+                f"{max_content_bytes}"
+            )
+        yield RecordHeader(rec_type, relposix, mode, mtime, content_len)
+        remaining = content_len
+        while remaining:
+            chunk = source.read(min(chunk_size, remaining))
+            if not chunk:
+                raise ValueError(f"truncated record {index} (content)")
+            remaining -= len(chunk)
+            yield RecordChunk(chunk)
+    if source.read(1):
+        raise ValueError("archive stream has trailing byte(s) after records")
+
+
 def iter_records(data: bytes) -> _ty.Iterator[Record]:
     """Parse an archive stream, yielding :class:`Record` in stream order.
 
@@ -496,56 +657,14 @@ def iter_records(data: bytes) -> _ty.Iterator[Record]:
     unknown record type, or trailing bytes. The full stream is validated by
     restore before any records are materialized on disk.
     """
-    mv, off, version, profile, rec_count = _parse_stream_header(data)
-
-    for index in range(rec_count):
-        if off + _REC_PREFIX.size > len(mv):
-            raise ValueError(f"truncated record {index} (prefix)")
-        rec_type, path_len = _REC_PREFIX.unpack_from(mv, off)
-        off += _REC_PREFIX.size
-        if rec_type not in (REC_FILE, REC_EMPTY_DIR):
-            raise ValueError(f"unknown record type {rec_type} at index {index}")
-
-        if off + path_len > len(mv):
-            raise ValueError(f"truncated record {index} (path)")
-        try:
-            relposix = bytes(mv[off : off + path_len]).decode("utf-8")
-        except UnicodeDecodeError as exc:
-            raise ValueError(f"record {index} path is not valid UTF-8") from exc
-        off += path_len
-
-        if version == V1_FORMAT_VERSION:
-            field_size = _REC_META_V1.size
-            if off + field_size > len(mv):
-                raise ValueError(f"truncated record {index} (metadata)")
-            mode, mtime, content_len = _REC_META_V1.unpack_from(mv, off)
-            off += field_size
-        elif profile == "basic":
-            field_size = _REC_META_BASIC.size
-            if off + field_size > len(mv):
-                raise ValueError(f"truncated record {index} (metadata)")
-            mode, millis, content_len = _REC_META_BASIC.unpack_from(mv, off)
-            mtime = millis / 1000.0
-            off += field_size
+    header = None
+    content = []
+    for event in iter_record_events(io.BytesIO(data)):
+        if isinstance(event, RecordHeader):
+            if header is not None:
+                yield Record(header.type, header.path, header.mode, header.mtime, b"".join(content))
+            header, content = event, []
         else:
-            field_size = _CONTENT_LEN.size
-            if off + field_size > len(mv):
-                raise ValueError(f"truncated record {index} (content length)")
-            mode, mtime, content_len = 0, 0.0, _CONTENT_LEN.unpack_from(mv, off)[0]
-            off += field_size
-
-        if off + content_len > len(mv):
-            raise ValueError(f"truncated record {index} (content)")
-        if rec_type == REC_EMPTY_DIR and content_len:
-            raise ValueError(
-                f"empty-directory record {index} has nonzero content length"
-            )
-        content = bytes(mv[off : off + content_len])
-        off += content_len
-
-        yield Record(rec_type, relposix, mode, mtime, content)
-
-    if off != len(mv):
-        raise ValueError(
-            f"archive stream has {len(mv) - off} trailing byte(s) after records"
-        )
+            content.append(event.data)
+    if header is not None:
+        yield Record(header.type, header.path, header.mode, header.mtime, b"".join(content))
