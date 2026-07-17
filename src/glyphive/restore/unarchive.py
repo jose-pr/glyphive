@@ -27,17 +27,21 @@ content correctness is the contract, metadata is a courtesy.
 from __future__ import annotations
 
 import os as _os
+import shutil as _shutil
+import tempfile as _tempfile
 import typing as _ty
 
 from pathlib_next import Path
 
 from .. import archive
-from .decode import RestoreError, decode_document
+from .decode import RestoreError
 
 __all__ = [
     "RestoreError",
     "unarchive_bytes",
     "restore_document",
+    "restore_document_spooled",
+    "unarchive_spool",
 ]
 
 # Types accepted for a destination: a pathlib_next Path, a str, or os.PathLike.
@@ -126,6 +130,8 @@ def unarchive_bytes(
     created. Metadata is applied only when the stream explicitly carries it.
     """
     dest_path = _coerce_dest(dest)
+    if dest_path.exists() and not dest_path.is_dir():
+        raise RestoreError(f"destination {dest_path!s} exists and is not a directory")
     stream_meta = archive.stream_metadata(raw)
     records = list(archive.iter_records(raw))
     dest_resolved = dest_path.resolve()
@@ -177,6 +183,151 @@ def unarchive_bytes(
     return written
 
 
+def _same_file(left: "Path", right: "Path", chunk_size: int) -> bool:
+    if left.stat().st_size != right.stat().st_size:
+        return False
+    with left.open("rb") as left_stream, right.open("rb") as right_stream:
+        while True:
+            left_chunk = left_stream.read(chunk_size)
+            right_chunk = right_stream.read(chunk_size)
+            if left_chunk != right_chunk:
+                return False
+            if not left_chunk:
+                return True
+
+
+def unarchive_spool(
+    raw_source: _ty.BinaryIO,
+    dest: DestLike,
+    *,
+    overwrite: bool = False,
+    chunk_size: int = 1024 * 1024,
+    max_file_bytes: _ty.Optional[int] = None,
+) -> _ty.List[str]:
+    """Stage streamed archive records privately, then publish after validation."""
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be a positive integer")
+    dest_path = _coerce_dest(dest)
+    dest_parent = dest_path.parent
+    dest_parent.mkdir(parents=True, exist_ok=True)
+    dest_resolved = dest_path.resolve()
+    stage = Path(_tempfile.mkdtemp(prefix=f".{dest_path.name}.glyphive-", dir=str(dest_parent)))
+    stage_resolved = stage.resolve()
+    staged: _ty.List[_ty.Tuple[archive.RecordHeader, "Path", "Path"]] = []
+    seen: _ty.Set[str] = set()
+    current_header = None
+    current_stream = None
+    current_stage = None
+    try:
+        raw_source.seek(0)
+        prefix = raw_source.read(len(archive.MAGIC) + 6)
+        stream_meta = archive.stream_metadata(prefix)
+        apply_metadata = stream_meta.metadata == "basic"
+        raw_source.seek(0)
+        for event in archive.iter_record_events(
+            raw_source,
+            chunk_size=chunk_size,
+            max_content_bytes=max_file_bytes,
+        ):
+            if isinstance(event, archive.RecordHeader):
+                if current_stream is not None:
+                    current_stream.close()
+                    current_stream = None
+                    _restore_metadata(
+                        current_stage,
+                        current_header.mode,
+                        current_header.mtime,
+                        enabled=apply_metadata,
+                    )
+                final_target = _safe_target(dest_resolved, event.path)
+                stage_target = _safe_target(stage_resolved, event.path)
+                target_key = _os.path.normcase(str(stage_target.resolve()))
+                if target_key in seen:
+                    raise RestoreError(f"duplicate archive path {event.path!r}")
+                seen.add(target_key)
+                staged.append((event, stage_target, final_target))
+                current_header, current_stage = event, stage_target
+                try:
+                    if event.type == archive.REC_EMPTY_DIR:
+                        stage_target.mkdir(parents=True, exist_ok=True)
+                        _restore_metadata(
+                            stage_target,
+                            event.mode,
+                            event.mtime,
+                            enabled=apply_metadata,
+                        )
+                    else:
+                        stage_target.parent.mkdir(parents=True, exist_ok=True)
+                        current_stream = stage_target.open("wb")
+                except OSError as exc:
+                    raise RestoreError(
+                        f"archive path {event.path!r} conflicts with another record"
+                    ) from exc
+            else:
+                if current_stream is None:
+                    raise RestoreError("archive content chunk has no file record")
+                current_stream.write(event.data)
+        if current_stream is not None:
+            current_stream.close()
+            current_stream = None
+            _restore_metadata(
+                current_stage,
+                current_header.mode,
+                current_header.mtime,
+                enabled=apply_metadata,
+            )
+
+        # Preflight every final collision before final-path mutation.
+        identical: _ty.Set[str] = set()
+        for header, staged_target, final_target in staged:
+            ancestor = final_target.parent
+            while ancestor != dest_resolved and dest_resolved in ancestor.parents:
+                if ancestor.exists() and not ancestor.is_dir():
+                    raise RestoreError(
+                        f"parent of target {header.path!r} is not a directory"
+                    )
+                ancestor = ancestor.parent
+            if not final_target.exists():
+                continue
+            if header.type == archive.REC_EMPTY_DIR:
+                if not final_target.is_dir():
+                    raise RestoreError(f"target {header.path!r} is not a directory")
+                continue
+            if final_target.is_dir():
+                raise RestoreError(f"target {header.path!r} is a directory")
+            if not overwrite:
+                if _same_file(staged_target, final_target, chunk_size):
+                    identical.add(header.path)
+                else:
+                    raise RestoreError(
+                        f"target {header.path!r} already exists with different "
+                        "content; refusing to overwrite"
+                    )
+
+        if not dest_path.exists():
+            stage.replace(dest_path)
+            stage = None
+        else:
+            for header, staged_target, final_target in staged:
+                if header.type == archive.REC_EMPTY_DIR:
+                    final_target.mkdir(parents=True, exist_ok=True)
+                elif header.path not in identical:
+                    final_target.parent.mkdir(parents=True, exist_ok=True)
+                    staged_target.replace(final_target)
+                _restore_metadata(
+                    final_target,
+                    header.mode,
+                    header.mtime,
+                    enabled=apply_metadata,
+                )
+        return [header.path for header, _staged, _final in staged]
+    finally:
+        if current_stream is not None:
+            current_stream.close()
+        if stage is not None and stage.exists():
+            _shutil.rmtree(str(stage), ignore_errors=True)
+
+
 def restore_document(
     text_lines: _ty.Iterable[str],
     dest: DestLike,
@@ -194,5 +345,36 @@ def restore_document(
 
     Returns the list of relpaths written under ``dest``.
     """
-    _meta, raw = decode_document(text_lines)
-    return unarchive_bytes(raw, dest, overwrite=overwrite)
+    _meta, written = restore_document_spooled(
+        text_lines, dest, overwrite=overwrite
+    )
+    return written
+
+
+def restore_document_spooled(
+    text_lines: _ty.Iterable[str],
+    dest: DestLike,
+    *,
+    overwrite: bool = False,
+    temp_dir: _ty.Optional[str] = None,
+    chunk_size: int = 1024 * 1024,
+    max_output_bytes: _ty.Optional[int] = None,
+) -> _ty.Tuple[_ty.Dict[str, _ty.Any], _ty.List[str]]:
+    """Decode to a private spool, validate globally, stage, then publish."""
+    from .decode import decode_document_to_spool
+
+    with _tempfile.TemporaryFile(dir=temp_dir) as raw_spool:
+        meta = decode_document_to_spool(
+            text_lines,
+            raw_spool,
+            max_output_bytes=max_output_bytes,
+            chunk_size=chunk_size,
+        )
+        written = unarchive_spool(
+            raw_spool,
+            dest,
+            overwrite=overwrite,
+            chunk_size=chunk_size,
+            max_file_bytes=max_output_bytes or int(meta["bytes"]),
+        )
+    return meta, written

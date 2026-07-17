@@ -34,8 +34,15 @@ Short command alias: `glyphive x`.
 
 The extractor rejects absolute archive paths, `..` traversal, paths that escape
 through an existing symbolic link, duplicate/conflicting targets, and writes
-outside the destination. It validates all targets before writing the first
-entry.
+outside the destination. Decompression is streamed into a private spool and
+checked against the protected byte count and whole-document digest. Files are
+then written into a private sibling staging directory; final paths are not
+published until archive framing and every target have validated.
+
+For constrained systems, `--temp-dir PATH` selects spool placement,
+`--chunk-size BYTES` tunes sequential I/O, and `--max-output-bytes BYTES` sets a
+hard decompression ceiling. The protected archive size remains the default
+ceiling when no explicit maximum is supplied.
 
 ## Restore from scans or generated documents
 
