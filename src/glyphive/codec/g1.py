@@ -87,6 +87,8 @@ correct the resulting erasures, ``decode`` RAISES a clear exception naming the
 exact failing line label. It never guesses or mutates data to make it "work".
 """
 
+import mmap as _mmap
+import tempfile as _tempfile
 import typing as _ty
 
 import reedsolo as _reedsolo
@@ -99,6 +101,7 @@ __all__ = [
     "G1Codec",
     "nibble_encode",
     "nibble_decode",
+    "encoded_line_count",
 ]
 
 # ---------------------------------------------------------------------------
@@ -315,7 +318,9 @@ class _ParsedLine(_ty.NamedTuple):
     ok: bool  # True iff the CRC check field matched
 
 
-def split_frame(line: str) -> _ty.Optional[_ty.Tuple[str, str, str]]:
+def split_frame(
+    line: str, *, allow_trailing: bool = False
+) -> _ty.Optional[_ty.Tuple[str, str, str]]:
     """Structurally split a printed line into ``(label, payload, check)``.
 
     OCR (observed: Tesseract) sometimes inserts a spurious space *inside* the
@@ -340,13 +345,37 @@ def split_frame(line: str) -> _ty.Optional[_ty.Tuple[str, str, str]]:
     token is not a check field).
     """
     parts = line.split()
-    if len(parts) < 3:
+    if len(parts) >= 3:
+        check_positions = [
+            index for index, part in enumerate(parts[1:], 1)
+            if part.startswith("#")
+        ]
+        if len(check_positions) == 1:
+            position = check_positions[0]
+            if allow_trailing or position == len(parts) - 1:
+                return parts[0], "".join(parts[1:position]), parts[position]
+
+    # A constrained Tesseract whitelist can remove both printed separator
+    # spaces while preserving every protected glyph.  The label and check have
+    # fixed widths, and '#' is outside the payload alphabet, so this compact
+    # shape remains unambiguous and still flows through the ordinary CRC check.
+    stripped = line.strip()
+    label_width = INDEX_WIDTH + 1
+    if len(stripped) < label_width + 1 + CHECK_WIDTH:
         return None
-    label = parts[0]
-    check = parts[-1]
-    if not check.startswith("#"):
+    label = stripped[:label_width]
+    remainder = stripped[label_width:]
+    if remainder.count("#") != 1:
         return None
-    payload = "".join(parts[1:-1])
+    marker = remainder.index("#")
+    check_end = marker + 1 + CHECK_WIDTH
+    if marker == 0 or check_end > len(remainder):
+        return None
+    trailing = remainder[check_end:]
+    if trailing and not allow_trailing:
+        return None
+    payload = "".join(remainder[:marker].split())
+    check = remainder[marker:check_end]
     return label, payload, check
 
 
@@ -541,6 +570,48 @@ def _frame_bytes(kind: str, data: bytes, line_width: int) -> _ty.List[str]:
     return lines
 
 
+def _encoding_shape(data_len: int, line_width: int, parity_ratio: float):
+    if line_width < 1:
+        raise ValueError("line_width must be >= 1")
+    if not 0 < parity_ratio < 1:
+        raise ValueError("parity_ratio must be in (0, 1)")
+    bytes_per_line = (line_width * 4) // 8
+    if bytes_per_line < 1:
+        raise ValueError("line_width too small to carry a byte")
+    protected_len = _HEADER_LEN + data_len
+    nsym = max(2, min(100, round(protected_len * parity_ratio)))
+    nblocks = _num_blocks(protected_len, nsym)
+    parity_len = nblocks * nsym
+    data_lines = (protected_len + bytes_per_line - 1) // bytes_per_line
+    parity_lines = (parity_len + bytes_per_line - 1) // bytes_per_line
+    return bytes_per_line, protected_len, nsym, nblocks, data_lines, parity_lines
+
+
+def encoded_line_count(
+    data_len: int, *, line_width: int = 60, parity_ratio: float = 0.12
+) -> int:
+    """Return the exact number of lines without reading or encoding payload data."""
+    if data_len < 0 or data_len > 0xFFFFFFFF:
+        raise ValueError("data length must fit the g1 unsigned 32-bit header")
+    return sum(_encoding_shape(data_len, line_width, parity_ratio)[-2:])
+
+
+def _frame_stream(kind: str, source, length: int, bytes_per_line: int):
+    index = 0
+    remaining = length
+    while remaining:
+        chunk = source.read(min(bytes_per_line, remaining))
+        if not chunk:
+            raise ValueError(f"truncated {kind} spool during framing")
+        remaining -= len(chunk)
+        if index >= _MAX_IDX:
+            raise ValueError(f"{kind} stream exceeds {_MAX_IDX} lines")
+        yield _frame(kind, index, nibble_encode(chunk))
+        index += 1
+    if source.read(1):
+        raise ValueError(f"{kind} spool has trailing bytes")
+
+
 def _assemble(
     parsed: _ty.Dict[int, "_ParsedLine"],
     bytes_per_line: int,
@@ -641,6 +712,98 @@ class G1Codec(Codec):
         lines.extend(_frame_bytes("L", data_bytes, line_width))
         lines.extend(_frame_bytes("P", parity_bytes, line_width))
         return lines
+
+    def iter_encode(
+        self,
+        source: _ty.BinaryIO,
+        data_len: int,
+        *,
+        line_width: int = 60,
+        parity_ratio: float = 0.12,
+        temp_dir: _ty.Optional[str] = None,
+    ) -> _ty.Iterator[str]:
+        """Encode a seekable payload source with bounded Python allocations.
+
+        The existing interleaved RS layout is preserved exactly. A temporary
+        parity spool avoids retaining parity or framed lines in memory; mmap is
+        used when the source exposes a file descriptor so each RS codeword is
+        at most 255 bytes in Python memory.
+        """
+        if data_len < 0 or data_len > 0xFFFFFFFF:
+            raise ValueError("data length must fit the g1 unsigned 32-bit header")
+        (
+            bytes_per_line,
+            protected_len,
+            nsym,
+            nblocks,
+            _data_lines,
+            _parity_lines,
+        ) = _encoding_shape(data_len, line_width, parity_ratio)
+        header = _make_header(nsym, data_len)
+        source.seek(0, 2)
+        actual_len = source.tell()
+        if actual_len != data_len:
+            direction = "truncated" if actual_len < data_len else "grew"
+            raise ValueError(
+                f"source {direction} before encoding "
+                f"(expected {data_len} bytes, found {actual_len})"
+            )
+        source.seek(0)
+        mapping = None
+        if data_len:
+            try:
+                mapping = _mmap.mmap(source.fileno(), 0, access=_mmap.ACCESS_READ)
+            except (AttributeError, OSError, ValueError):
+                mapping = None
+        try:
+            with _tempfile.TemporaryFile(dir=temp_dir) as parity:
+                rs = _reedsolo.RSCodec(nsym)
+                for block_index in range(nblocks):
+                    block = bytearray()
+                    for position in range(block_index, protected_len, nblocks):
+                        if position < _HEADER_LEN:
+                            block.append(header[position])
+                        elif mapping is not None:
+                            block.append(mapping[position - _HEADER_LEN])
+                        else:
+                            source.seek(position - _HEADER_LEN)
+                            value = source.read(1)
+                            if not value:
+                                raise ValueError("source was truncated during RS encoding")
+                            block.extend(value)
+                    encoded = rs.encode(bytes(block))
+                    parity.write(encoded[len(block):])
+
+                source.seek(0)
+                pending = bytearray(header)
+                data_remaining = data_len
+                line_index = 0
+                while pending or data_remaining:
+                    needed = bytes_per_line - len(pending)
+                    if needed and data_remaining:
+                        chunk = source.read(min(needed, data_remaining))
+                        if not chunk:
+                            raise ValueError("source was truncated during data framing")
+                        pending.extend(chunk)
+                        data_remaining -= len(chunk)
+                    if len(pending) < bytes_per_line and data_remaining:
+                        continue
+                    chunk = bytes(pending[:bytes_per_line])
+                    del pending[:bytes_per_line]
+                    if line_index >= _MAX_IDX:
+                        raise ValueError(f"L stream exceeds {_MAX_IDX} lines")
+                    yield _frame("L", line_index, nibble_encode(chunk))
+                    line_index += 1
+                if source.read(1):
+                    raise ValueError("source grew during data framing")
+
+                parity.seek(0)
+                yield from _frame_stream(
+                    "P", parity, nblocks * nsym, bytes_per_line
+                )
+        finally:
+            if mapping is not None:
+                mapping.close()
 
     def decode(self, lines: _ty.Iterable[str]) -> bytes:
         """Decode framed lines using only CRC and RS as correctness oracles."""
