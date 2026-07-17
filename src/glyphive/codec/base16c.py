@@ -891,6 +891,13 @@ class Base16CCodec(Codec):
         """Decode an encoded-line spool with only offsets and RS blocks in RAM."""
         data_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
         parity_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
+        # Per-index payload seen for a CRC-passing line, to detect a *conflicting*
+        # collision (finding #3): a corrupted label that decodes to a real but
+        # wrong index would silently overwrite a different genuine line under
+        # blind last-write-wins. Track (payload) so we can distinguish a benign
+        # duplicate (same bytes re-read) from a true conflict.
+        ok_payload: _ty.Dict[_ty.Tuple[str, int], str] = {}
+        collisions: _ty.List[str] = []
         length_counts: _ty.Counter[int] = _collections.Counter()
         encoded_source.seek(0)
         while True:
@@ -902,8 +909,29 @@ class Base16CCodec(Codec):
             if parsed is None:
                 continue
             target = data_lines if parsed.kind == "L" else parity_lines
-            target[parsed.idx] = (offset, parsed.ok, len(parsed.payload))
+            if parsed.ok:
+                key = (parsed.kind, parsed.idx)
+                prior = ok_payload.get(key)
+                if prior is not None and prior != parsed.payload:
+                    collisions.append(f"{parsed.kind}{parsed.idx:05d}")
+                else:
+                    ok_payload[key] = parsed.payload
+            existing = target.get(parsed.idx)
+            # Prefer a CRC-passing line over a CRC-failing one for the same index
+            # instead of blind last-write-wins; only overwrite if the new line is
+            # at least as trustworthy (ok) as what's already there.
+            if existing is None or parsed.ok or not existing[1]:
+                target[parsed.idx] = (offset, parsed.ok, len(parsed.payload))
             length_counts[len(parsed.payload)] += 1
+        if collisions:
+            unique = sorted(set(collisions))
+            raise CodecError(
+                "conflicting duplicate line index(es) "
+                + ", ".join(unique)
+                + ": two CRC-valid lines claim the same index with different "
+                "payloads (likely an OCR-corrupted label decoding to a real but "
+                "wrong index); refusing to silently discard one"
+            )
 
         if not data_lines:
             raise ValueError("no data lines found to decode")

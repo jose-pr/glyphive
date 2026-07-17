@@ -791,6 +791,25 @@ def _looks_like_encoded(line: str) -> bool:
     return decode_index(label[1:]) is not None
 
 
+def _is_frame_shaped_but_unreadable(line: str) -> bool:
+    """True if ``line`` has the ``L``/``P``+``#check`` shape but a bad index token.
+
+    This is exactly the OCR class (real-recovery findings #1/#2) where a stray
+    inserted/leading character corrupts the *label* so ``decode_index`` rejects
+    it. Such a line is NOT noise -- it is a real, addressable data/parity line
+    the reader should be told about, not silently dropped.
+    """
+    from .codec.base16c import decode_index, split_frame
+
+    split = split_frame(line)
+    if split is None:
+        return False
+    label, _payload, _check = split
+    if label[:1] not in ("L", "P"):
+        return False
+    return decode_index(label[1:]) is None
+
+
 def read_pages(
     all_text_lines: _ty.Iterable[str],
 ) -> _ty.Tuple[_ty.Dict[str, _ty.Any], _ty.List[str]]:
@@ -839,6 +858,11 @@ def read_pages_to_spool(
     encoded_count = 0
     block_hash = hashlib.sha256()
     block_count = 0
+    # Frame-shaped lines whose index token is unreadable (findings #1/#2): buffer
+    # them for the current page block and flush to that page's number on its
+    # footer, so the reader gets ``{page, raw}`` detail instead of a silent drop.
+    unreadable_lines: _ty.List[_ty.Dict[str, _ty.Any]] = []
+    pending_unreadable: _ty.List[str] = []
     for line in all_text_lines:
         frame = _parse_machine_frame(line, _MACHINE_HEADER_KIND)
         if frame is not None:
@@ -855,6 +879,9 @@ def read_pages_to_spool(
                     f"{footer.digest!r} != computed {expected!r} "
                     f"(over {block_count} line(s))"
                 )
+            for raw in pending_unreadable:
+                unreadable_lines.append({"page": footer.n, "raw": raw})
+            pending_unreadable = []
             pages_seen[footer.n] = footer.total
             block_hash = hashlib.sha256()
             block_count = 0
@@ -871,7 +898,14 @@ def read_pages_to_spool(
             block_hash.update(encoded)
             block_count += 1
             encoded_count += 1
+        elif _is_frame_shaped_but_unreadable(line):
+            pending_unreadable.append(stripped)
         # else: OCR noise / blank-ish junk — ignored.
+
+    # Trailing frame-shaped-but-unreadable lines with no footer after them still
+    # deserve reporting; their page number is unknown.
+    for raw in pending_unreadable:
+        unreadable_lines.append({"page": None, "raw": raw})
 
     # Any trailing encoded lines with no footer after them are still real data
     # (a footer could have been dropped by OCR); they are already in
@@ -895,4 +929,5 @@ def read_pages_to_spool(
 
     header_meta["_page_warnings"] = warnings
     header_meta["_pages_seen"] = sorted(pages_seen)
+    header_meta["_unreadable_lines"] = unreadable_lines
     return header_meta, encoded_count

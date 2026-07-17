@@ -180,6 +180,14 @@ def warn_page_integrity(logger: _ty.Any, meta: _ty.Mapping[str, _ty.Any]) -> Non
     """Log recoverable page-integrity warnings emitted by the decoder."""
     for warning in meta.get("_page_warnings", []) or []:
         logger.warning("page integrity warning: %s", warning)
+    for entry in meta.get("_unreadable_lines", []) or []:
+        where = f"page {entry['page']}" if entry.get("page") is not None else "unknown page"
+        logger.warning(
+            "unreadable frame index (%s): %r -- line dropped, "
+            "Reed-Solomon may still recover its data",
+            where,
+            entry.get("raw"),
+        )
 
 
 def progress_logger(
