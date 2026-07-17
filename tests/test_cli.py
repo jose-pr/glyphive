@@ -85,6 +85,34 @@ def test_tar_style_mode_flags_roundtrip(tmp_path, capsys):
     assert "codec=base16c-crc16-rs" in capsys.readouterr().out
 
 
+def test_create_and_extract_log_progressive_stage_events(tmp_path, caplog):
+    """create/extract log progress events, not just a final one-line summary.
+
+    Phase 4 of bounded_memory_streaming_pipeline.md requires successful runs
+    to "report progressive staging and publication" -- verify both commands
+    actually emit intermediate stage events via the logger, not only the
+    pre-existing final "wrote"/"restored" line.
+    """
+    src = _make_srcdir(tmp_path)
+    archive_file = tmp_path / "progress.txt"
+    outdir = tmp_path / "out"
+
+    with caplog.at_level("INFO", logger="create"):
+        assert cli.run(["create", "-f", str(archive_file), "-C", str(src), "."]) == 0
+    create_messages = [r.getMessage() for r in caplog.records if r.name == "create"]
+    assert any(m.startswith("archived ") for m in create_messages)
+    assert any(m.startswith("compressed ") for m in create_messages)
+    assert any(m.startswith("encoded ") for m in create_messages)
+    assert any(m.startswith("rendered ") for m in create_messages)
+
+    caplog.clear()
+    with caplog.at_level("INFO", logger="extract"):
+        assert cli.run(["extract", "-f", str(archive_file), "-C", str(outdir)]) == 0
+    extract_messages = [r.getMessage() for r in caplog.records if r.name == "extract"]
+    assert any(m.startswith("staged ") for m in extract_messages)
+    assert any(m.startswith("published ") for m in extract_messages)
+
+
 def test_create_uses_configured_spool_directory_and_chunk_size(tmp_path):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "streamed.txt"

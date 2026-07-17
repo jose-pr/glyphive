@@ -180,6 +180,38 @@ def test_overwrite_publication_failure_removes_newly_created_files(tmp_path, mon
     assert not (destination / "b").exists()
 
 
+def test_on_progress_reports_staged_then_published_events(tmp_path):
+    """A successful restore reports progressive staging then publication.
+
+    Every staged record fires a "staged" event before any "published" event
+    fires (publication only starts after every record is staged and
+    preflighted), and every "published" event carries a running count/total
+    so a caller can render real progress instead of only a final summary.
+    """
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "a").write_bytes(b"alpha")
+    (source / "b").write_bytes(b"beta")
+    raw = archive.archive_tree(source, use_ignore=False)
+    destination = tmp_path / "destination"
+
+    events: list[tuple[str, dict]] = []
+
+    def on_progress(event, **fields):
+        events.append((event, fields))
+
+    unarchive.restore_document_spooled(
+        _transcript(raw, files=2), destination, on_progress=on_progress
+    )
+
+    kinds = [event for event, _fields in events]
+    assert kinds.count("staged") == 2
+    assert kinds.count("published") == 2
+    assert kinds.index("staged") < kinds.index("published")
+    last_published = [fields for event, fields in events if event == "published"][-1]
+    assert last_published["count"] == last_published["total"] == 2
+
+
 def test_streamed_unarchive_peak_allocation_is_bounded(tmp_path):
     peaks = []
     for size in (64 * 1024, 1024 * 1024):

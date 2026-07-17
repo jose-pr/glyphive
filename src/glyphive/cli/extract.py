@@ -11,6 +11,7 @@ from ._common import (
     load_image_lines,
     load_input_lines,
     load_qr_lines,
+    progress_logger,
     resolve_destination,
     warn_page_integrity,
 )
@@ -81,6 +82,7 @@ class Extract(LoggingArgs):
             temp_dir=self.temp_dir,
             chunk_size=self.chunk_size,
             max_output_bytes=self.max_output_bytes,
+            on_progress=progress_logger(self._logger_),
         )
         warn_page_integrity(self._logger_, meta)
         self._logger_.info("restored %d entries into %s", len(written), dest)

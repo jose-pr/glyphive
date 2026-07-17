@@ -13,6 +13,7 @@ __all__ = [
     "load_input_lines",
     "load_qr_lines",
     "load_transcript_lines",
+    "progress_logger",
     "resolve_destination",
     "warn_page_integrity",
 ]
@@ -179,3 +180,26 @@ def warn_page_integrity(logger: _ty.Any, meta: _ty.Mapping[str, _ty.Any]) -> Non
     """Log recoverable page-integrity warnings emitted by the decoder."""
     for warning in meta.get("_page_warnings", []) or []:
         logger.warning("page integrity warning: %s", warning)
+
+
+def progress_logger(
+    logger: _ty.Any, *, every: int = 200
+) -> _ty.Callable[..., None]:
+    """Return an ``on_progress(event, **fields)`` callback that logs sparsely.
+
+    Logs the first occurrence of each event kind, then every ``every``-th
+    occurrence of that same kind, and always the final one (``count ==
+    total`` when ``total`` is supplied) -- so a large restore doesn't flood
+    the log with one line per file, but still reports start/progress/finish.
+    """
+    counts: _ty.Dict[str, int] = {}
+
+    def report(event: str, **fields: _ty.Any) -> None:
+        seen = counts[event] = counts.get(event, 0) + 1
+        total = fields.get("total")
+        is_last = total is not None and fields.get("count") == total
+        if seen == 1 or is_last or seen % every == 0:
+            detail = ", ".join(f"{key}={value}" for key, value in fields.items())
+            logger.info("%s (%s)", event, detail)
+
+    return report
