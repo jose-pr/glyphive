@@ -408,6 +408,51 @@ def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch)
     assert seen["engine"] == "test-engine"
 
 
+def test_extract_from_qr_uses_qr_loader(tmp_path, monkeypatch):
+    from glyphive.cli import extract as extract_command
+    from glyphive.restore import unarchive
+
+    seen = {}
+    monkeypatch.setattr(
+        extract_command,
+        "load_qr_lines",
+        lambda source: seen.update(source=source) or ["qr-transcript"],
+    )
+    monkeypatch.setattr(
+        unarchive,
+        "restore_document_spooled",
+        lambda lines, dest, **options: seen.update(lines=list(lines)) or ({}, []),
+    )
+
+    assert cli.run(
+        [
+            "extract",
+            "-f",
+            str(tmp_path / "qr-pages"),
+            "--from-qr",
+            "-C",
+            str(tmp_path / "out"),
+        ]
+    ) == 0
+    assert seen["source"] == tmp_path / "qr-pages"
+    assert seen["lines"] == ["qr-transcript"]
+
+
+def test_extract_rejects_conflicting_image_modes(tmp_path):
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        cli.run(
+            [
+                "extract",
+                "-f",
+                str(tmp_path / "scan.png"),
+                "--from-images",
+                "--from-qr",
+                "-C",
+                str(tmp_path / "out"),
+            ]
+        )
+
+
 def test_transcript_directory_is_read_in_sorted_nonrecursive_order(tmp_path):
     from glyphive.cli._common import load_transcript_lines
 
