@@ -23,7 +23,9 @@ OCR-friendly printable pages and back to a verified tree.
   deterministic, versioned 1000-byte envelopes, level-H Segno PNG generation,
   and Pillow/ZXing-C++ raw-byte decoding without OpenCV. Extract/list accept
   explicit `--from-qr` image or directory input; ordinary image OCR behavior is
-  unchanged. QR PDF rendering remains a later slice of the in-progress plan.
+  unchanged. Explicit `--format qr` writes six symbols per Letter page;
+  `--format hybrid` writes one symbol plus its transcript slice per page. A
+  plain `.pdf` suffix continues to select the ordinary PDF renderer.
 - **Constrained Tesseract profile** (`tesseract-glyphive`): an opt-in OCR
   provider using PSM 6, Glyphive's exact machine alphabet, and disabled general
   language dictionaries. The existing `tesseract` provider remains unchanged.
@@ -36,6 +38,8 @@ OCR-friendly printable pages and back to a verified tree.
   I/O granularity. Restore stream-decompresses into a size-limited spool,
   validates the global digest and archive framing, stages files privately, and
   only then publishes final paths; `--max-output-bytes` caps expansion.
+  Transcript parsing spools normalized frames in one pass, while `g1` retains
+  only compact line offsets and processes Reed-Solomon codewords blockwise.
 - **Explicit plugin discovery** (`glyphive.plugins`): trusted installed
   distributions can provide typed codecs, compression methods, render formats,
   or OCR providers through four documented entry-point groups. Discovery is
