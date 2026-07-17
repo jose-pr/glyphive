@@ -20,6 +20,19 @@ __all__ = ["Create"]
 
 _FORMAT_EXTRAS = {"pdf": "glyphive[pdf]", "docx": "glyphive[docx]"}
 _COMPRESSION_EXTRAS = {"zstd": "glyphive[zstd]"}
+_FORMAT_BY_SUFFIX = {
+    ".txt": "text",
+    ".text": "text",
+    ".pdf": "pdf",
+    ".docx": "docx",
+}
+
+
+def _output_format(destination: str, explicit: _ty.Optional[str]) -> str:
+    """Return an explicit format or infer a known format from the output suffix."""
+    if explicit is not None:
+        return explicit
+    return _FORMAT_BY_SUFFIX.get(Path(destination).suffix.lower(), "text")
 
 
 def _select_codec(name: str):
@@ -92,8 +105,8 @@ class Create(LoggingArgs):
     "Compression registry name; default selects the registry default."
     ("--compression",)
 
-    format: "str" = "text"
-    "Output render format registry name (default: text)."
+    format: "_ty.Optional[str]" = None
+    "Output render format registry name (default: infer from -f; otherwise text)."
     ("--format",)
 
     gzip: "_ty.Annotated[bool, NS(conflicts='legacy_compression')]" = False
@@ -152,7 +165,8 @@ class Create(LoggingArgs):
         codec_name = self.codec
         codec = _select_codec(codec_name)
         compression_name, compression = self._compression_selection()
-        renderer = _select_renderer(self.format)
+        format_name = _output_format(self.file, self.format)
+        renderer = _select_renderer(format_name)
 
         base = resolve_destination(self.directory)
         roots = [base / path for path in self.paths]
@@ -209,6 +223,6 @@ class Create(LoggingArgs):
             compression_name,
             self.metadata,
             meta["pages"],
-            self.format,
+            format_name,
         )
         return 0
