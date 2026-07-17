@@ -16,6 +16,7 @@ from glyphive import codec
 from glyphive.codec.g1 import (
     ALPHABET,
     CodecError,
+    _encoding_shape,
     encoded_line_count,
     nibble_decode,
     nibble_encode,
@@ -61,6 +62,26 @@ def test_streaming_encode_rejects_truncated_and_grown_source():
         list(g1.iter_encode(io.BytesIO(b"short"), 6))
     with pytest.raises(ValueError, match="grew"):
         list(g1.iter_encode(io.BytesIO(b"extra"), 4))
+
+
+@pytest.mark.parametrize(
+    ("size", "nsym", "blocks", "parity_bytes", "total_lines"),
+    [
+        (100, 13, 1, 13, 5),
+        (1_000, 24, 5, 120, 38),
+        (10_000, 27, 44, 1_188, 374),
+        (100_000, 27, 439, 11_853, 3_730),
+        (1_000_000, 27, 4_386, 118_422, 37_282),
+    ],
+)
+def test_default_parity_is_global_twelve_percent(
+    size, nsym, blocks, parity_bytes, total_lines
+):
+    shape = _encoding_shape(size, 60, 0.12)
+    assert shape[2:4] == (nsym, blocks)
+    assert blocks * nsym == parity_bytes
+    assert sum(shape[-2:]) == total_lines
+    assert abs(parity_bytes / (size + 8) - 0.12) < 0.002
 
 
 # --------------------------------------------------------------------------- #

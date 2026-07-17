@@ -76,6 +76,27 @@ bytes. Blocks are interleaved across the document. A line whose CRC fails
 becomes a known erasure, allowing the decoder to spend the stronger erasure
 correction budget instead of guessing which character changed.
 
+The default `parity_ratio=0.12` targets parity bytes across the complete
+protected stream, not 12% independently multiplied by every block. Glyphive
+chooses the per-block symbol count whose aggregate parity is closest to that
+target while keeping every codeword within GF(255). Each block can correct up
+to that many known erasures, or half as many errors whose positions are unknown.
+
+Rows below use the default 60-character payload (30 bytes per row). Byte
+percentages are parity bytes divided by protected bytes (input plus the
+eight-byte codec header).
+
+The correction columns are maxima when damage is distributed within every
+block's budget; one concentrated block can fail sooner.
+
+| Input bytes | Previous parity bytes / rows | Previous overhead | Current parity bytes / rows | Current overhead | Known erasures per block / distributed total | Unknown errors per block / distributed total |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 100 | 13 / 1 | 12.04% | 13 / 1 | 12.04% | 13 / 13 | 6 / 6 |
+| 1,000 | 700 / 24 | 69.44% | 120 / 4 | 11.90% | 24 / 120 | 12 / 60 |
+| 10,000 | 6,500 / 217 | 64.95% | 1,188 / 40 | 11.87% | 27 / 1,188 | 13 / 572 |
+| 100,000 | 64,600 / 2,154 | 64.59% | 11,853 / 396 | 11.85% | 27 / 11,853 | 13 / 5,707 |
+| 1,000,000 | 645,200 / 21,507 | 64.52% | 118,422 / 3,948 | 11.84% | 27 / 118,422 | 13 / 57,018 |
+
 ## Page layout
 
 Each document also prints a human-readable summary:
