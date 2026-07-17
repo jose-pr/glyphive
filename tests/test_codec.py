@@ -7,12 +7,19 @@ erasure, recoverable by RS; the prior Crockford aliases silently corrupted
 data via ``Q``->``O``->``0`` and ``J``->``I``->``1`` and are gone).
 """
 
+import io
 import random
 
 import pytest
 
 from glyphive import codec
-from glyphive.codec.g1 import ALPHABET, CodecError, nibble_decode, nibble_encode
+from glyphive.codec.g1 import (
+    ALPHABET,
+    CodecError,
+    encoded_line_count,
+    nibble_decode,
+    nibble_encode,
+)
 
 
 g1 = codec.get("g1")
@@ -38,6 +45,22 @@ def test_roundtrip_line_width_boundary():
     data = bytes(range(30))
     lines = g1.encode(data)
     assert g1.decode(lines) == data
+
+
+@pytest.mark.parametrize("size", [0, 1, 29, 30, 31, 255, 4096])
+def test_streaming_encode_is_line_identical(size):
+    data = bytes((index * 31) % 256 for index in range(size))
+    expected = g1.encode(data)
+    actual = list(g1.iter_encode(io.BytesIO(data), len(data)))
+    assert actual == expected
+    assert encoded_line_count(len(data)) == len(expected)
+
+
+def test_streaming_encode_rejects_truncated_and_grown_source():
+    with pytest.raises(ValueError, match="truncated"):
+        list(g1.iter_encode(io.BytesIO(b"short"), 6))
+    with pytest.raises(ValueError, match="grew"):
+        list(g1.iter_encode(io.BytesIO(b"extra"), 4))
 
 
 # --------------------------------------------------------------------------- #
@@ -152,6 +175,29 @@ def test_parse_line_tolerates_two_interior_spaces():
     assert parsed is not None
     assert parsed.payload == payload
     assert parsed.ok is True
+
+
+def test_parse_line_accepts_compact_frame_with_valid_crc():
+    line = next(line for line in g1.encode(b"compact frame") if line.startswith("L"))
+    compact = line.replace(" ", "")
+
+    parsed = _parse_line(compact)
+
+    assert parsed is not None
+    assert parsed.ok is True
+
+
+def test_parse_line_keeps_corrupted_compact_frame_as_crc_erasure():
+    line = next(line for line in g1.encode(b"compact frame") if line.startswith("L"))
+    compact = line.replace(" ", "")
+    payload_start = 6
+    replacement = "A" if compact[payload_start] != "A" else "B"
+    corrupted = compact[:payload_start] + replacement + compact[payload_start + 1:]
+
+    parsed = _parse_line(corrupted)
+
+    assert parsed is not None
+    assert parsed.ok is False
 
 
 def test_parse_line_rejects_page_footer():
