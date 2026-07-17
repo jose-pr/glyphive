@@ -196,6 +196,18 @@ def _same_file(left: "Path", right: "Path", chunk_size: int) -> bool:
                 return True
 
 
+#: Signature: ``on_progress(event: str, **fields) -> None``. Called for
+#: ``"staged"`` (one record written to the private stage; fields ``path``,
+#: ``count``) and ``"published"`` (one record moved to its final path;
+#: fields ``path``, ``count``, ``total``). Never raises from the default
+#: no-op; a caller-supplied callback that raises aborts the restore.
+ProgressCallback = _ty.Callable[..., None]
+
+
+def _noop_progress(event: str, **fields: _ty.Any) -> None:
+    pass
+
+
 def unarchive_spool(
     raw_source: _ty.BinaryIO,
     dest: DestLike,
@@ -203,10 +215,12 @@ def unarchive_spool(
     overwrite: bool = False,
     chunk_size: int = 1024 * 1024,
     max_file_bytes: _ty.Optional[int] = None,
+    on_progress: _ty.Optional[ProgressCallback] = None,
 ) -> _ty.List[str]:
     """Stage streamed archive records privately, then publish after validation."""
     if chunk_size <= 0:
         raise ValueError("chunk_size must be a positive integer")
+    report = on_progress or _noop_progress
     dest_path = _coerce_dest(dest)
     dest_parent = dest_path.parent
     dest_parent.mkdir(parents=True, exist_ok=True)
@@ -239,6 +253,7 @@ def unarchive_spool(
                         current_header.mtime,
                         enabled=apply_metadata,
                     )
+                    report("staged", path=current_header.path, count=len(staged))
                 final_target = _safe_target(dest_resolved, event.path)
                 stage_target = _safe_target(stage_resolved, event.path)
                 target_key = _os.path.normcase(str(stage_target.resolve()))
@@ -256,6 +271,7 @@ def unarchive_spool(
                             event.mtime,
                             enabled=apply_metadata,
                         )
+                        report("staged", path=event.path, count=len(staged))
                     else:
                         stage_target.parent.mkdir(parents=True, exist_ok=True)
                         current_stream = stage_target.open("wb")
@@ -276,6 +292,7 @@ def unarchive_spool(
                 current_header.mtime,
                 enabled=apply_metadata,
             )
+            report("staged", path=current_header.path, count=len(staged))
 
         # Preflight every final collision before final-path mutation.
         identical: _ty.Set[str] = set()
@@ -307,12 +324,15 @@ def unarchive_spool(
         if not dest_path.exists():
             stage.replace(dest_path)
             stage = None
+            for index, (header, _staged_target, _final_target) in enumerate(staged, 1):
+                report("published", path=header.path, count=index, total=len(staged))
         else:
             _publish_with_rollback(
                 staged,
                 identical,
                 stage_resolved,
                 apply_metadata=apply_metadata,
+                report=report,
             )
         return [header.path for header, _staged, _final in staged]
     finally:
@@ -328,6 +348,7 @@ def _publish_with_rollback(
     stage_resolved: "Path",
     *,
     apply_metadata: bool,
+    report: ProgressCallback = _noop_progress,
 ) -> None:
     """Move every staged entry onto an existing destination, or undo cleanly.
 
@@ -342,12 +363,15 @@ def _publish_with_rollback(
     # (final_target, backup_path_or_None). None means "this final path did not
     # exist before publish" -- on rollback it must be deleted, not restored.
     moved: _ty.List[_ty.Tuple["Path", _ty.Optional["Path"]]] = []
+    total = len(staged)
     try:
         for index, (header, staged_target, final_target) in enumerate(staged):
             if header.type == archive.REC_EMPTY_DIR:
                 final_target.mkdir(parents=True, exist_ok=True)
+                report("published", path=header.path, count=index + 1, total=total)
                 continue
             if header.path in identical:
+                report("published", path=header.path, count=index + 1, total=total)
                 continue
             final_target.parent.mkdir(parents=True, exist_ok=True)
             backup_path = None
@@ -360,6 +384,7 @@ def _publish_with_rollback(
             _restore_metadata(
                 final_target, header.mode, header.mtime, enabled=apply_metadata
             )
+            report("published", path=header.path, count=index + 1, total=total)
     except BaseException:
         for final_target, backup_path in reversed(moved):
             try:
@@ -403,6 +428,7 @@ def restore_document_spooled(
     temp_dir: _ty.Optional[str] = None,
     chunk_size: int = 1024 * 1024,
     max_output_bytes: _ty.Optional[int] = None,
+    on_progress: _ty.Optional[ProgressCallback] = None,
 ) -> _ty.Tuple[_ty.Dict[str, _ty.Any], _ty.List[str]]:
     """Decode to a private spool, validate globally, stage, then publish."""
     from .decode import decode_document_to_spool
@@ -421,5 +447,6 @@ def restore_document_spooled(
             overwrite=overwrite,
             chunk_size=chunk_size,
             max_file_bytes=max_output_bytes or int(meta["bytes"]),
+            on_progress=on_progress,
         )
     return meta, written
