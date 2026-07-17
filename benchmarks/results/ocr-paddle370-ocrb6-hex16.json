@@ -1,0 +1,181 @@
+{
+  "results": [
+    {
+      "font_arg": "ocr-b",
+      "font_label": "OCR-B.ttf (bundled)",
+      "engine": "paddle",
+      "alphabet": "0123456789ABCDEF",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.0,
+      "rows": 60,
+      "line_length": 101,
+      "chars_per_line": 101,
+      "lines_per_page": 100,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.0,
+      "length_mismatches": 0,
+      "per_char": {
+        "0": {
+          "samples": 351,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "1": {
+          "samples": 403,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "2": {
+          "samples": 398,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 400,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 398,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "5": {
+          "samples": 335,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "6": {
+          "samples": 358,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "7": {
+          "samples": 346,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "8": {
+          "samples": 412,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "9": {
+          "samples": 363,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "A": {
+          "samples": 376,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 377,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 383,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 413,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "E": {
+          "samples": 388,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "F": {
+          "samples": 359,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "0123456789ABCDEF",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 4.0,
+      "efficiency": 1.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 10100,
+      "bytes_per_page": 5050.0,
+      "usable_bytes_per_page": 5050.0,
+      "charset_label": "hex16",
+      "engine_version": "3.7.0"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "paddle"
+    ],
+    "dense": {
+      "font": "OCR-B.ttf (bundled)",
+      "size": 6.0,
+      "charset": "hex16",
+      "engine": "paddle",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "0123456789ABCDEF",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "bytes_per_page": 5050.0,
+      "usable_bytes_per_page": 5050.0,
+      "line_insert_rate": 0.0,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "OCR-B.ttf (bundled)",
+      "size": 6.0,
+      "charset": "hex16",
+      "engines": [
+        "paddle"
+      ],
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "0123456789ABCDEF",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "bytes_per_page": 5050.0,
+      "usable_bytes_per_page": 5050.0,
+      "line_insert_rate": 0.0
+    },
+    "retype": {
+      "font": "OCR-B.ttf (bundled)",
+      "size": 6.0,
+      "charset": "hex16",
+      "engine": "paddle",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "0123456789ABCDEF",
+      "safe_len": 16,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}
