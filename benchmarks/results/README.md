@@ -1,8 +1,8 @@
 # Benchmark history
 
-Machine-readable benchmark results, one JSON file per named environment. These
-files support release-to-release comparisons and regression investigation; no
-baseline is generated merely by adding the harness.
+Machine-readable timing and OCR results, one JSON file per measured cell or
+environment. These files support regression investigation; a checked-in result
+does not by itself establish a public performance claim.
 
 ## Producing a result
 
@@ -54,3 +54,6 @@ but should not be treated as a release baseline.
 
 - `glyphive-<version>-py<ver>.json` — conventional release/interpreter result.
 - Custom names may identify a commit, CI runner, or controlled experiment.
+- `ocr-*.json` records raw per-character OCR observations and derived capacity.
+- [PROVENANCE.md](PROVENANCE.md) identifies the shared environment and limits
+  of the currently checked-in evidence.

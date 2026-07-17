@@ -1,0 +1,465 @@
+{
+  "results": [
+    {
+      "font_arg": "courier",
+      "font_label": "courier",
+      "engine": "paddle",
+      "alphabet": "23456789ABCDEFGHIJKLMNOPQRSTUVWYZbdfhkmqgre.-:+=^!/*?&<>()[{}@%$#",
+      "alphabet_len": 65,
+      "dpi": 300,
+      "size": 8.0,
+      "rows": 150,
+      "line_length": 60,
+      "chars_per_line": 110,
+      "lines_per_page": 75,
+      "seed": 1234,
+      "wraps": false,
+      "line_insert_rate": 0.0,
+      "length_mismatches": 0,
+      "per_char": {
+        "2": {
+          "samples": 123,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 117,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 141,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "5": {
+          "samples": 132,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "6": {
+          "samples": 135,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "7": {
+          "samples": 159,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "8": {
+          "samples": 147,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "9": {
+          "samples": 128,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "A": {
+          "samples": 150,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 162,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 133,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 142,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "E": {
+          "samples": 148,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "F": {
+          "samples": 155,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "G": {
+          "samples": 127,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 131,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "I": {
+          "samples": 142,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "J": {
+          "samples": 157,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 152,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 148,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 126,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "N": {
+          "samples": 139,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "O": {
+          "samples": 122,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 134,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Q": {
+          "samples": 127,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 142,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "S": {
+          "samples": 127,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 143,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "U": {
+          "samples": 133,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 139,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "W": {
+          "samples": 122,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 150,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Z": {
+          "samples": 131,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "b": {
+          "samples": 149,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "d": {
+          "samples": 152,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "f": {
+          "samples": 151,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "h": {
+          "samples": 139,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "k": {
+          "samples": 147,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "m": {
+          "samples": 126,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "q": {
+          "samples": 135,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "g": {
+          "samples": 158,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "r": {
+          "samples": 126,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "e": {
+          "samples": 134,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        ".": {
+          "samples": 138,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "-": {
+          "samples": 143,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        ":": {
+          "samples": 137,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "+": {
+          "samples": 141,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "=": {
+          "samples": 135,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "^": {
+          "samples": 119,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "!": {
+          "samples": 128,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "/": {
+          "samples": 151,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "*": {
+          "samples": 140,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "?": {
+          "samples": 159,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "&": {
+          "samples": 136,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "<": {
+          "samples": 132,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        ">": {
+          "samples": 141,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "(": {
+          "samples": 129,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        ")": {
+          "samples": 138,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "[": {
+          "samples": 148,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "{": {
+          "samples": 130,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "}": {
+          "samples": 140,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "@": {
+          "samples": 128,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "%": {
+          "samples": 136,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "$": {
+          "samples": 122,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "#": {
+          "samples": 148,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "23456789ABCDEFGHIJKLMNOPQRSTUVWYZbdfhkmqgre.-:+=^!/*?&<>()[{}@%$#",
+      "safe_len": 65,
+      "usable_radix": 64,
+      "effective_bits": 6.0,
+      "nominal_bits": 6.022367813028454,
+      "efficiency": 0.996285877295627,
+      "corrupting_pairs": [],
+      "chars_per_page": 4500,
+      "bytes_per_page": 3375.0,
+      "usable_bytes_per_page": 3375.0,
+      "charset_label": "custom"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "paddle"
+    ],
+    "dense": {
+      "font": "courier",
+      "size": 8.0,
+      "charset": "custom",
+      "engine": "paddle",
+      "safe": "23456789ABCDEFGHIJKLMNOPQRSTUVWYZbdfhkmqgre.-:+=^!/*?&<>()[{}@%$#",
+      "safe_len": 65,
+      "usable_radix": 64,
+      "bytes_per_page": 3375.0,
+      "usable_bytes_per_page": 3375.0,
+      "line_insert_rate": 0.0,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "courier",
+      "size": 8.0,
+      "charset": "custom",
+      "engines": [
+        "paddle"
+      ],
+      "safe": "!#$%&()*+-./23456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWYZ[^bdefghkmqr{}",
+      "safe_len": 65,
+      "usable_radix": 64,
+      "bytes_per_page": 3375.0,
+      "usable_bytes_per_page": 3375.0,
+      "line_insert_rate": 0.0
+    },
+    "retype": {
+      "font": "courier",
+      "size": 8.0,
+      "charset": "custom",
+      "engine": "paddle",
+      "safe": "23456789ABCDEFGHIJKLMNOPQRSTUVWYZbdfhkmqgre.-:+=^!/*?&<>()[{}@%$#",
+      "safe_len": 65,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}

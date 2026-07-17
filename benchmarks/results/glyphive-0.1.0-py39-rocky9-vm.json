@@ -1,0 +1,77 @@
+{
+  "dependencies": {
+    "pathlib_next": "0.8.1",
+    "reedsolo": "1.7.0"
+  },
+  "git": {
+    "commit": "69dcb0fabf1cc1e9131b571cbd42cfcbf99bf128",
+    "dirty": false
+  },
+  "glyphive_version": "0.1.0",
+  "iterations": {
+    "inner": {
+      "codec.g1.decode_16k": 2,
+      "codec.g1.decode_1k": 10,
+      "codec.g1.encode_16k": 2,
+      "codec.g1.encode_1k": 10,
+      "layout.paginate_16k": 50
+    },
+    "repeat": 5,
+    "warmup_calls": 1
+  },
+  "metrics": {
+    "codec.g1.decode_16k": {
+      "max_ms": 740.0795,
+      "median_ms": 734.0969,
+      "min_ms": 727.1252
+    },
+    "codec.g1.decode_1k": {
+      "max_ms": 50.8699,
+      "median_ms": 49.4495,
+      "min_ms": 49.036
+    },
+    "codec.g1.encode_16k": {
+      "max_ms": 306.9159,
+      "median_ms": 299.0748,
+      "min_ms": 293.5398
+    },
+    "codec.g1.encode_1k": {
+      "max_ms": 22.7484,
+      "median_ms": 21.6486,
+      "min_ms": 21.5833
+    },
+    "layout.paginate_16k": {
+      "max_ms": 0.783,
+      "median_ms": 0.7735,
+      "min_ms": 0.7374
+    }
+  },
+  "name": "glyphive-0.1.0-py39-rocky9-vm",
+  "platform": "Linux-5.14.0-687.26.1.el9_8.x86_64-x86_64-with-glibc2.34",
+  "processor": "x86_64",
+  "python": "3.9.25",
+  "python_implementation": "CPython",
+  "schema_version": 1,
+  "timestamp": "2026-07-17T00:21:59+00:00",
+  "workloads": {
+    "codec": {
+      "line_width": 60,
+      "name": "g1",
+      "parity_ratio": 0.12
+    },
+    "layout": {
+      "input": "precomputed g1 16k lines",
+      "lines_per_page": 48
+    },
+    "payloads": {
+      "16k": {
+        "bytes": 16384,
+        "sha256": "716ad98ee52de92b955e46bf8622e242696eaffe5827b83dfdbccbb37488136c"
+      },
+      "1k": {
+        "bytes": 1024,
+        "sha256": "727ca7bc35ddb12e579b9e9c6890ab941e301d13d2a31679cdbf3e74782df76d"
+      }
+    }
+  }
+}

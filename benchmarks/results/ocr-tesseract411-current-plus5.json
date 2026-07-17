@@ -1,0 +1,229 @@
+{
+  "results": [
+    {
+      "font_arg": "courier",
+      "font_label": "courier",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34*@#-^",
+      "alphabet_len": 21,
+      "dpi": 300,
+      "size": 8.0,
+      "rows": 60,
+      "line_length": 60,
+      "chars_per_line": 110,
+      "lines_per_page": 75,
+      "seed": 1234,
+      "wraps": false,
+      "line_insert_rate": 0.35,
+      "length_mismatches": 21,
+      "per_char": {
+        "A": {
+          "samples": 103,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 111,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 114,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 114,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 116,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 109,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 101,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 90,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 113,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 116,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 109,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 110,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 110,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 119,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 111,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 99,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "*": {
+          "samples": 107,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "@": {
+          "samples": 125,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "#": {
+          "samples": 132,
+          "errors": 8,
+          "error_rate": 0.06060606060606061,
+          "misreads": [
+            {
+              "target": "H",
+              "count": 8,
+              "corrupting": true
+            }
+          ]
+        },
+        "-": {
+          "samples": 118,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "^": {
+          "samples": 113,
+          "errors": 113,
+          "error_rate": 1.0,
+          "misreads": [
+            {
+              "target": "*",
+              "count": 107,
+              "corrupting": true
+            },
+            {
+              "target": "\u201c",
+              "count": 6,
+              "corrupting": false
+            }
+          ]
+        }
+      },
+      "safe": "ABCDKLMPRTVXY34@-",
+      "safe_len": 17,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 4.392317422778761,
+      "efficiency": 0.910680994787812,
+      "corrupting_pairs": [
+        [
+          "#",
+          "H",
+          8
+        ],
+        [
+          "^",
+          "*",
+          107
+        ]
+      ],
+      "chars_per_page": 4500,
+      "bytes_per_page": 2250.0,
+      "usable_bytes_per_page": 1462.5,
+      "charset_label": "custom+extra"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "tesseract"
+    ],
+    "dense": {
+      "font": "courier",
+      "size": 8.0,
+      "charset": "custom+extra",
+      "engine": "tesseract",
+      "safe": "ABCDKLMPRTVXY34@-",
+      "safe_len": 17,
+      "usable_radix": 16,
+      "bytes_per_page": 2250.0,
+      "usable_bytes_per_page": 1462.5,
+      "line_insert_rate": 0.35,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "courier",
+      "size": 8.0,
+      "charset": "custom+extra",
+      "engines": [
+        "tesseract"
+      ],
+      "safe": "-34@ABCDKLMPRTVXY",
+      "safe_len": 17,
+      "usable_radix": 16,
+      "bytes_per_page": 2250.0,
+      "usable_bytes_per_page": 1462.5,
+      "line_insert_rate": 0.35
+    },
+    "retype": {
+      "font": "courier",
+      "size": 8.0,
+      "charset": "custom+extra",
+      "engine": "tesseract",
+      "safe": "ABCDKLMPRTVXY34@-",
+      "safe_len": 17,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}
