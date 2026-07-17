@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import typing as _ty
+import tempfile as _tempfile
 
 from duho import LoggingArgs
 from pathlib_next import Path
@@ -27,22 +28,42 @@ class List(LoggingArgs):
     "OCR registry provider for image or document input (default: automatic preference)."
     ("--ocr-engine",)
 
+    temp_dir: "_ty.Optional[str]" = None
+    "Directory for private restore spools."
+    ("--temp-dir",)
+
+    chunk_size: int = 1024 * 1024
+    "Streaming I/O chunk size in bytes."
+    ("--chunk-size",)
+
+    max_output_bytes: "_ty.Optional[int]" = None
+    "Maximum permitted decompressed archive size."
+    ("--max-output-bytes",)
+
     def __call__(self) -> int:
         from ..restore import decode as _decode
 
         lines = load_input_lines(Path(self.file), engine=self.ocr_engine)
         # Decode first so every displayed field comes from the integrity-
         # protected H frames, never from the unrestricted human summary.
-        header, raw = _decode.decode_document(lines)
-        profile = header.get("meta")
-        profile_token = f" meta={profile}" if profile is not None else ""
-        print(
-            "glyphive v{v} codec={codec} comp={comp}{profile} files={files} "
-            "bytes={bytes} pages={pages}".format(
-                **header, profile=profile_token
+        with _tempfile.TemporaryFile(dir=self.temp_dir) as raw:
+            header = _decode.decode_document_to_spool(
+                lines,
+                raw,
+                max_output_bytes=self.max_output_bytes,
+                chunk_size=self.chunk_size,
             )
-        )
-        for record in _archive.iter_records(raw):
-            kind = "d" if record.type == _archive.REC_EMPTY_DIR else "f"
-            print(f"{kind} {record.path}")
+            profile = header.get("meta")
+            profile_token = f" meta={profile}" if profile is not None else ""
+            print(
+                "glyphive v{v} codec={codec} comp={comp}{profile} files={files} "
+                "bytes={bytes} pages={pages}".format(
+                    **header, profile=profile_token
+                )
+            )
+            raw.seek(0)
+            for event in _archive.iter_record_events(raw, chunk_size=self.chunk_size):
+                if isinstance(event, _archive.RecordHeader):
+                    kind = "d" if event.type == _archive.REC_EMPTY_DIR else "f"
+                    print(f"{kind} {event.path}")
         return 0

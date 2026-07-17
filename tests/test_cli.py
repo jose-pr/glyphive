@@ -379,7 +379,7 @@ def test_explicit_output_format_wins_over_destination_suffix(tmp_path):
 
 def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch):
     from glyphive.cli import extract as extract_command
-    from glyphive.restore import decode, unarchive
+    from glyphive.restore import unarchive
 
     seen = {}
     monkeypatch.setattr(
@@ -387,8 +387,11 @@ def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch)
         "load_image_lines",
         lambda source, engine=None: seen.update(source=source, engine=engine) or [],
     )
-    monkeypatch.setattr(decode, "decode_document", lambda lines: ({}, b"raw"))
-    monkeypatch.setattr(unarchive, "unarchive_bytes", lambda raw, dest, overwrite=False: [])
+    monkeypatch.setattr(
+        unarchive,
+        "restore_document_spooled",
+        lambda lines, dest, **options: ({}, []),
+    )
 
     assert cli.run(
         [
