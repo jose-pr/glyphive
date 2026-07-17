@@ -45,9 +45,15 @@ Install a Python bridge, document renderer, and the corresponding OCR engine:
 pip install "glyphive[ocr,document-input]"
 glyphive extract \
   -f scans/ \
-  --ocr-engine tesseract \
+  --ocr-engine tesseract-glyphive \
   -C restored
 ```
+
+`tesseract-glyphive` is an opt-in profile for Glyphive-generated pages. It uses
+Tesseract page segmentation mode 6, restricts recognition to the measured
+machine alphabet (`ABCDHKLMPRTVXY34#`), and disables its general-language
+dictionaries. Use plain `tesseract` for unrestricted text or diagnostic scans;
+its behavior is unchanged.
 
 Both `extract` and `list` accept a transcript, image, PDF, DOCX, or a directory
 containing a mixture of those inputs. Direct child files are processed in
