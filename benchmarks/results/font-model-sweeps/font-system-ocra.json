@@ -1,0 +1,896 @@
+{
+  "results": [
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocra.ttf",
+      "font_label": "ocra.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.0,
+      "rows": 100,
+      "line_length": 60,
+      "chars_per_line": 110,
+      "lines_per_page": 100,
+      "seed": 1234,
+      "wraps": false,
+      "line_insert_rate": 0.66,
+      "length_mismatches": 66,
+      "per_char": {
+        "A": {
+          "samples": 125,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 145,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 120,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 121,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 148,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 117,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 119,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 129,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 140,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 115,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 129,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 137,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 133,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 152,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 114,
+          "errors": 27,
+          "error_rate": 0.23684210526315788,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 22,
+              "corrupting": false
+            },
+            {
+              "target": "I",
+              "count": 5,
+              "corrupting": false
+            }
+          ]
+        },
+        "4": {
+          "samples": 96,
+          "errors": 66,
+          "error_rate": 0.6875,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 62,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 4,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "ABCDKLMPRTVX",
+      "safe_len": 12,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "4",
+          "Y",
+          62
+        ],
+        [
+          "4",
+          "H",
+          4
+        ]
+      ],
+      "chars_per_page": 6000,
+      "bytes_per_page": 2250.0,
+      "usable_bytes_per_page": 764.9999999999999,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocra.ttf",
+      "font_label": "ocra.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 7.0,
+      "rows": 100,
+      "line_length": 60,
+      "chars_per_line": 94,
+      "lines_per_page": 85,
+      "seed": 1234,
+      "wraps": false,
+      "line_insert_rate": 0.8,
+      "length_mismatches": 80,
+      "per_char": {
+        "A": {
+          "samples": 75,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 88,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 74,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 77,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 88,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 67,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 84,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 61,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 72,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 76,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 76,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 76,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 71,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 80,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 74,
+          "errors": 25,
+          "error_rate": 0.33783783783783783,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 23,
+              "corrupting": false
+            },
+            {
+              "target": "I",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "4": {
+          "samples": 61,
+          "errors": 52,
+          "error_rate": 0.8524590163934426,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 48,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 4,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "BCDKLMPRTVX",
+      "safe_len": 11,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "3",
+          "A",
+          1
+        ],
+        [
+          "4",
+          "Y",
+          48
+        ],
+        [
+          "4",
+          "H",
+          4
+        ]
+      ],
+      "chars_per_page": 5100,
+      "bytes_per_page": 1912.5,
+      "usable_bytes_per_page": 382.49999999999994,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocra.ttf",
+      "font_label": "ocra.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 8.0,
+      "rows": 100,
+      "line_length": 60,
+      "chars_per_line": 83,
+      "lines_per_page": 75,
+      "seed": 1234,
+      "wraps": false,
+      "line_insert_rate": 0.72,
+      "length_mismatches": 72,
+      "per_char": {
+        "A": {
+          "samples": 106,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 128,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 109,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 99,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 120,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 87,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 114,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 97,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 116,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 97,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 106,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 108,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 100,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 126,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 89,
+          "errors": 30,
+          "error_rate": 0.33707865168539325,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 25,
+              "corrupting": false
+            },
+            {
+              "target": "A",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "I",
+              "count": 2,
+              "corrupting": false
+            }
+          ]
+        },
+        "4": {
+          "samples": 78,
+          "errors": 52,
+          "error_rate": 0.6666666666666666,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 48,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 4,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "BCDKLMPRTVX",
+      "safe_len": 11,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "3",
+          "A",
+          3
+        ],
+        [
+          "4",
+          "Y",
+          48
+        ],
+        [
+          "4",
+          "H",
+          4
+        ]
+      ],
+      "chars_per_page": 4500,
+      "bytes_per_page": 1687.5,
+      "usable_bytes_per_page": 472.50000000000006,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocra.ttf",
+      "font_label": "ocra.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 9.0,
+      "rows": 100,
+      "line_length": 60,
+      "chars_per_line": 73,
+      "lines_per_page": 66,
+      "seed": 1234,
+      "wraps": false,
+      "line_insert_rate": 0.75,
+      "length_mismatches": 75,
+      "per_char": {
+        "A": {
+          "samples": 94,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 108,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 101,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 99,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 113,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 76,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 93,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 96,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 104,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 85,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 89,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 92,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 99,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 105,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 75,
+          "errors": 24,
+          "error_rate": 0.32,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 19,
+              "corrupting": false
+            },
+            {
+              "target": "I",
+              "count": 4,
+              "corrupting": false
+            },
+            {
+              "target": "J",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "4": {
+          "samples": 71,
+          "errors": 60,
+          "error_rate": 0.8450704225352113,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 55,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "U",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        }
+      },
+      "safe": "ABCDKLMPRTVX",
+      "safe_len": 12,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "4",
+          "Y",
+          55
+        ],
+        [
+          "4",
+          "H",
+          4
+        ]
+      ],
+      "chars_per_page": 3960,
+      "bytes_per_page": 1485.0,
+      "usable_bytes_per_page": 371.25,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocra.ttf",
+      "font_label": "ocra.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 10.0,
+      "rows": 100,
+      "line_length": 60,
+      "chars_per_line": 66,
+      "lines_per_page": 60,
+      "seed": 1234,
+      "wraps": false,
+      "line_insert_rate": 0.85,
+      "length_mismatches": 85,
+      "per_char": {
+        "A": {
+          "samples": 56,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 59,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 56,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 59,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 73,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 50,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 54,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 52,
+          "errors": 1,
+          "error_rate": 0.019230769230769232,
+          "misreads": [
+            {
+              "target": "N",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "P": {
+          "samples": 63,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 47,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 55,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 56,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 57,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 71,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 43,
+          "errors": 16,
+          "error_rate": 0.37209302325581395,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 10,
+              "corrupting": false
+            },
+            {
+              "target": "I",
+              "count": 4,
+              "corrupting": false
+            },
+            {
+              "target": "J",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "4": {
+          "samples": 49,
+          "errors": 33,
+          "error_rate": 0.673469387755102,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 31,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "BCDKLPRTVX",
+      "safe_len": 10,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "3",
+          "A",
+          1
+        ],
+        [
+          "4",
+          "Y",
+          31
+        ],
+        [
+          "4",
+          "H",
+          2
+        ]
+      ],
+      "chars_per_page": 3600,
+      "bytes_per_page": 1350.0,
+      "usable_bytes_per_page": 202.50000000000003,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "tesseract"
+    ],
+    "dense": {
+      "font": "ocra.ttf",
+      "size": 6.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "safe": "ABCDKLMPRTVX",
+      "safe_len": 12,
+      "usable_radix": 8,
+      "bytes_per_page": 2250.0,
+      "usable_bytes_per_page": 764.9999999999999,
+      "line_insert_rate": 0.66,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "ocra.ttf",
+      "size": 6.0,
+      "charset": "custom",
+      "engines": [
+        "tesseract"
+      ],
+      "safe": "ABCDKLMPRTVX",
+      "safe_len": 12,
+      "usable_radix": 8,
+      "bytes_per_page": 2250.0,
+      "usable_bytes_per_page": 764.9999999999999,
+      "line_insert_rate": 0.66
+    },
+    "retype": {
+      "font": "ocra.ttf",
+      "size": 10.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "safe": "BCDKLPRTVX",
+      "safe_len": 10,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}
