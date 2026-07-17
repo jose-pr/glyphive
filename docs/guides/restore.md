@@ -30,6 +30,12 @@ refuses to replace a differing existing file unless `--overwrite` is supplied:
 glyphive extract -f backup.txt -C restored --overwrite
 ```
 
+With `--overwrite` against an existing destination, each replaced file is
+moved aside into a private backup before the new content lands. If publication
+fails partway through (disk full, permission error, etc.), every already-
+replaced file is restored from its backup and any newly created file is
+removed, so the destination is never left half-migrated.
+
 Short command alias: `glyphive x`.
 
 The extractor rejects absolute archive paths, `..` traversal, paths that escape
@@ -46,6 +52,11 @@ For constrained systems, `--temp-dir PATH` selects spool placement,
 `--chunk-size BYTES` tunes sequential I/O, and `--max-output-bytes BYTES` sets a
 hard decompression ceiling. The protected archive size remains the default
 ceiling when no explicit maximum is supplied.
+
+`extract` logs progress as it runs (`staged`, then `published`, each with a
+running count) rather than only a final summary line, rate-limited so a large
+tree doesn't flood the log. `create` does the same for its own pipeline
+stages (`archived`, `compressed`, `encoded`, `rendered`).
 
 ## Restore from scans or generated documents
 

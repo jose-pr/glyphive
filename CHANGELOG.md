@@ -26,6 +26,12 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Fixed
 
+- **Overwrite publication now rolls back on partial failure**: restoring onto
+  an existing destination with `--overwrite` moves each existing final file
+  aside into a private backup before replacing it. If any staged move fails
+  partway through (disk full, permission error, etc.), every file already
+  replaced is restored from its backup and any newly created file is removed
+  -- the destination is left exactly as it was, never half-migrated.
 - **Machine header now Reed-Solomon protected**: the real Tesseract 5.4.0
   end-to-end gate (`create` -> rasterize 300 DPI -> `extract --from-images`
   -> diff) found that `--compression zstd` deterministically failed restore:
@@ -43,6 +49,12 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Added
 
+- **Progress logging for `create`/`extract`**: both commands now log
+  intermediate stage events (`archived`, `compressed`, `encoded`, `rendered`
+  for `create`; `staged`, `published` for `extract`) instead of only a final
+  one-line summary, sparsely rate-limited so a large tree doesn't flood the
+  log. The underlying `on_progress` callback is also available to library
+  callers of `restore_document_spooled`/`unarchive_spool`.
 - **Isolated QR transport primitives**: the optional `qr` extra provides
   deterministic, versioned 1000-byte envelopes, level-H Segno PNG generation,
   and Pillow/ZXing-C++ raw-byte decoding without OpenCV. Extract/list accept
