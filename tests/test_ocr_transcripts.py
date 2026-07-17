@@ -127,8 +127,14 @@ def test_real_ocr_gate_restores_byte_for_byte(tmp_path, engine, compression):
 
     src = tmp_path / "src"
     src.mkdir()
+    # A handful of data/parity lines gives Reed-Solomon too little budget to
+    # correct even one genuine OCR misread (measured on the VM's Tesseract
+    # 4.1.1: a single wrong character in a 3-data-line stream exceeded the RS
+    # budget deterministically). Use a large-enough payload that the default
+    # 12% parity_ratio yields a real multi-line correction budget, matching
+    # how the codec is actually meant to be used.
     (src / "a.txt").write_text(
-        "hello glyphive gate test across engines and compression\n",
+        "hello glyphive gate test across engines and compression\n" * 200,
         encoding="utf-8",
     )
     pdf_path = tmp_path / "gate.pdf"
@@ -152,20 +158,22 @@ def test_real_ocr_gate_restores_byte_for_byte(tmp_path, engine, compression):
 
     import pypdfium2
 
+    image_dir = tmp_path / "pages"
+    image_dir.mkdir()
     doc = pypdfium2.PdfDocument(str(pdf_path))
     try:
-        assert len(doc) == 1
-        image = doc[0].render(scale=300 / 72).to_pil().convert("L")
+        assert len(doc) >= 1
+        for index in range(len(doc)):
+            image = doc[index].render(scale=300 / 72).to_pil().convert("L")
+            image.save(str(image_dir / f"gate-page{index + 1:03d}.png"))
     finally:
         doc.close()
-    page_path = tmp_path / "gate-page001.png"
-    image.save(str(page_path))
 
     rc = cli.run(
         [
             "extract",
             "-f",
-            str(page_path),
+            str(image_dir),
             "--from-images",
             "--ocr-engine",
             engine,
