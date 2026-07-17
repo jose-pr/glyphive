@@ -13,6 +13,7 @@ from glyphive.layout import Page
 from glyphive.render._base import (
     DEFAULT_PAGE_MARGIN_PT,
     DEFAULT_PDF_FONT,
+    HORIZONTAL_ALIGNMENTS,
     RenderFormat,
 )
 
@@ -53,12 +54,37 @@ def registered_pdf_font(pdf: _ty.Any, font: _ty.Optional[str]):
 
 
 def _fitted_font_size(
-    requested_size: float, text_width: float, available_width: float
+    requested_size: float,
+    text_width: float,
+    available_width: float,
+    *,
+    character_spacing_pt: float = 0.0,
+    character_count: int = 0,
 ) -> float:
     """Fit one physical line horizontally without changing its row budget."""
-    if text_width <= available_width:
+    tracked_width = text_width + character_spacing_pt * max(0, character_count - 1)
+    if tracked_width <= available_width:
         return requested_size
-    return requested_size * available_width / text_width
+    glyph_budget = available_width - character_spacing_pt * max(
+        0, character_count - 1
+    )
+    if glyph_budget <= 0:
+        raise ValueError("character spacing leaves no room for line glyphs")
+    return requested_size * glyph_budget / text_width
+
+
+def _line_character_spacing(
+    line: str,
+    *,
+    alignment: str,
+    base_spacing_pt: float,
+    text_width: float,
+    available_width: float,
+) -> float:
+    """Return fixed tracking, or tracking that distributes a line edge-to-edge."""
+    if alignment != "justify" or len(line) < 2:
+        return base_spacing_pt
+    return max(base_spacing_pt, (available_width - text_width) / (len(line) - 1))
 
 
 class PdfRenderFormat(RenderFormat):
@@ -81,6 +107,8 @@ class PdfRenderFormat(RenderFormat):
         font: _ty.Optional[str] = None,
         font_size: float = 11.0,
         page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
+        horizontal_alignment: str = "left",
+        character_spacing_pt: float = 0.0,
     ) -> None:
         try:
             import fpdf
@@ -92,6 +120,10 @@ class PdfRenderFormat(RenderFormat):
             raise ValueError("font_size must be > 0")
         if page_margin_pt < 0 or page_margin_pt * 2 >= 612.0:
             raise ValueError("page_margin_pt must leave positive printable width")
+        if horizontal_alignment not in HORIZONTAL_ALIGNMENTS:
+            raise ValueError("horizontal_alignment must be left, center, or justify")
+        if character_spacing_pt < 0:
+            raise ValueError("character_spacing_pt must be >= 0")
         pdf = fpdf.FPDF(orientation="P", unit="pt", format="Letter")
         pdf.set_auto_page_break(auto=False)
         pdf.set_margins(page_margin_pt, page_margin_pt)
@@ -103,20 +135,34 @@ class PdfRenderFormat(RenderFormat):
                 pdf.set_xy(page_margin_pt, page_margin_pt)
                 for line in page.text_lines:
                     pdf.set_x(page_margin_pt)
+                    available_width = pdf.w - 2.0 * page_margin_pt
+                    raw_width = pdf.get_string_width(line)
+                    spacing = _line_character_spacing(
+                        line,
+                        alignment=horizontal_alignment,
+                        base_spacing_pt=character_spacing_pt,
+                        text_width=raw_width,
+                        available_width=available_width,
+                    )
                     line_size = _fitted_font_size(
                         font_size,
-                        pdf.get_string_width(line),
-                        pdf.w - 2.0 * page_margin_pt,
+                        raw_width,
+                        available_width,
+                        character_spacing_pt=spacing,
+                        character_count=len(line),
                     )
                     if line_size != font_size:
                         pdf.set_font(family, size=line_size)
+                    pdf.set_char_spacing(spacing)
                     pdf.cell(
-                        w=0,
+                        w=available_width,
                         h=leading,
                         text=line,
+                        align="C" if horizontal_alignment == "center" else "L",
                         new_x="LMARGIN",
                         new_y="NEXT",
                     )
+                    pdf.set_char_spacing(0)
                     if line_size != font_size:
                         pdf.set_font(family, size=font_size)
             Path(_os.fspath(out)).write_bytes(bytes(pdf.output()))

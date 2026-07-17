@@ -25,8 +25,10 @@ class TextRenderFormat(RenderFormat):
         font: _ty.Optional[str] = None,
         font_size: float = 11.0,
         page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
+        horizontal_alignment: str = "left",
+        character_spacing_pt: float = 0.0,
     ) -> None:
-        del font, font_size, page_margin_pt
+        del font, font_size, page_margin_pt, horizontal_alignment, character_spacing_pt
         page_blocks = ["\n".join(page.text_lines) for page in pages]
         document = FORM_FEED.join(page_blocks)
         if document and not document.endswith("\n"):
