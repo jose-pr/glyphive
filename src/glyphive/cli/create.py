@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib as _hashlib
+import tempfile as _tempfile
 import typing as _ty
 
 from duho import NS, LoggingArgs
@@ -13,6 +14,7 @@ from .. import codec as _codec
 from .. import compression as _compression
 from .. import layout as _layout
 from .. import render as _render
+from ..codec.g1 import encoded_line_count as _g1_encoded_line_count
 from ._common import format_selector_error, resolve_destination
 
 __all__ = ["Create"]
@@ -26,6 +28,21 @@ _FORMAT_BY_SUFFIX = {
     ".pdf": "pdf",
     ".docx": "docx",
 }
+
+
+class _DigestWriter:
+    def __init__(self, sink):
+        self.sink = sink
+        self.digest = _hashlib.sha256()
+        self.count = 0
+
+    def write(self, data):
+        written = self.sink.write(data)
+        if written != len(data):
+            raise OSError("temporary archive spool accepted a partial write")
+        self.digest.update(data)
+        self.count += len(data)
+        return written
 
 
 def _output_format(destination: str, explicit: _ty.Optional[str]) -> str:
@@ -149,6 +166,14 @@ class Create(LoggingArgs):
     "Extra space between characters in points for pdf/docx output."
     ("--character-spacing",)
 
+    temp_dir: "_ty.Optional[str]" = None
+    "Directory for bounded-memory spool files (default: system temporary directory)."
+    ("--temp-dir",)
+
+    chunk_size: int = 1024 * 1024
+    "Streaming I/O chunk size in bytes."
+    ("--chunk-size",)
+
     def _legacy_compression(self) -> _ty.Optional[str]:
         for name, selected in (
             ("gzip", self.gzip),
@@ -185,24 +210,9 @@ class Create(LoggingArgs):
             )
         root = roots[0]
 
-        raw = _archive.archive_tree(
-            root,
-            use_ignore=not self.no_ignore,
-            metadata=self.metadata,
-        )
         paths = _archive.list_paths(root, use_ignore=not self.no_ignore)
-        payload = compression.compress(raw, self.level)
-        encoded = codec.encode(payload)
-
-        meta = {
-            "v": 1,
-            "codec": codec_name,
-            "comp": compression_name,
-            "meta": self.metadata,
-            "files": len(paths),
-            "bytes": len(raw),
-            "sha256": _hashlib.sha256(raw).hexdigest(),
-        }
+        if self.chunk_size <= 0:
+            raise SystemExit("error: --chunk-size must be a positive integer")
         page_margin_pt = (
             _render.MINIMAL_PAGE_MARGIN_PT
             if self.minimal_margins
@@ -211,18 +221,60 @@ class Create(LoggingArgs):
         lines_per_page = _render.lines_per_page_for(
             self.font_size, page_margin_pt=page_margin_pt
         )
-        pages = _layout.paginate(encoded, meta, lines_per_page=lines_per_page)
-
         out = Path(self.file)
-        renderer.render(
-            pages,
-            out,
-            font=self.font,
-            font_size=self.font_size,
-            page_margin_pt=page_margin_pt,
-            horizontal_alignment=self.horizontal_alignment,
-            character_spacing_pt=self.character_spacing,
-        )
+        with _tempfile.TemporaryFile(dir=self.temp_dir) as raw_spool:
+            measured_raw = _DigestWriter(raw_spool)
+            _archive.write_archive(
+                root,
+                measured_raw,
+                use_ignore=not self.no_ignore,
+                metadata=self.metadata,
+                chunk_size=self.chunk_size,
+            )
+            meta = {
+                "v": 1,
+                "codec": codec_name,
+                "comp": compression_name,
+                "meta": self.metadata,
+                "files": len(paths),
+                "bytes": measured_raw.count,
+                "sha256": measured_raw.digest.hexdigest(),
+            }
+            raw_spool.seek(0)
+            with _tempfile.TemporaryFile(dir=self.temp_dir) as compressed_spool:
+                compression.compress_stream(
+                    raw_spool,
+                    compressed_spool,
+                    level=self.level,
+                    chunk_size=self.chunk_size,
+                )
+                compressed_len = compressed_spool.tell()
+                compressed_spool.seek(0)
+                if hasattr(codec, "iter_encode") and codec_name == "g1":
+                    encoded = codec.iter_encode(
+                        compressed_spool,
+                        compressed_len,
+                        temp_dir=self.temp_dir,
+                    )
+                    n_encoded = _g1_encoded_line_count(compressed_len)
+                else:
+                    materialized = codec.encode(compressed_spool.read())
+                    encoded, n_encoded = iter(materialized), len(materialized)
+                pages = _layout.iter_paginate(
+                    encoded,
+                    n_encoded,
+                    meta,
+                    lines_per_page=lines_per_page,
+                )
+                renderer.render(
+                    pages,
+                    out,
+                    font=self.font,
+                    font_size=self.font_size,
+                    page_margin_pt=page_margin_pt,
+                    horizontal_alignment=self.horizontal_alignment,
+                    character_spacing_pt=self.character_spacing,
+                )
         self._logger_.info(
             "wrote %s (%d files, %d bytes, codec=%s, comp=%s, meta=%s, "
             "%d pages, format=%s)",

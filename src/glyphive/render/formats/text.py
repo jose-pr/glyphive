@@ -19,7 +19,7 @@ class TextRenderFormat(RenderFormat):
 
     def render(
         self,
-        pages: _ty.List[Page],
+        pages: _ty.Iterable[Page],
         out: _ty.Union[str, "_os.PathLike[str]"],
         *,
         font: _ty.Optional[str] = None,
@@ -29,9 +29,11 @@ class TextRenderFormat(RenderFormat):
         character_spacing_pt: float = 0.0,
     ) -> None:
         del font, font_size, page_margin_pt, horizontal_alignment, character_spacing_pt
-        page_blocks = ["\n".join(page.text_lines) for page in pages]
-        document = FORM_FEED.join(page_blocks)
-        if document and not document.endswith("\n"):
-            document += "\n"
         with Path(_os.fspath(out)).open("w", encoding="utf-8", newline="") as stream:
-            stream.write(document)
+            first = True
+            for page in pages:
+                if not first:
+                    stream.write(FORM_FEED)
+                stream.write("\n".join(page.text_lines))
+                stream.write("\n")
+                first = False
