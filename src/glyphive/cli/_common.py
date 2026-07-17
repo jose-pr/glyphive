@@ -42,18 +42,33 @@ def resolve_destination(directory: _ty.Optional[str]) -> "Path":
 
 
 def load_transcript_lines(source: _ty.Union[str, "Path"]) -> _ty.List[str]:
-    """Read a text renderer output into logical transcript lines."""
-    text = Path(source).read_text(encoding="utf-8")
-    return text.replace("\f", "\n").splitlines()
+    """Read one transcript or a directory of transcripts into logical lines."""
+    lines: _ty.List[str] = []
+    for path in _input_files(source):
+        text = path.read_text(encoding="utf-8")
+        lines.extend(text.replace("\f", "\n").splitlines())
+    return lines
 
 
 def load_image_lines(
     source: _ty.Union[str, "Path"], *, engine: _ty.Optional[str] = None
 ) -> _ty.List[str]:
-    """OCR one image lazily, keeping transcript extraction package-independent."""
+    """OCR one image or a directory of images through one provider instance."""
     from ..restore import ocr
 
-    return ocr.ocr_image(Path(source), engine=engine)
+    pages = ocr.ocr_pages(_input_files(source), engine=engine)
+    return [line for page in pages for line in page]
+
+
+def _input_files(source: _ty.Union[str, "Path"]) -> _ty.List["Path"]:
+    """Expand a file or its directory's direct child files in stable order."""
+    path = Path(source)
+    if not path.is_dir():
+        return [path]
+    files = sorted((child for child in path.glob("*") if child.is_file()), key=str)
+    if not files:
+        raise ValueError(f"input directory contains no files: {path}")
+    return files
 
 
 def warn_page_integrity(logger: _ty.Any, meta: _ty.Mapping[str, _ty.Any]) -> None:
