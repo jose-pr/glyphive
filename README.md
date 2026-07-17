@@ -16,6 +16,8 @@ the character errors that make ordinary base64-on-paper fragile.
 ## Features
 
 - **Printable text, PDF, or Word output** with selectable font family and size.
+- **Bundled OCR-B PDF option** under the SIL Open Font License, plus custom
+  `.ttf`/`.otf` PDF font paths for measured channels.
 - **Measured OCR-safe `g1` alphabet** (`ABCDHKLMPRTVXY34`) with no confusable
   character aliases.
 - **Localized integrity checks** on every encoded line and protected page
@@ -157,3 +159,6 @@ package build, publication, and documentation deployment workflow.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+The bundled OCR-B font retains its SIL Open Font License 1.1; see
+[third-party licenses](THIRD_PARTY_LICENSES.md).

@@ -10,7 +10,7 @@ description = "Archive file trees to compact, OCR-friendly printable pages (text
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "src/glyphive/assets/fonts/ocr_b/LICENSE.md"]
 keywords = ["archive", "ocr", "paper-backup", "reed-solomon", "print", "backup"]
 classifiers = [
     "Development Status :: 3 - Alpha",
