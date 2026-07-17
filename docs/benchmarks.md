@@ -118,8 +118,11 @@ The historical Consolas recovery source was printed at 12 pt and scanned at
 600 DPI. It was readable but suffered the familiar `0/O/o`, `1/l/I`, `2/Z`,
 `5/S`, and `8/B` confusions; it was not a controlled capacity benchmark.
 These results make Courier 8 pt at 300 DPI the current starting profile, not
-proof that it is optimal for every renderer or OCR model. OCR-B and any newly
-bundled font still require a versioned sweep before being recommended.
+proof that it is optimal for every renderer or OCR model. Subsequent VM sweeps
+found a promising constrained OCR-B cell but it has not passed a complete
+restore gate. See the public
+[font candidate ledger](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/FONT_CANDIDATES.md)
+for exact files, model pins, measurements, and pending stroke/style tests.
 
 ## Publication checklist
 

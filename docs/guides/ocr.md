@@ -77,12 +77,17 @@ font's OCR quality. Courier 8 pt outperformed Courier 11 pt for the current
 alphabet in the controlled probe (16/16 safe with no length mismatch versus
 15/16 safe and 2% mismatched lines).
 
-OCR-B has not yet been measured in this repository. Treat an OCR-B file, a
-coding font, a different weight, or a trained language model as a new channel:
+OCR-B has now been measured in diagnostic character-grid sweeps. At 6 pt it
+retained all 16 current symbols with no insertions only when Tesseract used an
+exact whitelist and disabled its system/frequency dictionaries; ordinary model
+runs lost enough symbols to fall to radix 8. That constrained cell has not yet
+passed a full-frame restore gate. Treat an OCR-B file, a coding font, a
+different weight, or a trained language model as a new channel:
 record the exact font file and license, renderer, size, DPI, engine and model
 versions, then run the alphabet sweep and a byte-for-byte restore gate. See
-the [benchmark tables](../benchmarks.md#historical-windows-font-and-size-probes)
-for the evidence currently available.
+the [font candidate ledger](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/FONT_CANDIDATES.md)
+for the exact artifacts, ISO stroke/style distinctions, and evidence currently
+available.
 
 ## Measure an alphabet
 
