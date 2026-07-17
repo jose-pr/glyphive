@@ -23,6 +23,7 @@ from __future__ import annotations
 import binascii
 import hashlib
 import itertools
+import io
 import struct
 import typing as _ty
 
@@ -40,6 +41,7 @@ __all__ = [
     "paginate",
     "iter_paginate",
     "read_pages",
+    "read_pages_to_spool",
 ]
 
 # ---------------------------------------------------------------------------
@@ -746,7 +748,16 @@ def read_pages(
     - ``meta["_page_warnings"]`` : list of per-page hash-mismatch warning strings.
     - ``meta["_pages_seen"]``    : sorted list of page numbers found.
     """
-    lines = list(all_text_lines)
+    spool = io.BytesIO()
+    header_meta, _count = read_pages_to_spool(all_text_lines, spool)
+    spool.seek(0)
+    return header_meta, [line.decode("utf-8").rstrip("\n") for line in spool]
+
+
+def read_pages_to_spool(
+    all_text_lines: _ty.Iterable[str], sink: _ty.BinaryIO
+) -> _ty.Tuple[_ty.Dict[str, _ty.Any], int]:
+    """Parse a transcript once and spool normalized codec lines sequentially."""
 
     # --- Pass 1: recover the authoritative protected header. ----------------
     # The unrestricted ``#!glyphive ...`` line is retained for humans and old
@@ -754,45 +765,43 @@ def read_pages(
     # ``gl`` -> ``g1`` repair guess: codec selection comes from CRC-checked H
     # frames encoded entirely in the measured-safe bootstrap alphabet.
     header_frames: _ty.List[_ParsedMachineFrame] = []
-    for line in lines:
+    warnings: _ty.List[str] = []
+    pages_seen: _ty.Dict[int, int] = {}
+    encoded_count = 0
+    block_hash = hashlib.sha256()
+    block_count = 0
+    for line in all_text_lines:
         frame = _parse_machine_frame(line, _MACHINE_HEADER_KIND)
         if frame is not None:
             header_frames.append(frame)
-    header_meta = _decode_machine_header(header_frames)
-
-    # --- Pass 2: walk the lines, splitting into per-page blocks by footer. ---
-    # A page's data block is every encoded line seen since the previous footer
-    # (or the header) up to and including that page's PAGE footer. This lets us
-    # verify each footer's hash against exactly the block it covers, even when
-    # pages are concatenated out of order.
-    warnings: _ty.List[str] = []
-    pages_seen: _ty.Dict[int, int] = {}  # page number -> observed total
-    encoded_lines: _ty.List[str] = []
-    current_block: _ty.List[str] = []
-
-    for line in lines:
         stripped = line.strip()
         if not stripped:
             continue
         footer = _parse_footer(line)
         if footer is not None:
-            expected = page_data_hash(current_block)[:PAGE_HASH_CHARS]
+            expected = block_hash.hexdigest()[:PAGE_HASH_CHARS]
             if footer.digest.lower() != expected.lower():
                 warnings.append(
                     f"page {footer.n}/{footer.total}: footer hash "
                     f"{footer.digest!r} != computed {expected!r} "
-                    f"(over {len(current_block)} line(s))"
+                    f"(over {block_count} line(s))"
                 )
             pages_seen[footer.n] = footer.total
-            current_block = []
+            block_hash = hashlib.sha256()
+            block_count = 0
             continue
         if stripped.startswith(HEADER_PREFIX):
             continue  # the document header is not a data line
         if _parse_machine_frame(line, _MACHINE_HEADER_KIND) is not None:
             continue  # protected machine header is not a payload line
         if _looks_like_encoded(line):
-            encoded_lines.append(stripped)
-            current_block.append(stripped)
+            encoded = stripped.encode("utf-8")
+            sink.write(encoded + b"\n")
+            if block_count:
+                block_hash.update(b"\n")
+            block_hash.update(encoded)
+            block_count += 1
+            encoded_count += 1
         # else: OCR noise / blank-ish junk — ignored.
 
     # Any trailing encoded lines with no footer after them are still real data
@@ -800,6 +809,7 @@ def read_pages(
     # ``encoded_lines``. We only *warn* via the missing-page check below.
 
     # --- Missing-page detection via integrity-protected machine metadata. ---
+    header_meta = _decode_machine_header(header_frames)
     header_total = header_meta["pages"]
     inconsistent = sorted(
         n for n, observed_total in pages_seen.items()
@@ -816,4 +826,4 @@ def read_pages(
 
     header_meta["_page_warnings"] = warnings
     header_meta["_pages_seen"] = sorted(pages_seen)
-    return header_meta, encoded_lines
+    return header_meta, encoded_count

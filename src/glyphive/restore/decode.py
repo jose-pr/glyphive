@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import tempfile
 import typing as _ty
 
 from .. import archive, codec, compression, layout
@@ -135,32 +136,46 @@ def decode_document_to_spool(
     *,
     max_output_bytes: _ty.Optional[int] = None,
     chunk_size: int = 1024 * 1024,
+    temp_dir: _ty.Optional[str] = None,
 ) -> _ty.Dict[str, _ty.Any]:
     """Decode and stream-decompress a document into a seekable quarantine spool."""
     # 1) transcript -> (header meta, framed codec lines). read_pages raises
     #    MissingPageError (naming pages) / LayoutError (no header) — let it.
-    meta, encoded = layout.read_pages(text_lines)
+    with tempfile.TemporaryFile(dir=temp_dir) as encoded_spool, tempfile.TemporaryFile(
+        dir=temp_dir
+    ) as compressed_spool:
+        meta, _encoded_count = layout.read_pages_to_spool(text_lines, encoded_spool)
 
-    # 2) Resolve the header's data identifier before decoding anything. Header
-    # identifiers are data, not import paths, and unknown names must fail before
-    # decompression or filesystem writes can begin.
-    selected_codec = _resolve_codec(str(meta["codec"]))
-    meta["codec"] = selected_codec.name
-    payload = selected_codec.decode(list(encoded))
+        # 2) Resolve the header's data identifier before decoding anything. Header
+        # identifiers are data, not import paths, and unknown names must fail before
+        # decompression or filesystem writes can begin.
+        selected_codec = _resolve_codec(str(meta["codec"]))
+        meta["codec"] = selected_codec.name
+        encoded_spool.seek(0)
+        if hasattr(selected_codec, "decode_spool") and selected_codec.name == "g1":
+            selected_codec.decode_spool(
+                encoded_spool, compressed_spool, temp_dir=temp_dir
+            )
+        else:
+            lines = (
+                line.decode("utf-8").rstrip("\r\n") for line in encoded_spool
+            )
+            compressed_spool.write(selected_codec.decode(lines))
 
-    # 3) compressed payload -> raw archive bytes, per the header's method.
-    comp = str(meta["comp"])
-    expected_bytes = int(meta["bytes"])
-    output_limit = expected_bytes if max_output_bytes is None else max_output_bytes
-    if output_limit < expected_bytes:
-        raise RestoreError(
-            f"maximum output size {output_limit} is below protected document size "
-            f"{expected_bytes}"
+        # 3) compressed payload -> raw archive bytes, per the header's method.
+        comp = str(meta["comp"])
+        expected_bytes = int(meta["bytes"])
+        output_limit = expected_bytes if max_output_bytes is None else max_output_bytes
+        if output_limit < expected_bytes:
+            raise RestoreError(
+                f"maximum output size {output_limit} is below protected document size "
+                f"{expected_bytes}"
+            )
+        measured = _VerifiedWriter(sink, output_limit)
+        compressed_spool.seek(0)
+        compression.get(comp).decompress_stream(
+            compressed_spool, measured, chunk_size=chunk_size
         )
-    measured = _VerifiedWriter(sink, output_limit)
-    compression.get(comp).decompress_stream(
-        io.BytesIO(payload), measured, chunk_size=chunk_size
-    )
 
     # 4) Whole-document integrity gate. NEVER return unverified bytes.
     expected = meta.get("sha256")

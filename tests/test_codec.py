@@ -64,6 +64,18 @@ def test_streaming_encode_rejects_truncated_and_grown_source():
         list(g1.iter_encode(io.BytesIO(b"extra"), 4))
 
 
+def test_spooled_decode_matches_one_shot_and_repairs_erasures():
+    data = bytes((index * 17) % 256 for index in range(4096))
+    lines = g1.encode(data)
+    damaged = list(lines)
+    line_index = _first_data_line_index(damaged)
+    damaged[line_index] = _mutate_one_payload_char(damaged[line_index])
+    encoded = io.BytesIO("\n".join(damaged).encode("utf-8") + b"\n")
+    restored = io.BytesIO()
+    g1.decode_spool(encoded, restored)
+    assert restored.getvalue() == data
+
+
 @pytest.mark.parametrize(
     ("size", "nsym", "blocks", "parity_bytes", "total_lines"),
     [

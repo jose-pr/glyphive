@@ -369,6 +369,7 @@ def restore_document_spooled(
             raw_spool,
             max_output_bytes=max_output_bytes,
             chunk_size=chunk_size,
+            temp_dir=temp_dir,
         )
         written = unarchive_spool(
             raw_spool,
