@@ -18,7 +18,7 @@ the character errors that make ordinary base64-on-paper fragile.
 - **Printable text, PDF, or Word output** with selectable font family and size.
 - **Bundled OCR-B PDF option** under the SIL Open Font License, plus custom
   `.ttf`/`.otf` PDF font paths for measured channels.
-- **Measured OCR-safe `g1` alphabet** (`ABCDHKLMPRTVXY34`) with no confusable
+- **Measured OCR-safe `base16c-crc16-rs` alphabet** (`ABCDHKLMPRTVXY34`) with no confusable
   character aliases.
 - **Localized integrity checks** on every encoded line and protected page
   metadata.
@@ -143,7 +143,7 @@ read directly with `python-docx`, without Microsoft Word or LibreOffice. See the
 
 ## Format at a glance
 
-The default `g1` format uses exactly 16 payload symbols, or 4 bits per printed
+The default `base16c-crc16-rs` format uses exactly 16 payload symbols, or 4 bits per printed
 character. Each data (`L`) or parity (`P`) line has a masked index and a full
 CRC-16 encoded in the same safe alphabet:
 
@@ -180,7 +180,7 @@ Optional, platform-specific artifacts can be built with `--extras`; use
 | Module | Purpose |
 | --- | --- |
 | `glyphive.archive` | Serialize and inspect deterministic archive streams, including chunked reader/writer primitives |
-| `glyphive.codec` | Resolve printable codecs; includes `g1` |
+| `glyphive.codec` | Resolve printable codecs; includes `base16c-crc16-rs` |
 | `glyphive.compression` | Resolve `none`, `gzip`, and optional `zstd` compression |
 | `glyphive.layout` | Paginate frames and verify protected page metadata |
 | `glyphive.plugins` | Explicitly discover trusted installed entry points |

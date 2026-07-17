@@ -24,7 +24,7 @@ when reproducibility across installations matters:
 glyphive create \
   -f backup.txt \
   --format text \
-  --codec g1 \
+  --codec base16c-crc16-rs \
   --compression gzip \
   --metadata none \
   -C project .
@@ -47,11 +47,16 @@ glyphive create -f backup.docx --font Consolas --font-size 10 -C project .
 PDF output accepts the built-in FPDF families `courier`, `helvetica`, `times`,
 `symbol`, `zapfdingbats`, and `arial`, the bundled `ocr-b` option, or an
 existing `.ttf`/`.otf` path. Word output accepts an installed Word font name.
-OCR-B is bundled under the SIL Open Font License 1.1 and is not yet the default:
-measure it with the intended OCR model before relying on it. A smaller font fits
-more characters on a page, but it must be
-validated on the intended printer, scanner, resolution, and OCR engine; nominal
-density is not the same as recoverable density.
+OCR-B is bundled under the SIL Open Font License 1.1. It is not the shipped
+default (Courier 8pt is), but `--font ocr-b --font-size 6` is a measured
+`dense` preset: 5,050 usable bytes/page versus Courier 8pt's 4,125, and it
+measured safe (0% character error, 0% line-insertion) on both Tesseract and
+PaddleOCR with the project's `base16c-crc16-rs` alphabet — see
+[`benchmarks/results/FONT_CANDIDATES.md`](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/FONT_CANDIDATES.md)
+for the full matrix. Any other font must still be measured with the intended
+OCR model before relying on it: a smaller font fits more characters on a
+page, but it must be validated on the intended printer, scanner, resolution,
+and OCR engine — nominal density is not the same as recoverable density.
 
 The number of rows per page is calculated from the selected font size and page
 geometry. Use `--minimal-margins` to reduce all margins from 36 points to 12
@@ -63,7 +68,7 @@ glyphive create -f dense.pdf --format pdf --font-size 8 --minimal-margins -C pro
 ```
 
 PDF creation also measures the selected font's widest safe glyph and chooses
-the largest even `g1` payload width that fits between the margins at the
+the largest even `base16c-crc16-rs` payload width that fits between the margins at the
 requested size and character spacing. This lets a genuinely narrower measured
 font carry more than the conservative 60 payload characters per row without
 shrinking the rendered text. Text and Word output retain 60 by default because
