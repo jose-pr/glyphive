@@ -239,7 +239,15 @@ def render_lines(lines: list[str], font_arg: str, size: float, out_pdf: Path) ->
     return label
 
 
-def rasterize_and_ocr(pdf_path: Path, dpi: int, engine: str, scratch: Path) -> list[str]:
+def rasterize_and_ocr(
+    pdf_path: Path,
+    dpi: int,
+    engine: str,
+    scratch: Path,
+    *,
+    alphabet: str,
+    tesseract_constrained: bool,
+) -> list[str]:
     """Rasterize every page at dpi and OCR each, concatenating lines in order."""
     import pypdfium2
 
@@ -255,7 +263,18 @@ def rasterize_and_ocr(pdf_path: Path, dpi: int, engine: str, scratch: Path) -> l
             image = bitmap.to_pil().convert("L")
             png_path = scratch / f"page{i:03d}.png"
             image.save(png_path)
-            all_lines.extend(provider.ocr_image(png_path))
+            if engine == "tesseract" and tesseract_constrained:
+                import pytesseract
+
+                config = (
+                    "--psm 6 "
+                    f"-c tessedit_char_whitelist={alphabet} "
+                    "-c load_system_dawg=0 -c load_freq_dawg=0"
+                )
+                text = pytesseract.image_to_string(image, config=config)
+                all_lines.extend(line for line in text.splitlines() if line.strip())
+            else:
+                all_lines.extend(provider.ocr_image(png_path))
     finally:
         doc.close()
     return all_lines
@@ -274,6 +293,7 @@ def measure(
     line_length_override: int | None,
     seed: int,
     scratch: Path,
+    tesseract_constrained: bool = False,
 ) -> dict:
     chars_per_line, lines_per_page, max_w, font_label = font_geometry(font_arg, size, alphabet)
     wraps = False
@@ -303,6 +323,7 @@ def measure(
         "lines_per_page": lines_per_page,
         "seed": seed,
         "wraps": wraps,
+        "tesseract_constrained": tesseract_constrained,
     }
 
     if wraps:
@@ -329,7 +350,14 @@ def measure(
 
     pdf_path = scratch / "sample.pdf"
     render_lines(printed_rows, font_arg, size, pdf_path)
-    ocr_lines = rasterize_and_ocr(pdf_path, dpi, engine, scratch)
+    ocr_lines = rasterize_and_ocr(
+        pdf_path,
+        dpi,
+        engine,
+        scratch,
+        alphabet=alphabet,
+        tesseract_constrained=tesseract_constrained,
+    )
 
     total: Counter[str] = Counter()
     errors: Counter[str] = Counter()
@@ -624,6 +652,14 @@ def main(argv: list[str] | None = None) -> int:
         help="override the auto-computed (from font metrics) chars-per-line",
     )
     parser.add_argument("--seed", type=int, default=1234)
+    parser.add_argument(
+        "--tesseract-constrained",
+        action="store_true",
+        help=(
+            "for Tesseract cells, whitelist the candidate alphabet and disable "
+            "the system/frequency dictionaries"
+        ),
+    )
     parser.add_argument("--json", default=None, help="path to write full JSON report")
     parser.add_argument(
         "--merge",
@@ -723,6 +759,7 @@ def main(argv: list[str] | None = None) -> int:
                         line_length_override=args.line_length,
                         seed=args.seed,
                         scratch=scratch,
+                        tesseract_constrained=args.tesseract_constrained,
                     )
                     r["charset_label"] = label
                     r["engine_version"] = _engine_version(engine)
