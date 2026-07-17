@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import binascii
 import hashlib
+import itertools
 import struct
 import typing as _ty
 
@@ -37,6 +38,7 @@ __all__ = [
     "verify_page_footer",
     "page_data_hash",
     "paginate",
+    "iter_paginate",
     "read_pages",
 ]
 
@@ -237,12 +239,14 @@ def _parse_machine_frame(
     whitespace in the safe-alphabet payload is removed, exactly as it is for
     payload frames; the CRC remains the acceptance oracle.
     """
-    from .codec.g1 import INDEX_WIDTH, decode_index
+    from .codec.g1 import INDEX_WIDTH, decode_index, split_frame
 
-    parts = line.split()
-    if not parts or parts[0][:1].upper() != kind:
+    split = split_frame(line, allow_trailing=kind == _MACHINE_FOOTER_KIND)
+    if split is None:
         return None
-    label = parts[0]
+    label, payload, check_field = split
+    if label[:1].upper() != kind:
+        return None
     if len(label) != INDEX_WIDTH + 1:
         return _ParsedMachineFrame(idx=None, payload="", ok=False)
 
@@ -251,16 +255,8 @@ def _parse_machine_frame(
     if idx is None:
         return _ParsedMachineFrame(idx=None, payload="", ok=False)
 
-    check_positions = [
-        check_position
-        for check_position in range(2, len(parts))
-        if parts[check_position].startswith("#")
-    ]
-    if len(check_positions) != 1:
-        return _ParsedMachineFrame(idx=idx, payload="", ok=False)
-    check_position = check_positions[0]
-    payload = "".join(parts[1:check_position]).upper()
-    check = parts[check_position][1:].upper()
+    payload = payload.upper()
+    check = check_field[1:].upper()
     expected = _machine_check(idx_token, payload)
     return _ParsedMachineFrame(idx=idx, payload=payload, ok=check == expected)
 
@@ -620,6 +616,26 @@ def paginate(
     ``lines_per_page`` is too small to fit header+footer+data.
     """
     encoded = list(encoded_lines)
+    return list(
+        iter_paginate(
+            iter(encoded),
+            len(encoded),
+            meta,
+            lines_per_page=lines_per_page,
+        )
+    )
+
+
+def iter_paginate(
+    encoded_lines: _ty.Iterable[str],
+    n_encoded: int,
+    meta: _ty.MutableMapping[str, _ty.Any],
+    *,
+    lines_per_page: int,
+) -> _ty.Iterator[Page]:
+    """Yield pages without retaining the full encoded line or page lists."""
+    if n_encoded < 0:
+        raise ValueError("n_encoded must be non-negative")
     # The compact machine envelope uses a fixed-width u32 for ``pages``, so its
     # frame count does not depend on the numeric page count.  A provisional value
     # therefore gives us the exact first-page overhead before pagination.
@@ -627,7 +643,7 @@ def paginate(
     provisional_machine_header = _format_machine_header(meta)
     first_page_overhead = 1 + len(provisional_machine_header) + 1
     total = _page_count(
-        len(encoded),
+        n_encoded,
         lines_per_page,
         first_page_overhead=first_page_overhead,
     )
@@ -637,12 +653,12 @@ def paginate(
     if len(machine_header) != len(provisional_machine_header):
         raise LayoutError("machine header frame count changed during pagination")
 
-    pages: _ty.List[Page] = []
+    encoded = iter(encoded_lines)
     cursor = 0
     for page_no in range(1, total + 1):
         overhead = first_page_overhead if page_no == 1 else 1
         capacity = lines_per_page - overhead
-        chunk = encoded[cursor:cursor + capacity]
+        chunk = list(itertools.islice(encoded, min(capacity, n_encoded - cursor)))
         cursor += len(chunk)
 
         text_lines: _ty.List[str] = []
@@ -652,23 +668,25 @@ def paginate(
         text_lines.extend(chunk)
         text_lines.append(format_page_footer(page_no, total, chunk))
 
-        pages.append(
-            Page(
-                number=page_no,
-                total=total,
-                text_lines=text_lines,
-                encoded_lines=list(chunk),
-            )
+        yield Page(
+            number=page_no,
+            total=total,
+            text_lines=text_lines,
+            encoded_lines=chunk,
         )
 
     # Sanity: every encoded line was placed. A mismatch means the budget math
     # and the chunking disagree — fail loud rather than silently drop data.
-    if cursor != len(encoded):
+    if cursor != n_encoded:
         raise LayoutError(
-            f"internal pagination error: placed {cursor} of {len(encoded)} "
+            f"internal pagination error: placed {cursor} of {n_encoded} "
             "encoded lines"
         )
-    return pages
+    try:
+        next(encoded)
+    except StopIteration:
+        return
+    raise LayoutError("encoded line iterator yielded more than n_encoded lines")
 
 
 # ---------------------------------------------------------------------------

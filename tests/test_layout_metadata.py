@@ -28,6 +28,26 @@ def _mutate_safe_payload(line):
     return f"{label} {replacement + payload[1:]} {check}"
 
 
+def test_iter_paginate_is_identical_and_checks_declared_count():
+    encoded = codec.get("g1").encode(b"streamed pagination" * 20)
+    base_meta = {
+        "codec": "g1",
+        "comp": "none",
+        "meta": "none",
+        "files": 1,
+        "bytes": 400,
+        "sha256": "0" * 64,
+    }
+    expected = layout.paginate(encoded, dict(base_meta), lines_per_page=11)
+    actual = list(
+        layout.iter_paginate(iter(encoded), len(encoded), dict(base_meta), lines_per_page=11)
+    )
+    assert actual == expected
+
+    with pytest.raises(layout.LayoutError, match="more than"):
+        list(layout.iter_paginate(iter(encoded), len(encoded) - 1, dict(base_meta), lines_per_page=11))
+
+
 def test_real_ocr_damage_to_human_metadata_is_display_only():
     data, lines = _document()
     lines[0] = (
@@ -43,6 +63,35 @@ def test_real_ocr_damage_to_human_metadata_is_display_only():
     assert meta["codec"] == "g1"
     assert meta["bytes"] == len(data)
     assert restored == data
+
+
+def test_compact_machine_and_payload_frames_restore_full_transcript():
+    data, lines = _document()
+    compact = []
+    for line in lines:
+        if line[:1] in {"H", "L", "P"}:
+            compact.append(line.replace(" ", ""))
+        elif line.startswith("T"):
+            machine, _page, _count = line.rsplit(" ", 2)
+            compact.append(machine.replace(" ", "") + "PAGE1/1")
+        else:
+            compact.append(line)
+
+    meta, encoded = layout.read_pages(compact)
+
+    assert codec.get(meta["codec"]).decode(encoded) == data
+
+
+def test_corrupted_compact_machine_frame_still_fails_crc():
+    _data, lines = _document()
+    indexes = [i for i, line in enumerate(lines) if line.startswith("H")]
+    for index in indexes[:2]:
+        compact = lines[index].replace(" ", "")
+        replacement = "A" if compact[6] != "A" else "B"
+        lines[index] = compact[:6] + replacement + compact[7:]
+
+    with pytest.raises(layout.LayoutError, match="frame copies failed"):
+        layout.read_pages(lines)
 
 
 def test_machine_header_uses_fixed_width_safe_frames():
