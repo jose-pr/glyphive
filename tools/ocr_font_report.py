@@ -48,6 +48,11 @@ Usage:
     python tools/ocr_font_report.py --font courier --engine tesseract \\
         --radix 64,85 --extra-chars "*@#-^" --rows 60
 
+    python tools/ocr_font_report.py --font ocr-b --engine tesseract \\
+        --charset ABCDHKLMPRTVXY34 --size 6,8 \\
+        --horizontal-alignment left,center,justify \\
+        --character-spacing 0,0.1,0.2 --rows 60
+
     python tools/ocr_font_report.py --font "C:\\Windows\\Fonts\\consola.ttf" \\
         --engine tesseract --radix 32 --rows 60
 
@@ -202,13 +207,20 @@ def _resolve_font(pdf, font_arg: str, size: float) -> str:
     return family
 
 
-def font_geometry(font_arg: str, size: float, alphabet: str) -> tuple[int, int, float, str]:
+def font_geometry(
+    font_arg: str,
+    size: float,
+    alphabet: str,
+    character_spacing_pt: float = 0.0,
+) -> tuple[int, int, float, str]:
     """Compute (chars_per_line, lines_per_page, max_char_width, font_label).
 
     chars_per_line is sized off the *widest* glyph in this alphabet at this
     font+size so a full-width line of any character combination still fits
     within the US-Letter usable width (matches the PDF renderer's margins).
     """
+    if character_spacing_pt < 0:
+        raise ValueError("character_spacing_pt must be >= 0")
     import fpdf
 
     pdf = fpdf.FPDF(orientation="P", unit="pt", format="Letter")
@@ -216,13 +228,24 @@ def font_geometry(font_arg: str, size: float, alphabet: str) -> tuple[int, int, 
     label = _resolve_font(pdf, font_arg, size)
     max_w = max(pdf.get_string_width(c) for c in alphabet)
     # small safety margin for kerning/rounding
-    chars_per_line = max(1, int((_USABLE_W * 0.98) // max_w))
+    chars_per_line = max(
+        1,
+        int(((_USABLE_W * 0.98) + character_spacing_pt) // (max_w + character_spacing_pt)),
+    )
     leading = size * 1.2
     lines_per_page = max(1, int(_USABLE_H // leading))
     return chars_per_line, lines_per_page, max_w, label
 
 
-def render_lines(lines: list[str], font_arg: str, size: float, out_pdf: Path) -> str:
+def render_lines(
+    lines: list[str],
+    font_arg: str,
+    size: float,
+    out_pdf: Path,
+    *,
+    horizontal_alignment: str = "left",
+    character_spacing_pt: float = 0.0,
+) -> str:
     """Render lines into a PDF, one per row, auto-paginating. Returns font label."""
     import fpdf
 
@@ -232,9 +255,42 @@ def render_lines(lines: list[str], font_arg: str, size: float, out_pdf: Path) ->
     label = _resolve_font(pdf, font_arg, size)
     leading = size * 1.2
     pdf.add_page()
+    from glyphive.render.formats.pdf import (
+        _fitted_font_size,
+        _line_character_spacing,
+    )
+
     for line in lines:
         pdf.set_x(_MARGIN)
-        pdf.cell(w=0, h=leading, text=line, new_x="LMARGIN", new_y="NEXT")
+        raw_width = pdf.get_string_width(line)
+        spacing = _line_character_spacing(
+            line,
+            alignment=horizontal_alignment,
+            base_spacing_pt=character_spacing_pt,
+            text_width=raw_width,
+            available_width=_USABLE_W,
+        )
+        line_size = _fitted_font_size(
+            size,
+            raw_width,
+            _USABLE_W,
+            character_spacing_pt=spacing,
+            character_count=len(line),
+        )
+        if line_size != size:
+            pdf.set_font_size(line_size)
+        pdf.set_char_spacing(spacing)
+        pdf.cell(
+            w=_USABLE_W,
+            h=leading,
+            text=line,
+            align="C" if horizontal_alignment == "center" else "L",
+            new_x="LMARGIN",
+            new_y="NEXT",
+        )
+        pdf.set_char_spacing(0)
+        if line_size != size:
+            pdf.set_font_size(size)
     out_pdf.write_bytes(bytes(pdf.output()))
     return label
 
@@ -294,12 +350,21 @@ def measure(
     seed: int,
     scratch: Path,
     tesseract_constrained: bool = False,
+    horizontal_alignment: str = "left",
+    character_spacing_pt: float = 0.0,
 ) -> dict:
-    chars_per_line, lines_per_page, max_w, font_label = font_geometry(font_arg, size, alphabet)
+    if horizontal_alignment not in {"left", "center", "justify"}:
+        raise ValueError("horizontal_alignment must be left, center, or justify")
+    if character_spacing_pt < 0:
+        raise ValueError("character_spacing_pt must be >= 0")
+    chars_per_line, lines_per_page, max_w, font_label = font_geometry(
+        font_arg, size, alphabet, character_spacing_pt
+    )
     wraps = False
     if line_length_override is not None:
         line_length = line_length_override
-        if line_length * max_w > _USABLE_W * 0.98:
+        tracked_width = line_length * max_w + max(0, line_length - 1) * character_spacing_pt
+        if tracked_width > _USABLE_W * 0.98:
             wraps = True
     else:
         line_length = chars_per_line
@@ -324,6 +389,8 @@ def measure(
         "seed": seed,
         "wraps": wraps,
         "tesseract_constrained": tesseract_constrained,
+        "horizontal_alignment": horizontal_alignment,
+        "character_spacing_pt": character_spacing_pt,
     }
 
     if wraps:
@@ -349,7 +416,14 @@ def measure(
         return result_base
 
     pdf_path = scratch / "sample.pdf"
-    render_lines(printed_rows, font_arg, size, pdf_path)
+    render_lines(
+        printed_rows,
+        font_arg,
+        size,
+        pdf_path,
+        horizontal_alignment=horizontal_alignment,
+        character_spacing_pt=character_spacing_pt,
+    )
     ocr_lines = rasterize_and_ocr(
         pdf_path,
         dpi,
@@ -462,6 +536,8 @@ def compute_presets(results: list[dict]) -> dict:
             "size": dense["size"],
             "charset": dense.get("charset_label"),
             "engine": dense["engine"],
+            "horizontal_alignment": dense.get("horizontal_alignment", "left"),
+            "character_spacing_pt": dense.get("character_spacing_pt", 0.0),
             "safe": dense["safe"],
             "safe_len": dense["safe_len"],
             "usable_radix": dense["usable_radix"],
@@ -484,6 +560,8 @@ def compute_presets(results: list[dict]) -> dict:
             r["alphabet"],
             r.get("dpi"),
             r.get("line_length"),
+            r.get("horizontal_alignment", "left"),
+            r.get("character_spacing_pt", 0.0),
         )
         by_key[key][r["engine"]] = r
 
@@ -510,6 +588,8 @@ def compute_presets(results: list[dict]) -> dict:
                 "size": key[1],
                 "charset": key[2],
                 "engines": engines_present,
+                "horizontal_alignment": key[6],
+                "character_spacing_pt": key[7],
                 "safe": "".join(sorted(inter)),
                 "safe_len": len(inter),
                 "usable_radix": usable_radix,
@@ -539,6 +619,8 @@ def compute_presets(results: list[dict]) -> dict:
             "size": retype["size"],
             "charset": retype.get("charset_label"),
             "engine": retype["engine"],
+            "horizontal_alignment": retype.get("horizontal_alignment", "left"),
+            "character_spacing_pt": retype.get("character_spacing_pt", 0.0),
             "safe": retype["safe"],
             "safe_len": retype["safe_len"],
             "note": "heuristic: largest size, most visually-distinct safe set; "
@@ -563,7 +645,8 @@ def print_report(results: list[dict]) -> None:
 
     ranked = sorted(results, key=sort_key, reverse=True)
     header = (
-        f"{'font':<14} {'size':>4} {'engine':<10} {'charset':<12} {'len(alph)':>9} "
+        f"{'font':<14} {'size':>4} {'engine':<10} {'align':<7} {'track':>5} "
+        f"{'charset':<12} {'len(alph)':>9} "
         f"{'len(safe)':>9} {'radix':>5} {'eff_bits':>8} {'chars/ln':>8} {'lines/pg':>8} "
         f"{'nom_B/pg':>9} {'use_B/pg':>9} {'ins_rate':>8}"
     )
@@ -578,6 +661,8 @@ def print_report(results: list[dict]) -> None:
         ins_s = f"{ins * 100:.1f}%" if ins is not None else "n/a"
         print(
             f"{r['font_label']:<14} {r['size']:>4} {r['engine']:<10} "
+            f"{r.get('horizontal_alignment', 'left'):<7} "
+            f"{r.get('character_spacing_pt', 0.0):>5.2f} "
             f"{r['charset_label']:<12} {r['alphabet_len']:>9} {r['safe_len']:>9} "
             f"{r['usable_radix']:>5} {r['effective_bits']:>8.2f} {r['chars_per_line']:>8} "
             f"{r['lines_per_page']:>8} {bpp_s:>9} {usable_bpp_s:>9} {ins_s:>8}"
@@ -653,6 +738,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument(
+        "--horizontal-alignment",
+        default="left",
+        help="comma-separated left,center,justify layout cells (default: left)",
+    )
+    parser.add_argument(
+        "--character-spacing",
+        default="0",
+        help="comma-separated nonnegative extra tracking values in points (default: 0)",
+    )
+    parser.add_argument(
         "--tesseract-constrained",
         action="store_true",
         help=(
@@ -720,6 +815,22 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("must specify at least one of --radix or --charset")
 
     sizes = [float(tok.strip()) for tok in args.size.split(",") if tok.strip()]
+    alignments = [
+        tok.strip() for tok in args.horizontal_alignment.split(",") if tok.strip()
+    ]
+    invalid_alignments = sorted(set(alignments) - {"left", "center", "justify"})
+    if not alignments:
+        raise SystemExit("--horizontal-alignment must include at least one value")
+    if invalid_alignments:
+        raise SystemExit(
+            "unsupported --horizontal-alignment value(s) %s; use left,center,justify"
+            % ",".join(invalid_alignments)
+        )
+    character_spacings = [
+        float(tok.strip()) for tok in args.character_spacing.split(",") if tok.strip()
+    ]
+    if not character_spacings or any(value < 0 for value in character_spacings):
+        raise SystemExit("--character-spacing values must be nonnegative")
     requested_engines = [tok.strip() for tok in args.engine.split(",") if tok.strip()]
 
     if not shutil_which("tesseract") and "tesseract" in requested_engines:
@@ -748,22 +859,26 @@ def main(argv: list[str] | None = None) -> int:
         scratch = Path(tmp)
         for engine in engines:
             for size in sizes:
-                for label, alphabet in combos:
-                    r = measure(
-                        alphabet=alphabet,
-                        font_arg=args.font,
-                        engine=engine,
-                        dpi=args.dpi,
-                        size=size,
-                        rows=args.rows,
-                        line_length_override=args.line_length,
-                        seed=args.seed,
-                        scratch=scratch,
-                        tesseract_constrained=args.tesseract_constrained,
-                    )
-                    r["charset_label"] = label
-                    r["engine_version"] = _engine_version(engine)
-                    results.append(r)
+                for horizontal_alignment in alignments:
+                    for character_spacing_pt in character_spacings:
+                        for label, alphabet in combos:
+                            r = measure(
+                                alphabet=alphabet,
+                                font_arg=args.font,
+                                engine=engine,
+                                dpi=args.dpi,
+                                size=size,
+                                rows=args.rows,
+                                line_length_override=args.line_length,
+                                seed=args.seed,
+                                scratch=scratch,
+                                tesseract_constrained=args.tesseract_constrained,
+                                horizontal_alignment=horizontal_alignment,
+                                character_spacing_pt=character_spacing_pt,
+                            )
+                            r["charset_label"] = label
+                            r["engine_version"] = _engine_version(engine)
+                            results.append(r)
 
     print_report(results)
     presets = compute_presets(results)
