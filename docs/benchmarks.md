@@ -105,5 +105,5 @@ A table may move from raw reports into release notes only when it includes:
 - a matched previous/current comparison; and
 - an end-to-end restore check for any proposed wire-format or alphabet change.
 
-See the [raw-result provenance](../benchmarks/results/PROVENANCE.md) and
+See the [raw-result provenance](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/PROVENANCE.md) and
 [OCR guide](guides/ocr.md) for evidence and runnable alphabet-sweep commands.
