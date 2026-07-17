@@ -12,10 +12,16 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Added
 
+- **Constrained Tesseract profile** (`tesseract-glyphive`): an opt-in OCR
+  provider using PSM 6, Glyphive's exact machine alphabet, and disabled general
+  language dictionaries. The existing `tesseract` provider remains unchanged.
 - **Bounded archive and compression primitives**: archive records can now be
   written and parsed as fixed-size chunks, and the built-in none/gzip/zstd
   methods support binary stream adapters. Existing one-shot APIs remain
-  available while create/restore migrate to disk-backed spools.
+  available while create/restore migrate to disk-backed spools. Create now
+  streams archive, compression, FEC, pagination, and renderer output through
+  temporary spools; `--temp-dir` and `--chunk-size` control spool placement and
+  I/O granularity.
 - **Explicit plugin discovery** (`glyphive.plugins`): trusted installed
   distributions can provide typed codecs, compression methods, render formats,
   or OCR providers through four documented entry-point groups. Discovery is

@@ -62,6 +62,14 @@ inside the limits of the intended printer and scanner before relying on it:
 glyphive create -f dense.pdf --format pdf --font-size 8 --minimal-margins -C project .
 ```
 
+Create uses disk-backed temporary spools so archive-sized payloads and encoded
+page lists do not have to remain in memory. Spools use the system temporary
+directory by default; advanced users can select a same-filesystem location with
+`--temp-dir PATH` and tune sequential I/O with `--chunk-size BYTES` (default:
+1 MiB). Temporary files are removed on both success and failure. DOCX generation
+still retains python-docx's in-memory document model, while text and PDF output
+are written directly to their destinations.
+
 PDF and DOCX output can center each fixed-width line with
 `--horizontal-alignment center`, or distribute its characters across the full
 printable width with `--horizontal-alignment justify`. Use

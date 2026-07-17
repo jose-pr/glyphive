@@ -101,7 +101,7 @@ class PdfRenderFormat(RenderFormat):
 
     def render(
         self,
-        pages: _ty.List[Page],
+        pages: _ty.Iterable[Page],
         out: _ty.Union[str, "_os.PathLike[str]"],
         *,
         font: _ty.Optional[str] = None,
@@ -165,4 +165,4 @@ class PdfRenderFormat(RenderFormat):
                     pdf.set_char_spacing(0)
                     if line_size != font_size:
                         pdf.set_font(family, size=font_size)
-            Path(_os.fspath(out)).write_bytes(bytes(pdf.output()))
+            pdf.output(str(Path(_os.fspath(out))))

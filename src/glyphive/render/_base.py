@@ -89,7 +89,7 @@ class RenderFormat(ABC):
     @abstractmethod
     def render(
         self,
-        pages: _ty.List[Page],
+        pages: _ty.Iterable[Page],
         out: _ty.Union[str, "_os.PathLike[str]"],
         *,
         font: _ty.Optional[str] = None,
