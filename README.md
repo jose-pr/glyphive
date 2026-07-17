@@ -42,6 +42,7 @@ Optional features:
 | `docx` | `python-docx` | Word (`.docx`) output |
 | `zstd` | `zstandard` | zstd compression |
 | `ocr` | `Pillow`, `pytesseract` | Tesseract image bridge; the Tesseract program is installed separately |
+| `qr` | `segno`, `zxing-cpp`, `Pillow` | QR envelope generation and image decoding without OpenCV |
 | `all` | all packages above | All lightweight integrations |
 
 Glyphive requires `pathlib_next>=0.8.1` and Python 3.9 or newer.
@@ -110,6 +111,10 @@ pip install "glyphive[ocr,document-input]"
 glyphive extract -f scans/ --ocr-engine tesseract -C restored
 glyphive list -f backup.pdf --ocr-engine tesseract
 ```
+
+Restore verifies global integrity before publishing staged files. Advanced
+resource controls include `--temp-dir`, `--chunk-size`, and
+`--max-output-bytes` on both `extract` and `list`.
 
 The operating-system Tesseract executable and language data must also be
 installed. PDF input uses `pypdfium2`; Glyphive-generated DOCX transcripts are
