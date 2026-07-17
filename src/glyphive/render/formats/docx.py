@@ -9,7 +9,12 @@ import typing as _ty
 from pathlib_next import Path
 
 from glyphive.layout import Page
-from glyphive.render._base import DEFAULT_DOCX_FONT, DEFAULT_PAGE_MARGIN_PT, RenderFormat
+from glyphive.render._base import (
+    DEFAULT_DOCX_FONT,
+    DEFAULT_PAGE_MARGIN_PT,
+    HORIZONTAL_ALIGNMENTS,
+    RenderFormat,
+)
 
 
 class DocxRenderFormat(RenderFormat):
@@ -32,10 +37,13 @@ class DocxRenderFormat(RenderFormat):
         font: _ty.Optional[str] = None,
         font_size: float = 11.0,
         page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
+        horizontal_alignment: str = "left",
+        character_spacing_pt: float = 0.0,
     ) -> None:
         try:
             import docx
-            from docx.enum.text import WD_BREAK
+            from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+            from docx.oxml import OxmlElement
             from docx.oxml.ns import qn
             from docx.shared import Pt
         except ImportError as exc:
@@ -46,6 +54,10 @@ class DocxRenderFormat(RenderFormat):
             raise ValueError("font_size must be > 0")
         if page_margin_pt < 0 or page_margin_pt * 2 >= 612.0:
             raise ValueError("page_margin_pt must leave positive printable width")
+        if horizontal_alignment not in HORIZONTAL_ALIGNMENTS:
+            raise ValueError("horizontal_alignment must be left, center, or justify")
+        if character_spacing_pt < 0:
+            raise ValueError("character_spacing_pt must be >= 0")
         family = font or DEFAULT_DOCX_FONT
         size = Pt(font_size)
         document = docx.Document()
@@ -69,6 +81,11 @@ class DocxRenderFormat(RenderFormat):
                 fmt.space_before = Pt(0)
                 fmt.space_after = Pt(0)
                 fmt.line_spacing = 1.0
+                fmt.alignment = {
+                    "left": WD_ALIGN_PARAGRAPH.LEFT,
+                    "center": WD_ALIGN_PARAGRAPH.CENTER,
+                    "justify": WD_ALIGN_PARAGRAPH.DISTRIBUTE,
+                }[horizontal_alignment]
                 run = para.add_run(line)
                 run.font.name = family
                 run.font.size = size
@@ -76,6 +93,10 @@ class DocxRenderFormat(RenderFormat):
                 rfonts = rpr.get_or_add_rFonts()
                 for slot in ("ascii", "hAnsi", "cs", "eastAsia"):
                     rfonts.set(qn(f"w:{slot}"), family)
+                if character_spacing_pt:
+                    spacing = OxmlElement("w:spacing")
+                    spacing.set(qn("w:val"), str(round(character_spacing_pt * 20)))
+                    rpr.append(spacing)
         buffer = _io.BytesIO()
         document.save(buffer)
         Path(_os.fspath(out)).write_bytes(buffer.getvalue())

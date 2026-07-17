@@ -141,6 +141,14 @@ class Create(LoggingArgs):
     "Use compact 12-point page margins for denser pdf/docx output."
     ("--minimal-margins",)
 
+    horizontal_alignment: "_ty.Literal['left', 'center', 'justify']" = "left"
+    "Horizontal line alignment for pdf/docx output."
+    ("--horizontal-alignment",)
+
+    character_spacing: float = 0.0
+    "Extra space between characters in points for pdf/docx output."
+    ("--character-spacing",)
+
     def _legacy_compression(self) -> _ty.Optional[str]:
         for name, selected in (
             ("gzip", self.gzip),
@@ -212,6 +220,8 @@ class Create(LoggingArgs):
             font=self.font,
             font_size=self.font_size,
             page_margin_pt=page_margin_pt,
+            horizontal_alignment=self.horizontal_alignment,
+            character_spacing_pt=self.character_spacing,
         )
         self._logger_.info(
             "wrote %s (%d files, %d bytes, codec=%s, comp=%s, meta=%s, "

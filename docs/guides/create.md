@@ -62,6 +62,23 @@ inside the limits of the intended printer and scanner before relying on it:
 glyphive create -f dense.pdf --format pdf --font-size 8 --minimal-margins -C project .
 ```
 
+PDF and DOCX output can center each fixed-width line with
+`--horizontal-alignment center`, or distribute its characters across the full
+printable width with `--horizontal-alignment justify`. Use
+`--character-spacing POINTS` for a smaller, fixed amount of extra tracking. For
+example:
+
+```console
+glyphive create -f spaced.pdf --font ocr-b --font-size 8 \
+  --horizontal-alignment center --character-spacing 0.2 -C project .
+```
+
+These controls change physical placement only; they do not change the encoded
+transcript. `justify` uses different tracking on lines of different lengths, so
+`center` plus modest fixed spacing is usually the better starting point for a
+character-grid OCR workflow. Treat either option as experimental until it has
+passed the same print/rasterize/OCR benchmark as the chosen font and size.
+
 Text output preserves exact line endings and separates pages with a form-feed
 character. Do not reflow or word-wrap a transcript.
 

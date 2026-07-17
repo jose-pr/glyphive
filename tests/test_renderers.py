@@ -19,7 +19,7 @@ g1 = codec.get("g1")
 from glyphive import render as render_mod
 from glyphive.render import lines_per_page_for, render
 from glyphive.render.formats.text import FORM_FEED
-from glyphive.render.formats.pdf import _fitted_font_size
+from glyphive.render.formats.pdf import _fitted_font_size, _line_character_spacing
 
 
 def _make_pages(nbytes=800, seed=5):
@@ -88,6 +88,72 @@ def test_page_rows_scale_with_font_size_and_margins():
 def test_pdf_long_lines_fit_available_width_without_wrapping():
     assert _fitted_font_size(8.0, 400.0, 500.0) == 8.0
     assert _fitted_font_size(8.0, 1000.0, 500.0) == 4.0
+    assert _fitted_font_size(
+        8.0,
+        400.0,
+        500.0,
+        character_spacing_pt=2.0,
+        character_count=101,
+    ) == 6.0
+
+
+def test_pdf_justify_distributes_tracking_across_available_width():
+    assert _line_character_spacing(
+        "ABCDE",
+        alignment="justify",
+        base_spacing_pt=0.25,
+        text_width=40.0,
+        available_width=48.0,
+    ) == 2.0
+    assert _line_character_spacing(
+        "ABCDE",
+        alignment="center",
+        base_spacing_pt=0.25,
+        text_width=40.0,
+        available_width=48.0,
+    ) == 0.25
+
+
+@pytest.mark.parametrize("alignment", ["left", "center", "justify"])
+def test_pdf_renders_alignment_and_tracking(tmp_path, alignment):
+    _data, pages = _make_pages(nbytes=80)
+    output = tmp_path / f"{alignment}.pdf"
+    render(
+        pages,
+        output,
+        "pdf",
+        font_size=8,
+        horizontal_alignment=alignment,
+        character_spacing_pt=0.2,
+    )
+    assert output.read_bytes().startswith(b"%PDF")
+
+
+def test_docx_writes_distributed_alignment_and_tracking(tmp_path):
+    import docx
+
+    _data, pages = _make_pages(nbytes=80)
+    output = tmp_path / "distributed.docx"
+    render(
+        pages,
+        output,
+        "docx",
+        horizontal_alignment="justify",
+        character_spacing_pt=0.25,
+    )
+    document = docx.Document(output)
+    paragraph = next(p for p in document.paragraphs if p.text)
+    assert paragraph.alignment == 4
+    xml = paragraph.runs[0]._element.xml
+    assert 'w:spacing w:val="5"' in xml
+
+
+def test_physical_renderer_rejects_invalid_layout_controls(tmp_path):
+    _data, pages = _make_pages(nbytes=80)
+    with pytest.raises(ValueError, match="horizontal_alignment"):
+        render(pages, tmp_path / "bad.pdf", "pdf", horizontal_alignment="right")
+    with pytest.raises(ValueError, match="character_spacing_pt"):
+        render(pages, tmp_path / "bad.docx", "docx", character_spacing_pt=-0.1)
 
 
 def test_bundled_ocr_b_font_is_pinned_and_renders_pdf(tmp_path):
