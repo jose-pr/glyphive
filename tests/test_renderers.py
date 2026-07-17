@@ -98,19 +98,36 @@ def test_pdf_long_lines_fit_available_width_without_wrapping():
     ) == 6.0
 
 
-def test_pdf_payload_capacity_tracks_font_size_margins_and_spacing():
+def test_pdf_geometric_capacity_tracks_font_size_margins_and_spacing():
+    """The underlying (uncapped) glyph-width measurement scales as expected."""
     renderer = PdfRenderFormat()
-    base = renderer.payload_capacity(font="courier", font_size=8, page_margin_pt=36)
-    compact = renderer.payload_capacity(font="courier", font_size=8, page_margin_pt=12)
-    larger = renderer.payload_capacity(font="courier", font_size=11, page_margin_pt=36)
-    tracked = renderer.payload_capacity(
+    base = renderer._geometric_payload_capacity(font="courier", font_size=8, page_margin_pt=36)
+    compact = renderer._geometric_payload_capacity(font="courier", font_size=8, page_margin_pt=12)
+    larger = renderer._geometric_payload_capacity(font="courier", font_size=11, page_margin_pt=36)
+    tracked = renderer._geometric_payload_capacity(
         font="courier", font_size=8, page_margin_pt=36, character_spacing_pt=0.2
     )
 
-    assert base is not None and base >= 60 and base % 2 == 0
-    assert compact is not None and compact > base
-    assert larger is not None and larger < base
-    assert tracked is not None and tracked < base
+    assert base >= 60 and base % 2 == 0
+    assert compact > base
+    assert larger < base
+    assert tracked < base
+
+
+def test_pdf_payload_capacity_is_clamped_to_the_measured_safe_width():
+    """The public API never exceeds the one width this project has OCR evidence for.
+
+    Real-content testing (2026-07-17 gallery run) found OCR-B 6pt's ~90-char
+    geometric fit measurably less reliable than the 60-char width every
+    published OCR-safety measurement (including OCR-B's own "dense" preset)
+    was actually taken at -- payload_capacity must not silently widen past 60.
+    """
+    renderer = PdfRenderFormat()
+    uncapped = renderer._geometric_payload_capacity(font="ocr-b", font_size=6, page_margin_pt=36)
+    capped = renderer.payload_capacity(font="ocr-b", font_size=6, page_margin_pt=36)
+
+    assert uncapped > 60  # the geometry really would allow more
+    assert capped == 60
 
 
 def test_pdf_justify_distributes_tracking_across_available_width():
