@@ -49,27 +49,47 @@ def test_machine_header_uses_fixed_width_safe_frames():
     _data, lines = _document()
     header_frames = [line for line in lines if line.startswith("H")]
 
-    assert len(header_frames) == 3
+    assert len(header_frames) == 6
+    assert header_frames[::2] == header_frames[1::2]
     assert all(len(line.split()[1]) <= 60 for line in header_frames)
     assert all(len(line) <= 73 for line in header_frames)
 
 
-def test_machine_header_corruption_fails_instead_of_guessing():
+def test_one_machine_header_copy_can_be_corrupted_without_guessing():
     _data, lines = _document()
     index = next(i for i, line in enumerate(lines) if line.startswith("H"))
     lines[index] = _mutate_safe_payload(lines[index])
 
-    with pytest.raises(layout.LayoutError, match="machine header frame failed"):
+    meta, _encoded = layout.read_pages(lines)
+    assert meta["codec"] == "g1"
+
+
+def test_both_machine_header_copies_corrupted_fail_instead_of_guessing():
+    _data, lines = _document()
+    indexes = [i for i, line in enumerate(lines) if line.startswith("H")]
+    lines[indexes[0]] = _mutate_safe_payload(lines[indexes[0]])
+    lines[indexes[1]] = _mutate_safe_payload(lines[indexes[1]])
+
+    with pytest.raises(layout.LayoutError, match="frame copies failed"):
         layout.read_pages(lines)
 
 
 def test_missing_last_machine_header_frame_is_detected_by_envelope_length():
     _data, lines = _document()
     indexes = [i for i, line in enumerate(lines) if line.startswith("H")]
-    del lines[indexes[-1]]
+    del lines[indexes[-2]:indexes[-1] + 1]
 
     with pytest.raises(layout.LayoutError, match="envelope length mismatch"):
         layout.read_pages(lines)
+
+
+def test_one_missing_machine_header_copy_is_recovered():
+    _data, lines = _document()
+    index = next(i for i, line in enumerate(lines) if line.startswith("H"))
+    del lines[index]
+
+    meta, _encoded = layout.read_pages(lines)
+    assert meta["codec"] == "g1"
 
 
 def test_machine_footer_corruption_fails_instead_of_using_page_hint():

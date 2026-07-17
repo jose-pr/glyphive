@@ -65,6 +65,7 @@ _MACHINE_PAYLOAD_CHARS: _ty.Final[int] = 60
 _MACHINE_META_MAGIC: _ty.Final[bytes] = b"GH1"
 _MACHINE_FOOTER_MAGIC: _ty.Final[bytes] = b"GT1"
 _MACHINE_META_DIGEST_BYTES: _ty.Final[int] = 8
+_MACHINE_HEADER_COPIES: _ty.Final[int] = 2
 
 #: Header keys whose values are parsed/returned as ``int``.
 _INT_KEYS: _ty.Final[_ty.FrozenSet[str]] = frozenset(
@@ -332,10 +333,14 @@ def _format_machine_header(meta: _ty.Mapping[str, _ty.Any]) -> _ty.List[str]:
         payload[start:start + _MACHINE_PAYLOAD_CHARS]
         for start in range(0, len(payload), _MACHINE_PAYLOAD_CHARS)
     ]
-    return [
+    frames = [
         _format_machine_frame(_MACHINE_HEADER_KIND, idx, chunk)
         for idx, chunk in enumerate(chunks)
     ]
+    # A single OCR-damaged H line must not make the entire document
+    # unrecoverable.  Keep identical, independently CRC-checked copies adjacent
+    # so restore can accept either one without guessing at damaged metadata.
+    return [frame for frame in frames for _copy in range(_MACHINE_HEADER_COPIES)]
 
 
 def _take_machine_text(data: bytes, cursor: int, key: str) -> _ty.Tuple[str, int]:
@@ -359,16 +364,26 @@ def _decode_machine_header(
 
     if not frames:
         raise LayoutError("no integrity-protected machine header found")
-    if any(not frame.ok or frame.idx is None for frame in frames):
-        raise LayoutError("machine header frame failed its integrity check")
-
     indexed: _ty.Dict[int, str] = {}
+    observed_indices: _ty.Set[int] = set()
     for frame in frames:
-        assert frame.idx is not None
+        if frame.idx is None:
+            continue
+        observed_indices.add(frame.idx)
+        if not frame.ok:
+            continue
         previous = indexed.get(frame.idx)
         if previous is not None and previous != frame.payload:
             raise LayoutError(f"conflicting machine header frame H{frame.idx}")
         indexed[frame.idx] = frame.payload
+    if not indexed:
+        raise LayoutError("machine header frames failed their integrity checks")
+    failed = sorted(observed_indices - set(indexed))
+    if failed:
+        raise LayoutError(
+            "machine header frame copies failed their integrity checks at "
+            f"index(es) {failed}"
+        )
     expected_indices = list(range(max(indexed) + 1))
     if sorted(indexed) != expected_indices:
         missing = sorted(set(expected_indices) - set(indexed))
