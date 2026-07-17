@@ -22,6 +22,9 @@ not CI performance claims.
 - `layout-ocrb6.json` compares left, centered, and justified OCR-B rows with
   0.0--0.3 pt character spacing. This is a constrained character-grid
   diagnostic, not an end-to-end restore result or CI performance evidence.
+- `layout-courier8.json` applies the same layout/tracking matrix to Courier
+  8 pt. Its best cell was left or centered at 0 pt added spacing (4,125 usable
+  bytes/page); OCR-B's left/0 cell remained denser at 5,050 bytes/page.
 - `ocrb-sizes-*` is the earlier 60-row point-size sweep. Prefer the 150-row
   model reports for recommendations; the shorter sweep is retained so future
   work can explain rather than erase the conflicting result.
