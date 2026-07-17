@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from importlib import resources
 import os as _os
 import typing as _ty
 
@@ -14,7 +16,40 @@ from glyphive.render._base import (
     RenderFormat,
 )
 
-_CORE_FONTS = frozenset({"courier", "helvetica", "times", "symbol", "zapfdingbats", "arial"})
+_CORE_FONTS = frozenset(
+    {"courier", "helvetica", "times", "symbol", "zapfdingbats", "arial"}
+)
+_BUNDLED_FONTS = {"ocr-b": ("glyphive.assets.fonts.ocr_b", "OCR-B.ttf")}
+
+
+@contextmanager
+def registered_pdf_font(pdf: _ty.Any, font: _ty.Optional[str]):
+    """Yield an FPDF family for a core, bundled, or filesystem font."""
+    requested = font or DEFAULT_PDF_FONT
+    lowered = requested.lower()
+    if lowered in _CORE_FONTS:
+        yield lowered
+        return
+
+    if lowered in _BUNDLED_FONTS:
+        package, filename = _BUNDLED_FONTS[lowered]
+        resource = resources.files(package).joinpath(filename)
+        family = "OCR-B"
+        with resources.as_file(resource) as font_path:
+            pdf.add_font(family, "", str(font_path))
+            yield family
+        return
+
+    candidate = Path(requested)
+    if not candidate.is_file() or candidate.suffix.lower() not in {".otf", ".ttf"}:
+        supported = ", ".join(sorted(_CORE_FONTS | set(_BUNDLED_FONTS)))
+        raise ValueError(
+            f"unsupported PDF font {requested!r}; choose one of {supported}, "
+            "or pass an existing .ttf/.otf file"
+        )
+    family = candidate.stem
+    pdf.add_font(family, "", str(candidate))
+    yield family
 
 
 def _fitted_font_size(
@@ -57,31 +92,31 @@ class PdfRenderFormat(RenderFormat):
             raise ValueError("font_size must be > 0")
         if page_margin_pt < 0 or page_margin_pt * 2 >= 612.0:
             raise ValueError("page_margin_pt must leave positive printable width")
-        family = font or DEFAULT_PDF_FONT
-        if family.lower() not in _CORE_FONTS:
-            supported = ", ".join(sorted(_CORE_FONTS))
-            raise ValueError(
-                f"unsupported PDF core font {family!r}; choose one of {supported}. "
-                "Custom font files are not supported yet."
-            )
         pdf = fpdf.FPDF(orientation="P", unit="pt", format="Letter")
         pdf.set_auto_page_break(auto=False)
         pdf.set_margins(page_margin_pt, page_margin_pt)
-        pdf.set_font(family, size=font_size)
-        leading = font_size * 1.2
-        for page in pages:
-            pdf.add_page()
-            pdf.set_xy(page_margin_pt, page_margin_pt)
-            for line in page.text_lines:
-                pdf.set_x(page_margin_pt)
-                line_size = _fitted_font_size(
-                    font_size,
-                    pdf.get_string_width(line),
-                    pdf.w - 2.0 * page_margin_pt,
-                )
-                if line_size != font_size:
-                    pdf.set_font(family, size=line_size)
-                pdf.cell(w=0, h=leading, text=line, new_x="LMARGIN", new_y="NEXT")
-                if line_size != font_size:
-                    pdf.set_font(family, size=font_size)
-        Path(_os.fspath(out)).write_bytes(bytes(pdf.output()))
+        with registered_pdf_font(pdf, font) as family:
+            pdf.set_font(family, size=font_size)
+            leading = font_size * 1.2
+            for page in pages:
+                pdf.add_page()
+                pdf.set_xy(page_margin_pt, page_margin_pt)
+                for line in page.text_lines:
+                    pdf.set_x(page_margin_pt)
+                    line_size = _fitted_font_size(
+                        font_size,
+                        pdf.get_string_width(line),
+                        pdf.w - 2.0 * page_margin_pt,
+                    )
+                    if line_size != font_size:
+                        pdf.set_font(family, size=line_size)
+                    pdf.cell(
+                        w=0,
+                        h=leading,
+                        text=line,
+                        new_x="LMARGIN",
+                        new_y="NEXT",
+                    )
+                    if line_size != font_size:
+                        pdf.set_font(family, size=font_size)
+            Path(_os.fspath(out)).write_bytes(bytes(pdf.output()))
