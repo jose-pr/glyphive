@@ -154,6 +154,17 @@ evidence. See the public
 [font candidate ledger](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/FONT_CANDIDATES.md)
 for exact files, model pins, measurements, and pending stroke/style tests.
 
+An external Tsukurimashou 0.3.1 follow-up measured its regular OCR-B at 6.8 pt
+and 4,708 usable bytes/page. Its Sharp-outline OCR-B reached 16/16 symbols with
+zero erased rows at 6 pt and a nominal 6,050 usable bytes/page. Both restored
+the complete 12,036-byte Zstandard fixture through synthetic PDF/raster gates.
+Current fixed 60-character codec rows nevertheless produced four pages for
+both fonts, so the Sharp grid's extra nominal density is not realized by the
+product. The font project's own 0.3.1/0.4pre documentation warns that its
+optical sizes are linear scaling and that overlapping Sharp outlines are not
+suitable for OCR. Treat this as retained experimental evidence, not a font or
+physical-print recommendation.
+
 ## Publication checklist
 
 A table may move from raw reports into release notes only when it includes:
