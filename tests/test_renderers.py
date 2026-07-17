@@ -6,6 +6,7 @@ machine, so NONE of these tests skip here. The text renderer's round-trip throug
 """
 
 import hashlib
+from importlib import resources
 import os
 import random
 
@@ -87,6 +88,25 @@ def test_page_rows_scale_with_font_size_and_margins():
 def test_pdf_long_lines_fit_available_width_without_wrapping():
     assert _fitted_font_size(8.0, 400.0, 500.0) == 8.0
     assert _fitted_font_size(8.0, 1000.0, 500.0) == 4.0
+
+
+def test_bundled_ocr_b_font_is_pinned_and_renders_pdf(tmp_path):
+    font = resources.files("glyphive.assets.fonts.ocr_b").joinpath("OCR-B.ttf")
+    assert hashlib.sha256(font.read_bytes()).hexdigest() == (
+        "367d876cca948ecd4900851f6e85687cbb6e71de9d0d2f36348edec5655526af"
+    )
+    _data, pages = _make_pages(nbytes=80)
+    output = tmp_path / "ocr-b.pdf"
+    render(pages, output, "pdf", font="ocr-b", font_size=8)
+    assert output.read_bytes().startswith(b"%PDF")
+
+
+def test_pdf_accepts_explicit_font_file(tmp_path):
+    font = resources.files("glyphive.assets.fonts.ocr_b").joinpath("OCR-B.ttf")
+    _data, pages = _make_pages(nbytes=80)
+    output = tmp_path / "custom-font.pdf"
+    render(pages, output, "pdf", font=os.fspath(font), font_size=8)
+    assert output.read_bytes().startswith(b"%PDF")
 
 
 def test_all_backends_present():

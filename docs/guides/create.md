@@ -45,8 +45,11 @@ glyphive create -f backup.docx --font Consolas --font-size 10 -C project .
 ```
 
 PDF output accepts the built-in FPDF families `courier`, `helvetica`, `times`,
-`symbol`, `zapfdingbats`, and `arial`. Word output accepts an installed Word
-font name. A smaller font fits more characters on a page, but it must be
+`symbol`, `zapfdingbats`, and `arial`, the bundled `ocr-b` option, or an
+existing `.ttf`/`.otf` path. Word output accepts an installed Word font name.
+OCR-B is bundled under the SIL Open Font License 1.1 and is not yet the default:
+measure it with the intended OCR model before relying on it. A smaller font fits
+more characters on a page, but it must be
 validated on the intended printer, scanner, resolution, and OCR engine; nominal
 density is not the same as recoverable density.
 
