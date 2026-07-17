@@ -14,7 +14,7 @@ from .. import codec as _codec
 from .. import compression as _compression
 from .. import layout as _layout
 from .. import render as _render
-from ..codec.g1 import encoded_line_count as _g1_encoded_line_count
+from ..codec.base16c import encoded_line_count as _base16c_encoded_line_count
 from ._common import format_selector_error, resolve_destination
 
 __all__ = ["Create"]
@@ -115,8 +115,8 @@ class Create(LoggingArgs):
     "Change to this directory before reading PATHS (tar -C)."
     ("-C", "--directory")
 
-    codec: str = "g1"
-    "Printable codec name (default: g1)."
+    codec: str = "base16c-crc16-rs"
+    "Printable codec name (default: base16c-crc16-rs)."
     ("--codec",)
 
     metadata: "_ty.Literal['none', 'basic']" = "none"
@@ -282,18 +282,18 @@ class Create(LoggingArgs):
                 )
                 compressed_len = compressed_spool.tell()
                 compressed_spool.seek(0)
-                if hasattr(codec, "iter_encode") and codec_name == "g1":
+                if hasattr(codec, "iter_encode") and codec_name == "base16c-crc16-rs":
                     encoded = codec.iter_encode(
                         compressed_spool,
                         compressed_len,
                         line_width=line_width,
                         temp_dir=self.temp_dir,
                     )
-                    n_encoded = _g1_encoded_line_count(
+                    n_encoded = _base16c_encoded_line_count(
                         compressed_len, line_width=line_width
                     )
                 else:
-                    options = {"line_width": line_width} if codec_name == "g1" else {}
+                    options = {"line_width": line_width} if codec_name == "base16c-crc16-rs" else {}
                     materialized = codec.encode(compressed_spool.read(), **options)
                     encoded, n_encoded = iter(materialized), len(materialized)
                 pages = _layout.iter_paginate(
