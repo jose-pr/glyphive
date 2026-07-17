@@ -12,6 +12,10 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Added
 
+- **Bounded archive and compression primitives**: archive records can now be
+  written and parsed as fixed-size chunks, and the built-in none/gzip/zstd
+  methods support binary stream adapters. Existing one-shot APIs remain
+  available while create/restore migrate to disk-backed spools.
 - **Explicit plugin discovery** (`glyphive.plugins`): trusted installed
   distributions can provide typed codecs, compression methods, render formats,
   or OCR providers through four documented entry-point groups. Discovery is
