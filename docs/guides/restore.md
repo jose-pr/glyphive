@@ -55,8 +55,10 @@ deterministic filename order. Each file is detected independently using content
 signatures first, its extension second, and UTF-8 text as the fallback. This
 allows extensionless or renamed common images and PDFs to be read correctly.
 
-PDF pages are rendered with `pypdfium2`. DOCX page layout is rendered by
-LibreOffice, which must provide `libreoffice` or `soffice` on `PATH`.
+PDF pages are rendered with `pypdfium2`. Glyphive-generated DOCX paragraph
+transcripts are read directly with `python-docx`, so restore does not require
+Microsoft Word or LibreOffice. The separate image-conversion helper can produce
+a diagnostic DOCX re-render, but it is not a Word-layout compatibility test.
 `--from-images` remains available as an explicit override when every supplied
 file is an image. See [OCR](ocr.md).
 

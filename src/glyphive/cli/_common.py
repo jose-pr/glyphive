@@ -69,7 +69,7 @@ def load_input_lines(
     from tempfile import TemporaryDirectory
 
     from ..restore import ocr
-    from ..restore.document_images import render_document_images
+    from ..restore.document_images import read_docx_lines, render_document_images
 
     image_suffixes = {
         ".bmp",
@@ -86,13 +86,15 @@ def load_input_lines(
     with TemporaryDirectory(prefix="glyphive-input-") as temp:
         for index, path in enumerate(_input_files(source)):
             kind = _input_kind(path, image_suffixes, document_suffixes)
-            if kind == "document":
+            if kind == "pdf":
                 pages = render_document_images(path, Path(temp) / str(index))
                 lines.extend(
                     line
                     for page in ocr.ocr_pages(pages, engine=engine)
                     for line in page
                 )
+            elif kind == "docx":
+                lines.extend(read_docx_lines(path))
             elif kind == "image":
                 lines.extend(
                     line
@@ -118,12 +120,12 @@ def _input_kind(
     with path.open("rb") as stream:
         prefix = stream.read(16)
     if prefix.startswith(b"%PDF-"):
-        return "document"
+        return "pdf"
     if prefix.startswith(b"PK\x03\x04"):
         try:
             with zipfile.ZipFile(str(path)) as archive:
                 if "word/document.xml" in archive.namelist():
-                    return "document"
+                    return "docx"
         except (OSError, zipfile.BadZipFile):
             pass
     image_magic = (
@@ -137,8 +139,10 @@ def _input_kind(
     if image_magic:
         return "image"
     suffix = path.suffix.lower()
-    if suffix in document_suffixes:
-        return "document"
+    if suffix == ".pdf":
+        return "pdf"
+    if suffix == ".docx":
+        return "docx"
     if suffix in image_suffixes:
         return "image"
     return "text"
