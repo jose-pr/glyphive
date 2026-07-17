@@ -244,6 +244,54 @@ def test_unavailable_renderer_mentions_extra(tmp_path, monkeypatch):
     assert not archive_file.exists()
 
 
+def test_output_format_is_inferred_from_destination_suffix(tmp_path, monkeypatch):
+    src = _make_srcdir(tmp_path)
+    archive_file = tmp_path / "inferred.PDF"
+    from glyphive.cli import create as create_command
+
+    monkeypatch.setattr(create_command._render, "available", lambda: ["text", "docx"])
+    with pytest.raises(ValueError, match=r"install glyphive\[pdf\]"):
+        cli.run(["create", "-f", str(archive_file), "-C", str(src), "."])
+    assert not archive_file.exists()
+
+
+@pytest.mark.parametrize(
+    ("destination", "expected"),
+    [
+        ("archive.docx", "docx"),
+        ("archive.txt", "text"),
+        ("archive.text", "text"),
+        ("archive", "text"),
+        ("archive.unknown", "text"),
+    ],
+)
+def test_output_format_suffix_mapping_and_fallback(destination, expected):
+    from glyphive.cli.create import _output_format
+
+    assert _output_format(destination, None) == expected
+
+
+def test_explicit_output_format_wins_over_destination_suffix(tmp_path):
+    src = _make_srcdir(tmp_path)
+    archive_file = tmp_path / "actually-text.pdf"
+
+    assert cli.run(
+        [
+            "create",
+            "-f",
+            str(archive_file),
+            "-C",
+            str(src),
+            "--format",
+            "text",
+            "--compression",
+            "none",
+            ".",
+        ]
+    ) == 0
+    assert archive_file.read_text(encoding="utf-8").startswith("#!glyphive")
+
+
 def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch):
     from glyphive.cli import extract as extract_command
     from glyphive.restore import decode, unarchive
