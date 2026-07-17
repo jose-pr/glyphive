@@ -71,6 +71,20 @@ def test_create_extract_list_roundtrip(tmp_path, capsys):
     assert "meta=none" in captured.out
 
 
+def test_tar_style_mode_flags_roundtrip(tmp_path, capsys):
+    src = _make_srcdir(tmp_path)
+    archive_file = tmp_path / "tar-style.txt"
+    outdir = tmp_path / "out"
+
+    assert cli.run(["-c", "-f", str(archive_file), "-C", str(src), "."]) == 0
+    assert cli.run(["-x", "-f", str(archive_file), "-C", str(outdir)]) == 0
+    _compare_dirs(src, outdir)
+
+    capsys.readouterr()
+    assert cli.run(["-t", "-f", str(archive_file)]) == 0
+    assert "codec=g1" in capsys.readouterr().out
+
+
 def test_old_header_without_metadata_remains_readable(tmp_path):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "a.txt"
