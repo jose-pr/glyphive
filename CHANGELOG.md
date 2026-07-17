@@ -10,8 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 The first public release provides an end-to-end path from a file tree to
 OCR-friendly printable pages and back to a verified tree.
 
+### Fixed
+
+- **Large-document parity overhead**: `parity_ratio` now targets aggregate
+  Reed-Solomon parity across all GF(255) blocks. The default is approximately
+  12% for large streams instead of repeating a capped whole-stream budget per
+  block and inflating parity to roughly 65%.
+
 ### Added
 
+- **Isolated QR transport primitives**: the optional `qr` extra provides
+  deterministic, versioned 1000-byte envelopes, level-H Segno PNG generation,
+  and Pillow/ZXing-C++ raw-byte decoding without OpenCV. Renderer and CLI
+  integration remain a later slice of the in-progress QR plan.
 - **Constrained Tesseract profile** (`tesseract-glyphive`): an opt-in OCR
   provider using PSM 6, Glyphive's exact machine alphabet, and disabled general
   language dictionaries. The existing `tesseract` provider remains unchanged.
@@ -21,7 +32,9 @@ OCR-friendly printable pages and back to a verified tree.
   available while create/restore migrate to disk-backed spools. Create now
   streams archive, compression, FEC, pagination, and renderer output through
   temporary spools; `--temp-dir` and `--chunk-size` control spool placement and
-  I/O granularity.
+  I/O granularity. Restore stream-decompresses into a size-limited spool,
+  validates the global digest and archive framing, stages files privately, and
+  only then publishes final paths; `--max-output-bytes` caps expansion.
 - **Explicit plugin discovery** (`glyphive.plugins`): trusted installed
   distributions can provide typed codecs, compression methods, render formats,
   or OCR providers through four documented entry-point groups. Discovery is
