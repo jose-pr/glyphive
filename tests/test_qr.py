@@ -15,6 +15,7 @@ from glyphive.restore.qr import (
     reassemble_symbols,
     symbol_png,
     symbols_from_image,
+    transcript_from_images,
     unpack_chunk,
 )
 
@@ -84,3 +85,34 @@ def test_real_png_roundtrip_when_qr_extra_is_installed():
 
     assert decoded == [symbol]
     assert reassemble_symbols(decoded) == transcript
+
+
+def test_qr_cli_loader_preserves_page_boundaries(monkeypatch, tmp_path):
+    from glyphive.cli import _common
+
+    source = tmp_path / "pages"
+    monkeypatch.setattr(
+        "glyphive.restore.transcript_from_images",
+        lambda path: b"first\n\fsecond\n",
+    )
+
+    assert _common.load_qr_lines(source) == ["first", "", "second"]
+
+
+def test_qr_cli_loader_rejects_non_utf8_transcript(monkeypatch, tmp_path):
+    from glyphive.cli import _common
+
+    monkeypatch.setattr(
+        "glyphive.restore.transcript_from_images",
+        lambda path: b"\xff",
+    )
+    with pytest.raises(ValueError, match="not valid UTF-8"):
+        _common.load_qr_lines(tmp_path / "scan.png")
+
+
+def test_qr_image_loader_rejects_non_image_magic(tmp_path):
+    source = tmp_path / "not-an-image.png"
+    source.write_text("not an image", encoding="utf-8")
+
+    with pytest.raises(QrTransportError, match="magic bytes"):
+        transcript_from_images(source)

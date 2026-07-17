@@ -10,6 +10,7 @@ from pathlib_next import Path
 from ._common import (
     load_image_lines,
     load_input_lines,
+    load_qr_lines,
     resolve_destination,
     warn_page_integrity,
 )
@@ -34,6 +35,10 @@ class Extract(LoggingArgs):
     from_images: bool = False
     "Treat -f as a page image or directory of images and OCR them first."
     ("--from-images",)
+
+    from_qr: bool = False
+    "Decode -f as GQ1 QR page images (requires glyphive[qr])."
+    ("--from-qr",)
 
     ocr_engine: "_ty.Optional[str]" = None
     "OCR registry provider for image input (default: automatic preference)."
@@ -60,7 +65,11 @@ class Extract(LoggingArgs):
 
         dest = resolve_destination(self.directory)
         src = Path(self.file)
-        if self.from_images:
+        if self.from_images and self.from_qr:
+            raise ValueError("--from-images and --from-qr are mutually exclusive")
+        if self.from_qr:
+            lines = load_qr_lines(src)
+        elif self.from_images:
             lines = load_image_lines(src, engine=self.ocr_engine)
         else:
             lines = load_input_lines(src, engine=self.ocr_engine)

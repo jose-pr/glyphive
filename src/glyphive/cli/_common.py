@@ -11,6 +11,7 @@ __all__ = [
     "format_selector_error",
     "load_image_lines",
     "load_input_lines",
+    "load_qr_lines",
     "load_transcript_lines",
     "resolve_destination",
     "warn_page_integrity",
@@ -60,6 +61,21 @@ def load_image_lines(
 
     pages = ocr.ocr_pages(_input_files(source), engine=engine)
     return [line for page in pages for line in page]
+
+
+def load_qr_lines(source: _ty.Union[str, "Path"]) -> _ty.List[str]:
+    """Decode a GQ1 QR image or image directory into exact transcript lines."""
+    from ..restore import transcript_from_images
+
+    transcript = transcript_from_images(source)
+    try:
+        text = transcript.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(
+            "decoded Glyphive QR transcript is not valid UTF-8; the symbol set "
+            "may belong to a different transport"
+        ) from exc
+    return text.replace("\f", "\n").splitlines()
 
 
 def load_input_lines(

@@ -1,7 +1,7 @@
 # glyphive
 
-[![Version](https://img.shields.io/pypi/v/glyphive.svg)](https://pypi.org/project/glyphive/)
-[![Python versions](https://img.shields.io/pypi/pyversions/glyphive.svg)](https://pypi.org/project/glyphive/)
+[![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](CHANGELOG.md)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://jose-pr.github.io/glyphive/)
 [![CI](https://img.shields.io/github/actions/workflow/status/jose-pr/glyphive/test.yml)](https://github.com/jose-pr/glyphive/actions/workflows/test.yml)
@@ -56,6 +56,12 @@ glyphive create -f backup.txt --compression gzip -C project .
 glyphive list -f backup.txt
 glyphive extract -f backup.txt -C restored
 ```
+
+Restore or inspect an already-generated GQ1 QR image set explicitly with
+`glyphive extract -f qr-pages/ --from-qr -C restored` or
+`glyphive list -f qr-pages/ --from-qr`. Ordinary image input continues through
+OCR; QR mode requires `glyphive[qr]` and rejects mixed, duplicate, corrupt, or
+incomplete symbol sets before writing files.
 
 Tar-style mode flags are equivalent when a positional command is inconvenient:
 
@@ -174,6 +180,9 @@ Full generated API documentation is available on the
 [documentation site](https://jose-pr.github.io/glyphive/api/overview/).
 
 ## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, test, documentation, and pull
+request guidance.
 
 Use a project-local virtual environment, then run the lightweight suite:
 

@@ -9,7 +9,7 @@ from duho import LoggingArgs
 from pathlib_next import Path
 
 from .. import archive as _archive
-from ._common import load_input_lines
+from ._common import load_input_lines, load_qr_lines
 
 __all__ = ["List"]
 
@@ -28,6 +28,10 @@ class List(LoggingArgs):
     "OCR registry provider for image or document input (default: automatic preference)."
     ("--ocr-engine",)
 
+    from_qr: bool = False
+    "Decode -f as GQ1 QR page images (requires glyphive[qr])."
+    ("--from-qr",)
+
     temp_dir: "_ty.Optional[str]" = None
     "Directory for private restore spools."
     ("--temp-dir",)
@@ -43,7 +47,12 @@ class List(LoggingArgs):
     def __call__(self) -> int:
         from ..restore import decode as _decode
 
-        lines = load_input_lines(Path(self.file), engine=self.ocr_engine)
+        source = Path(self.file)
+        lines = (
+            load_qr_lines(source)
+            if self.from_qr
+            else load_input_lines(source, engine=self.ocr_engine)
+        )
         # Decode first so every displayed field comes from the integrity-
         # protected H frames, never from the unrestricted human summary.
         with _tempfile.TemporaryFile(dir=self.temp_dir) as raw:
@@ -52,6 +61,7 @@ class List(LoggingArgs):
                 raw,
                 max_output_bytes=self.max_output_bytes,
                 chunk_size=self.chunk_size,
+                temp_dir=self.temp_dir,
             )
             profile = header.get("meta")
             profile_token = f" meta={profile}" if profile is not None else ""
