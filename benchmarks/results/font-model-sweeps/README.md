@@ -28,6 +28,10 @@ not CI performance claims.
 - `ocrb-sizes-*` is the earlier 60-row point-size sweep. Prefer the 150-row
   model reports for recommendations; the shorter sweep is retained so future
   work can explain rather than erase the conflicting result.
+- `tsukurimashou-ocrb-regular.json` and
+  `tsukurimashou-ocrb-sharp.json` retain the 0.3.1 regular/Sharp sweeps. The
+  parent ledger records exact ZIP/font hashes, author warnings, and both full
+  restore-gate outcomes.
 
 External font paths in the reports point to ephemeral VM locations. Exact
 source revisions, file hashes, licenses, and Tesseract model hashes are in the

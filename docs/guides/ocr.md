@@ -95,6 +95,15 @@ the [font candidate ledger](https://github.com/jose-pr/glyphive/blob/master/benc
 for the exact artifacts, ISO stroke/style distinctions, and evidence currently
 available.
 
+The external Tsukurimashou 0.3.1 trial reinforces that rule. Its regular OCR-B
+passed a 12,036-byte synthetic restore gate and measured 4,708 usable
+bytes/page at 6.8 pt. The Sharp-outline file also passed and measured a nominal
+6,050 bytes/page at 6 pt, but Glyphive's fixed 60-character rows still yielded
+the same four pages. More importantly, Tsukurimashou's own documentation says
+its optical sizes are linear scaling and warns that overlapping Sharp outlines
+are not suitable for OCR. Do not promote the Sharp result or assume its
+synthetic density transfers to a printer/scanner path.
+
 ## Measure an alphabet
 
 `tools/ocr_font_report.py` renders randomized character grids, rasterizes them,

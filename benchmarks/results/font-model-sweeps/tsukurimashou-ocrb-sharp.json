@@ -1,0 +1,571 @@
+{
+  "results": [
+    {
+      "font_arg": "/tmp/tsuku-ocr/ocr-0.3.1/OCRBS.ttf",
+      "font_label": "OCRBS.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.0,
+      "rows": 150,
+      "line_length": 121,
+      "chars_per_line": 121,
+      "lines_per_page": 100,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.0,
+      "length_mismatches": 0,
+      "per_char": {
+        "A": {
+          "samples": 1093,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 1148,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 1156,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 1156,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 1214,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 1115,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 1098,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 1134,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 1137,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 1149,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 1144,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 1133,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 1090,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 1157,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 1112,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 1114,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 4.0,
+      "efficiency": 1.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 12100,
+      "bytes_per_page": 6050.0,
+      "usable_bytes_per_page": 6050.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/tsuku-ocr/ocr-0.3.1/OCRBS.ttf",
+      "font_label": "OCRBS.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.8,
+      "rows": 150,
+      "line_length": 107,
+      "chars_per_line": 107,
+      "lines_per_page": 88,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.006666666666666667,
+      "length_mismatches": 1,
+      "per_char": {
+        "A": {
+          "samples": 962,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 1016,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 1019,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 1005,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 1067,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 978,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 983,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 1012,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 1014,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 993,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 1003,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 984,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 949,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 1020,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 976,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 962,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 4.0,
+      "efficiency": 1.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 9416,
+      "bytes_per_page": 4708.0,
+      "usable_bytes_per_page": 4676.613333333333,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/tsuku-ocr/ocr-0.3.1/OCRBS.ttf",
+      "font_label": "OCRBS.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 9.1,
+      "rows": 150,
+      "line_length": 80,
+      "chars_per_line": 80,
+      "lines_per_page": 65,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.0,
+      "length_mismatches": 0,
+      "per_char": {
+        "A": {
+          "samples": 710,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 766,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 771,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 761,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 809,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 716,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 744,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 767,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 780,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 742,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 751,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 754,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 710,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 766,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 736,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 717,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 4.0,
+      "efficiency": 1.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 5200,
+      "bytes_per_page": 2600.0,
+      "usable_bytes_per_page": 2600.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/tsuku-ocr/ocr-0.3.1/OCRBS.ttf",
+      "font_label": "OCRBS.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 10.2,
+      "rows": 150,
+      "line_length": 71,
+      "chars_per_line": 71,
+      "lines_per_page": 58,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.0,
+      "length_mismatches": 0,
+      "per_char": {
+        "A": {
+          "samples": 624,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 687,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 695,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 683,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 730,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 625,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 656,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 676,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 685,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 674,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 660,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 676,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 632,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 673,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 639,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 635,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 4.0,
+      "efficiency": 1.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 4118,
+      "bytes_per_page": 2059.0,
+      "usable_bytes_per_page": 2059.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "tesseract"
+    ],
+    "dense": {
+      "font": "OCRBS.ttf",
+      "size": 6.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "bytes_per_page": 6050.0,
+      "usable_bytes_per_page": 6050.0,
+      "line_insert_rate": 0.0,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "OCRBS.ttf",
+      "size": 6.0,
+      "charset": "custom",
+      "engines": [
+        "tesseract"
+      ],
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "34ABCDHKLMPRTVXY",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "bytes_per_page": 6050.0,
+      "usable_bytes_per_page": 6050.0,
+      "line_insert_rate": 0.0
+    },
+    "retype": {
+      "font": "OCRBS.ttf",
+      "size": 10.2,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}

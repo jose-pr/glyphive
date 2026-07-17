@@ -14,7 +14,7 @@ gate on the intended printer/scanner or rasterization path.
 | OCR-B by Raisty | [`jaycee723/ocr-b` commit `fedeba8`](https://github.com/jaycee723/ocr-b/tree/fedeba81519770109925b5bec70e940be5948d8f); `OCR-B.ttf`, 36,780 bytes, SHA-256 `367d876cca948ecd4900851f6e85687cbb6e71de9d0d2f36348edec5655526af` | [SIL OFL 1.1](https://github.com/jaycee723/ocr-b/blob/fedeba81519770109925b5bec70e940be5948d8f/OFL.txt), Reserved Font Name `OCR-B`; the unmodified file and license are bundled | Measured; see below |
 | OCRAB hybrid | [`smallwat3r/ocrab-font` commit `9a06a45`](https://github.com/smallwat3r/ocrab-font/tree/9a06a45c7571adc071b506605beb2a9a4ba29eca); `ocrab.ttf`, 27,184 bytes, SHA-256 `3bc94e4b92388fbed7a6b4be9713f70c1c07a70911a7520e4a0c948dd5f91e5d` | [SIL OFL 1.1](https://github.com/smallwat3r/ocrab-font/blob/9a06a45c7571adc071b506605beb2a9a4ba29eca/LICENSE); evaluated externally, not bundled | Measured and rejected for the current channel. This is intentionally a new OCR-A/OCR-B hybrid, not an ISO OCR-B size or style |
 | OCRA repository fonts | [`bcssupp0rt/ocrafont` commit `c6d0c8b`](https://github.com/bcssupp0rt/ocrafont/tree/c6d0c8bae5fe4d0da46eeb43d0f61f5f21b77974); `ocra.ttf` SHA-256 `7b85eb41528147dd4aa8f697b6bbc1656163e937f54cd71d64b541823d2a1725`; `OCRAII.TTF` `8cbc3c09199e3a6d94c619cffadde4776dfd53eb8760519e1083f4ade093d61e`; `ocraI.ttf` `c9dd24ad539197486544034f571e31c9d06ddf18d0edea060ca13da19b7c7695`; `ocraIII.ttf` `4336316f2e69d9db121e0662dfecb5edc19c8da04798aa466b4db3cb0cb52f3d`; `ocraIV.ttf` `e1e683b83d0cf53956f186f68374bcb995455b97e99a4e047eecad9ce17fdbcc` | [GPL-3.0 repository](https://github.com/bcssupp0rt/ocrafont/blob/c6d0c8bae5fe4d0da46eeb43d0f61f5f21b77974/LICENSE); evaluated externally, not bundled | All five measured files rejected. The numbered variants are OCR-A artifacts, not ISO OCR-B sizes |
-| Tsukurimashou OCR fonts | [Tsukurimashou project](https://tsukurimashou.org/) and its [OCR font design notes](https://tsukurimashou.org/ocr.pdf) | Licensing and embedding terms require a separate review; not bundled | Pending controlled measurement |
+| Tsukurimashou OCR fonts | [Tsukurimashou 0.3.1 ZIP](https://tsukurimashou.org/files/ocr-0.3.1.zip), SHA-256 `58136fccfdee0923cc83a20996a067b98bae054570ee41bf896d7ca8224399bf`; `OCRB.ttf` SHA-256 `67b11c470222c7bb4550e7d4c216fd06145a939208af77e5f946bcee53e70868`; Sharp `OCRBS.ttf` SHA-256 `29587e27376566463c4d5a1b8dfb7792fde91cb1261b511fa10f65aed8c1f354` | The source package carries multiple notices and embedding terms that require file-by-file review; evaluated externally and not bundled | Both measured and passed synthetic PDF/raster restore gates; see below |
 
 The OCRA repository's filenames containing `I`, `III`, or `IV` are OCR-A
 artifacts. Their names are not evidence of conformity to the OCR-B sizes in
@@ -67,6 +67,29 @@ The ordinary configuration did not impose those constraints.
 The OCRA variant sweep used 6.0, 6.8, 9.1, and 10.2 pt only as a common
 comparison scale near nominal OCR-B heights. It does not establish that these
 OCR-A files implement ISO OCR-B Size I, III, or IV.
+
+### Tsukurimashou 0.3.1 trial
+
+The regular `OCRB.ttf` retained 16/16 symbols under the constrained profile;
+its best measured size was 6.8 pt at 4,708 usable bytes/page. The Sharp-outline
+`OCRBS.ttf` retained 16/16 symbols with zero erased rows at 6 pt and measured
+6,050 usable bytes/page in the character-grid geometry. Both candidates then
+passed complete 12,036-byte Zstandard PDF -> 300 DPI raster -> constrained
+Tesseract -> restore gates byte-for-byte.
+
+The 6,050-byte figure is diagnostic geometry, not current product throughput.
+Glyphive's codec still emits fixed 60-character rows, so both restored trials
+occupied the same four PDF pages; the Sharp font's wider measured row capacity
+is not yet consumed by the wire renderer.
+
+The 0.3.1 package documentation and the project's current 0.4pre
+[design notes](https://tsukurimashou.org/ocr.pdf) both warn against treating
+scalable point sizes as real OCR-B optical sizes: the supplied sizes are linear
+scaling of outlines. The notes also describe overlapping outlines in the Sharp
+variant and state that it is not suitable for OCR. Its successful synthetic
+gate is retained as an experimental result, not a recommendation for physical
+printing, OCR use, or bundling. Redistribution remains blocked on a
+file-by-file license and embedding review.
 
 ### OCR-B alignment and character spacing
 
@@ -130,5 +153,6 @@ on its synthetic training samples.
   that diagnostic winner a wire profile.
 - Source separately identifiable OCR-B constant-stroke and letterpress outlines;
   do not infer them from a filename or synthetic bolding.
-- Measure Tsukurimashou candidates after recording exact files, hashes, and
-  redistribution terms.
+- Repeat the Tsukurimashou regular and Sharp candidates through physical
+  print/scan paths; do not promote or bundle them without resolving the Sharp
+  design warning and file-specific redistribution terms.
