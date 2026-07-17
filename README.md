@@ -153,7 +153,7 @@ Optional, platform-specific artifacts can be built with `--extras`; use
 
 | Module | Purpose |
 | --- | --- |
-| `glyphive.archive` | Serialize and inspect deterministic archive streams |
+| `glyphive.archive` | Serialize and inspect deterministic archive streams, including chunked reader/writer primitives |
 | `glyphive.codec` | Resolve printable codecs; includes `g1` |
 | `glyphive.compression` | Resolve `none`, `gzip`, and optional `zstd` compression |
 | `glyphive.layout` | Paginate frames and verify protected page metadata |
