@@ -94,3 +94,48 @@ class CompressionMethod(ABC):
     @abstractmethod
     def decompress(self, data: bytes) -> bytes:
         """Decompress one whole archive stream."""
+
+    def compress_stream(
+        self,
+        source: _ty.BinaryIO,
+        sink: _ty.BinaryIO,
+        *,
+        level: _ty.Optional[int] = None,
+        chunk_size: int = 1024 * 1024,
+    ) -> None:
+        """Compress from ``source`` to ``sink``.
+
+        External methods retain a compatibility fallback through their one-shot
+        implementation. Built-ins override this method with bounded-memory I/O.
+        """
+        _validate_chunk_size(chunk_size)
+        sink.write(self.compress(source.read(), level))
+
+    def decompress_stream(
+        self,
+        source: _ty.BinaryIO,
+        sink: _ty.BinaryIO,
+        *,
+        chunk_size: int = 1024 * 1024,
+    ) -> None:
+        """Decompress from ``source`` to ``sink`` (compatibility fallback)."""
+        _validate_chunk_size(chunk_size)
+        sink.write(self.decompress(source.read()))
+
+
+def _validate_chunk_size(chunk_size: int) -> int:
+    if not isinstance(chunk_size, int) or isinstance(chunk_size, bool) or chunk_size <= 0:
+        raise ValueError("chunk_size must be a positive integer")
+    return chunk_size
+
+
+def _copy_chunks(
+    source: _ty.BinaryIO, sink: _ty.BinaryIO, *, chunk_size: int
+) -> None:
+    """Copy binary streams without permitting a non-progressing reader."""
+    chunk_size = _validate_chunk_size(chunk_size)
+    while True:
+        chunk = source.read(chunk_size)
+        if not chunk:
+            return
+        sink.write(chunk)
