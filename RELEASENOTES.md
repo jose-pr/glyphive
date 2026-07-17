@@ -27,18 +27,18 @@ line, page, and whole-document integrity checks pass.
 
 ### Performance and density
 
-No public benchmark baseline has been recorded yet, so this release makes no
-speed, compression-ratio, OCR-accuracy, or pages-per-archive claim. The manual
-benchmark harness records min/median/max milliseconds per call; comparisons
+One controlled VM sanity baseline has been recorded, but this release makes no
+speed, compression-ratio, universal OCR-accuracy, or pages-per-archive claim.
+The manual benchmark harness records min/median/max milliseconds per call; comparisons
 use medians from matched environments. OCR density sweeps report both nominal
 bytes per page and capacity adjusted for line-length erasures.
 
 | Measurement | Previous release | Current evidence |
 | --- | ---: | ---: |
-| Create printable text | Not released | Baseline pending |
-| Decode transcript | Not released | Baseline pending |
-| `g1` codec encode/decode | Not released | Baseline pending |
-| OCR-safe bytes per page | Not released | Multi-radix sweep pending |
+| Create printable text | Not released | Not isolated by the current harness |
+| Decode transcript | Not released | Not isolated by the current harness |
+| `g1` codec encode/decode | Not released | VM sanity baseline recorded |
+| OCR-safe bytes per page | Not released | 2,250 portable; 3,375 experimental Paddle-only |
 
 **Target for the first release:** establish repeatable baselines without
 regressing archive correctness. Density changes require a full print,
@@ -49,16 +49,24 @@ of greater usable capacity.
 
 | Check | State |
 | --- | --- |
-| Lightweight automated test suite | Must pass on the release commit |
+| Full automated test suite | CI run `29543951202` passed; latest Rocky Linux 9 VM run: 98 passed |
 | Package build and metadata check | Pending release validation |
 | `mkdocs build --strict` | Passes locally; release CI gate still required |
 | Public-file leakage scan | Pending release validation |
-| Real OCR create/restore gate | Previously demonstrated for `none` and `zstd`; rerun required before release |
-| Benchmark and alphabet-sweep baseline | Pending; no figures published |
+| Real OCR create/restore gate | Current PDF/direct-input gate restored byte-for-byte on the Rocky Linux VM with Tesseract 4.1.1; release gate still required |
+| Benchmark and alphabet-sweep baseline | VM timing sanity baseline and versioned OCR reports recorded; CI comparison pending |
 
-The recorded OCR gate uses Courier 8pt rendered at 300 DPI and Tesseract 5.4.0,
-then restores the fixture tree byte-for-byte. This is correctness evidence for
-that measured channel, not a universal OCR-accuracy or performance claim.
+The density reports use Courier 8 pt rendered at 300 DPI with default 36 pt
+margins and 60-character rows. The portable 16-symbol alphabet produced zero
+insertions and 2,250 usable bytes/page under both Tesseract 4.1.1 and PaddleOCR
+3.7.0/PaddlePaddle 3.3.1. Adding `*@#-^` left Tesseract at radix 16 and reduced
+usable capacity to 1,462.5 bytes/page. A Paddle-only 65-symbol superset measured
+radix-64 density at 3,375 bytes/page with zero insertions, but no dense wire
+preset or end-to-end restore gate exists yet.
+
+The timing baseline used Python 3.9.25 on Rocky Linux 9. Median times were
+21.65/49.45 ms for 1 KiB `g1` encode/decode and 299.07/734.10 ms for 16 KiB.
+These are local VM sanity measurements, not CI performance evidence.
 
 ### Publication state
 
