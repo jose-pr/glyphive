@@ -12,6 +12,11 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Added
 
+- **Explicit plugin discovery** (`glyphive.plugins`): trusted installed
+  distributions can provide typed codecs, compression methods, render formats,
+  or OCR providers through four documented entry-point groups. Discovery is
+  opt-in through the library API or global `--plugins` CLI flag, deterministic,
+  cached, and reports broken candidates without changing normal imports.
 - **Standalone zipapp packaging** (`package.py`): build a universal
   `glyphive.pyz` containing the required runtime dependencies and the core
   text/none/gzip feature set, or explicitly named platform-specific artifacts
