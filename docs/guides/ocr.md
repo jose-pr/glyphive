@@ -23,20 +23,35 @@ create/restore usable and does not import model runtimes.
 
 ```bash
 glyphive extract \
-  -f scan.png \
-  --from-images \
+  -f scans/ \
   --ocr-engine tesseract \
   -C restored
 ```
 
 Omit `--ocr-engine` to select the highest-preference available provider. The
-current CLI accepts one image path; applications can use
-`glyphive.restore.ocr.ocr_pages()` for multiple images and feed the assembled
-lines through the restore API.
+CLI accepts one file or a directory of direct child files. It automatically
+distinguishes UTF-8 transcripts, common images, PDFs, and DOCX documents; mixed
+directories are processed in sorted order. `glyphive list` accepts the same
+inputs and `--ocr-engine` option. Use `--from-images` only when an explicit
+all-images override is useful.
 
 `ocr_vote()` can combine line-level output from several engines, but its result
 is only a candidate transcript. Agreement between engines is not proof; the
 format's checks still decide whether restore is valid.
+
+## Render documents for troubleshooting
+
+The document conversion helper produces ordered PNG page images without
+running OCR. DPI and Gaussian blur can be varied to reproduce scan conditions:
+
+```bash
+python tools/document_to_images.py backup.pdf pages/ --dpi 300 --blur 0.6
+python tools/document_to_images.py backup.docx pages/ --dpi 240
+```
+
+Install `glyphive[document-input]` for PDF rendering. DOCX conversion also
+requires LibreOffice on `PATH`. The tool prints each generated page path in
+order, making its output suitable for inspection or a later OCR run.
 
 ## Print and scan guidance
 

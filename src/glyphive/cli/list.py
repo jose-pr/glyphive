@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import typing as _ty
+
 from duho import LoggingArgs
 from pathlib_next import Path
 
 from .. import archive as _archive
-from ._common import load_transcript_lines
+from ._common import load_input_lines
 
 __all__ = ["List"]
 
@@ -18,13 +20,17 @@ class List(LoggingArgs):
     _parseraliases_ = ["t"]
 
     file: str
-    "Input text transcript or directory of transcript files."
+    "Input file or directory (text, images, PDF, or DOCX; type detected automatically)."
     ("-f", "--file")
+
+    ocr_engine: "_ty.Optional[str]" = None
+    "OCR registry provider for image or document input (default: automatic preference)."
+    ("--ocr-engine",)
 
     def __call__(self) -> int:
         from ..restore import decode as _decode
 
-        lines = load_transcript_lines(Path(self.file))
+        lines = load_input_lines(Path(self.file), engine=self.ocr_engine)
         # Decode first so every displayed field comes from the integrity-
         # protected H frames, never from the unrestricted human summary.
         header, raw = _decode.decode_document(lines)
