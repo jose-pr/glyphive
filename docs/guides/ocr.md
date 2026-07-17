@@ -64,6 +64,24 @@ order, making its output suitable for inspection or a later OCR run.
   manually transcribe the named frame rather than searching for a character
   change that merely improves decompression progress.
 
+### Font evidence and custom fonts
+
+Do not assume that a font marketed for optical recognition will work better
+with a general-purpose OCR model. In the recorded Windows/Tesseract 5.4.0
+probes, Courier and Consolas each preserved the frame index on 12/12 lines,
+while OCR-A Extended failed all 12. Cascadia Mono also failed all 12 because
+that tested file did not embed cleanly; that result does not measure the
+font's OCR quality. Courier 8 pt outperformed Courier 11 pt for the current
+alphabet in the controlled probe (16/16 safe with no length mismatch versus
+15/16 safe and 2% mismatched lines).
+
+OCR-B has not yet been measured in this repository. Treat an OCR-B file, a
+coding font, a different weight, or a trained language model as a new channel:
+record the exact font file and license, renderer, size, DPI, engine and model
+versions, then run the alphabet sweep and a byte-for-byte restore gate. See
+the [benchmark tables](../benchmarks.md#historical-windows-font-and-size-probes)
+for the evidence currently available.
+
 ## Measure an alphabet
 
 `tools/ocr_font_report.py` renders randomized character grids, rasterizes them,
