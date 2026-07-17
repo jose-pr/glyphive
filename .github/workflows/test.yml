@@ -68,6 +68,31 @@ jobs:
       - name: Run tests
         run: python -m pytest -q
 
+  benchmark:
+    # Reproducible core timings only; OCR/font sweeps remain remote manual jobs.
+    name: Benchmark (py${{ matrix.python-version }}, ubuntu)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install benchmark dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Run core benchmarks
+        run: python benchmarks/run.py --save --name "glyphive-ci-py${{ matrix.python-version }}"
+      - name: Upload benchmark result
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-py${{ matrix.python-version }}
+          path: benchmarks/results/glyphive-ci-py${{ matrix.python-version }}.json
+
   docs:
     # Exercise the same strict docs gate before a release tag is cut.
     name: Build documentation
