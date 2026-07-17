@@ -58,7 +58,7 @@ Create a PDF instead:
 
 ```bash
 pip install "glyphive[pdf,zstd]"
-glyphive create -f backup.pdf --format pdf --compression zstd -C project .
+glyphive create -f backup.pdf --compression zstd -C project .
 ```
 
 Restore one scanned page image with Tesseract:
