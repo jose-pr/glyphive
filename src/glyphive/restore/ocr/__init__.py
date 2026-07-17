@@ -6,7 +6,12 @@ from collections import Counter
 from typing import Iterable, Optional
 
 from ._base import OcrProvider
-from .providers import EasyOcrProvider, PaddleProvider, TesseractProvider
+from .providers import (
+    EasyOcrProvider,
+    PaddleProvider,
+    TesseractGlyphiveProvider,
+    TesseractProvider,
+)
 
 _ENGINE_PREFERENCE = ("paddle", "easyocr", "tesseract")
 _INSTALL_HINT = (
