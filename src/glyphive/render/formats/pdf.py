@@ -24,6 +24,18 @@ _BUNDLED_FONTS = {"ocr-b": ("glyphive.assets.fonts.ocr_b", "OCR-B.ttf")}
 _FRAME_KINDS = "HLPT"
 _SAFE_ALPHABET = "ABCDHKLMPRTVXY34"
 
+#: Every published OCR-safety measurement in this project (see Known Facts in
+#: .agents/plans/codec_naming_and_ocr_safe_index.md) was taken at a 60-character
+#: payload row, including the OCR-B "dense" preset -- OCR-B was measured
+#: *denser per page* only via a smaller font/DPI at that SAME 60-char width,
+#: never via a wider row. Geometric fit alone (fpdf2's glyph-width measurement)
+#: says OCR-B 6pt fits ~90 chars/row, but that width was never OCR-tested and
+#: real-content testing (2026-07-17 gallery run) found it measurably less
+#: reliable than 60. Cap auto-selection at the one width this project has
+#: actual evidence for; --line-width still lets a caller opt into an
+#: unmeasured wider row explicitly.
+_MEASURED_SAFE_LINE_WIDTH = 60
+
 
 @contextmanager
 def registered_pdf_font(pdf: _ty.Any, font: _ty.Optional[str]):
@@ -101,15 +113,23 @@ class PdfRenderFormat(RenderFormat):
         except Exception:
             return False
 
-    def payload_capacity(
+    def _geometric_payload_capacity(
         self,
         *,
         font: _ty.Optional[str] = None,
         font_size: float = 11.0,
         page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
         character_spacing_pt: float = 0.0,
-    ) -> _ty.Optional[int]:
-        """Measure the largest even payload fitting one Letter frame line."""
+    ) -> int:
+        """Largest payload width that geometrically fits, uncapped.
+
+        Purely a glyph-width measurement -- it has no notion of what has
+        actually been OCR-tested. ``payload_capacity`` (the public API) clamps
+        this to ``_MEASURED_SAFE_LINE_WIDTH``; this method exists separately so
+        the geometry math itself (font size / margins / spacing scaling) can
+        be tested without the clamp hiding a regression in the underlying
+        measurement.
+        """
         import fpdf
 
         if font_size <= 0:
@@ -134,6 +154,32 @@ class PdfRenderFormat(RenderFormat):
         # therefore N+12 tracking gaps.
         remaining = available - fixed_width - 12 * character_spacing_pt
         capacity = int(remaining // (widest_safe + character_spacing_pt))
+        return max(0, capacity - capacity % 2)
+
+    def payload_capacity(
+        self,
+        *,
+        font: _ty.Optional[str] = None,
+        font_size: float = 11.0,
+        page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
+        character_spacing_pt: float = 0.0,
+    ) -> _ty.Optional[int]:
+        """Return the largest OCR-measured-safe payload width that also fits.
+
+        Clamped to ``_MEASURED_SAFE_LINE_WIDTH`` (60): every OCR-safety
+        measurement in this project was taken at that row width, including
+        the OCR-B "dense" preset, and real-content testing found a wider
+        geometrically-fitting row (e.g. OCR-B 6pt's ~90-char fit) measurably
+        less reliable. Pass an explicit ``--line-width`` to opt into an
+        unmeasured wider row.
+        """
+        capacity = self._geometric_payload_capacity(
+            font=font,
+            font_size=font_size,
+            page_margin_pt=page_margin_pt,
+            character_spacing_pt=character_spacing_pt,
+        )
+        capacity = min(capacity, _MEASURED_SAFE_LINE_WIDTH)
         return max(0, capacity - capacity % 2)
 
     def render(

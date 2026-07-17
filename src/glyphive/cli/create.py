@@ -175,6 +175,23 @@ class Create(LoggingArgs):
     "Codec payload characters per row (default: largest measured PDF fit)."
     ("--line-width",)
 
+    parity_ratio: float = 0.12
+    "Reed-Solomon parity as a fraction of protected bytes (default 0.12 = "
+    "12%). Lower values shrink page count but reduce how much scan/OCR "
+    "damage a document can self-heal; 0 is not allowed, see --simple for a "
+    "documented low-redundancy preset instead of hand-tuning this."
+    ("--parity-ratio",)
+
+    simple: bool = False
+    "Low-redundancy preset for small, disposable, or re-typeable documents: "
+    "parity_ratio 0.04 instead of 0.12 (roughly a third of the default "
+    "parity overhead). Trades most of the RS self-healing budget for fewer "
+    "pages; still protected by per-line CRC (bad lines are still detected, "
+    "just less likely to be automatically corrected) and the whole-document "
+    "SHA-256 gate (a corrupted restore is never accepted as silently "
+    "correct). Not for documents you can't easily rescan or retype on failure."
+    ("--simple",)
+
     temp_dir: "_ty.Optional[str]" = None
     "Directory for bounded-memory spool files (default: system temporary directory)."
     ("--temp-dir",)
@@ -202,6 +219,20 @@ class Create(LoggingArgs):
             )
         name = self.compression or legacy or _compression.default()
         return name, _select_compression(name)
+
+    _SIMPLE_PARITY_RATIO = 0.04
+
+    def _parity_ratio_selection(self) -> float:
+        if self.simple and self.parity_ratio != 0.12:
+            raise SystemExit(
+                "error: --simple disagrees with an explicit --parity-ratio "
+                "%.4g; pass only one" % self.parity_ratio
+            )
+        if self.simple:
+            return self._SIMPLE_PARITY_RATIO
+        if not 0 < self.parity_ratio < 1:
+            raise SystemExit("error: --parity-ratio must be in (0, 1)")
+        return self.parity_ratio
 
     def __call__(self) -> int:
         codec_name = self.codec
@@ -285,21 +316,27 @@ class Create(LoggingArgs):
                 compressed_len = compressed_spool.tell()
                 report("compressed", bytes=compressed_len, method=compression_name)
                 compressed_spool.seek(0)
+                parity_ratio = self._parity_ratio_selection()
                 if hasattr(codec, "iter_encode") and codec_name == "base16c-crc16-rs":
                     encoded = codec.iter_encode(
                         compressed_spool,
                         compressed_len,
                         line_width=line_width,
+                        parity_ratio=parity_ratio,
                         temp_dir=self.temp_dir,
                     )
                     n_encoded = _base16c_encoded_line_count(
-                        compressed_len, line_width=line_width
+                        compressed_len, line_width=line_width, parity_ratio=parity_ratio
                     )
                 else:
-                    options = {"line_width": line_width} if codec_name == "base16c-crc16-rs" else {}
+                    options = (
+                        {"line_width": line_width, "parity_ratio": parity_ratio}
+                        if codec_name == "base16c-crc16-rs"
+                        else {}
+                    )
                     materialized = codec.encode(compressed_spool.read(), **options)
                     encoded, n_encoded = iter(materialized), len(materialized)
-                report("encoded", lines=n_encoded)
+                report("encoded", lines=n_encoded, parity_ratio=parity_ratio)
                 pages = _layout.iter_paginate(
                     encoded,
                     n_encoded,
