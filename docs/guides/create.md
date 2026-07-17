@@ -62,6 +62,16 @@ inside the limits of the intended printer and scanner before relying on it:
 glyphive create -f dense.pdf --format pdf --font-size 8 --minimal-margins -C project .
 ```
 
+PDF creation also measures the selected font's widest safe glyph and chooses
+the largest even `g1` payload width that fits between the margins at the
+requested size and character spacing. This lets a genuinely narrower measured
+font carry more than the conservative 60 payload characters per row without
+shrinking the rendered text. Text and Word output retain 60 by default because
+they do not expose reliable physical font metrics. Use `--line-width N` to pin
+the codec row width for a reproducible tested channel; PDF rejects an override
+that exceeds its measured fit. Decode infers row width from the frames, so no
+separate restore option is needed.
+
 Create uses disk-backed temporary spools so archive-sized payloads and encoded
 page lists do not have to remain in memory. Spools use the system temporary
 directory by default; advanced users can select a same-filesystem location with
@@ -81,8 +91,10 @@ glyphive create -f spaced.pdf --font ocr-b --font-size 8 \
   --horizontal-alignment center --character-spacing 0.2 -C project .
 ```
 
-These controls change physical placement only; they do not change the encoded
-transcript. `justify` uses different tracking on lines of different lengths, so
+These controls change physical placement. For PDF, character spacing can also
+reduce the automatically selected payload width; use `--line-width` when an
+experiment requires identical wire rows across layout variants. `justify` uses
+different tracking on lines of different lengths, so
 `center` plus modest fixed spacing is usually the better starting point for a
 character-grid OCR workflow. Treat either option as experimental until it has
 passed the same print/rasterize/OCR benchmark as the chosen font and size.

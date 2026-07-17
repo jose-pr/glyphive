@@ -20,6 +20,7 @@ from glyphive import render as render_mod
 from glyphive.render import lines_per_page_for, render
 from glyphive.render.formats.text import FORM_FEED
 from glyphive.render.formats.pdf import _fitted_font_size, _line_character_spacing
+from glyphive.render.formats.pdf import PdfRenderFormat
 
 
 def _make_pages(nbytes=800, seed=5):
@@ -95,6 +96,21 @@ def test_pdf_long_lines_fit_available_width_without_wrapping():
         character_spacing_pt=2.0,
         character_count=101,
     ) == 6.0
+
+
+def test_pdf_payload_capacity_tracks_font_size_margins_and_spacing():
+    renderer = PdfRenderFormat()
+    base = renderer.payload_capacity(font="courier", font_size=8, page_margin_pt=36)
+    compact = renderer.payload_capacity(font="courier", font_size=8, page_margin_pt=12)
+    larger = renderer.payload_capacity(font="courier", font_size=11, page_margin_pt=36)
+    tracked = renderer.payload_capacity(
+        font="courier", font_size=8, page_margin_pt=36, character_spacing_pt=0.2
+    )
+
+    assert base is not None and base >= 60 and base % 2 == 0
+    assert compact is not None and compact > base
+    assert larger is not None and larger < base
+    assert tracked is not None and tracked < base
 
 
 def test_pdf_justify_distributes_tracking_across_available_width():
@@ -193,10 +209,22 @@ def test_all_backends_present():
 
 
 def test_render_registry_lists_formats_and_rejects_unknown():
-    assert render_mod.names() == ["docx", "pdf", "text"]
+    assert render_mod.names() == ["docx", "hybrid", "pdf", "qr", "text"]
     assert render_mod.get("text") is not render_mod.get("text")
     with pytest.raises(ValueError, match=r"unknown render format 'missing'.*docx"):
         render_mod.get("missing")
+
+
+@pytest.mark.parametrize("fmt", ["qr", "hybrid"])
+def test_qr_pdf_renderers_when_extra_is_installed(tmp_path, fmt):
+    pytest.importorskip("segno")
+    pytest.importorskip("zxingcpp")
+    _data, pages = _make_pages(nbytes=80)
+    output = tmp_path / f"{fmt}.pdf"
+
+    render(pages, output, fmt, font_size=7)
+
+    assert output.read_bytes().startswith(b"%PDF")
 
 
 # --------------------------------------------------------------------------- #
