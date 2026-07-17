@@ -13,12 +13,14 @@ DEFAULT_DOCX_FONT = DEFAULT_MONO_FONT
 DEFAULT_PDF_FONT = "Courier"
 DEFAULT_PAGE_MARGIN_PT = 36.0
 MINIMAL_PAGE_MARGIN_PT = 12.0
+HORIZONTAL_ALIGNMENTS = frozenset({"left", "center", "justify"})
 
 
 class RenderFormat(ABC):
     """Base class for stateless, no-argument render formats."""
 
     _registry: _ty.ClassVar[_ty.Dict[str, _ty.Type["RenderFormat"]]] = {}
+    _external: _ty.ClassVar[_ty.Set[str]] = set()
     name: _ty.ClassVar[str]
 
     def __init_subclass__(cls, **kwargs: _ty.Any) -> None:
@@ -64,6 +66,26 @@ class RenderFormat(ABC):
     def is_available(cls) -> bool:
         return True
 
+    @classmethod
+    def _register_external(cls, name: str, implementation: _ty.Type["RenderFormat"]) -> None:
+        if name in RenderFormat._registry:
+            raise ValueError(f"duplicate render format name {name!r}")
+        RenderFormat._registry[name] = implementation
+        RenderFormat._external.add(name)
+
+    @classmethod
+    def _discard_implementation(cls, implementation: _ty.Type["RenderFormat"]) -> None:
+        for name, registered in list(RenderFormat._registry.items()):
+            if registered is implementation:
+                RenderFormat._registry.pop(name)
+                RenderFormat._external.discard(name)
+
+    @classmethod
+    def _reset_external(cls) -> None:
+        for name in RenderFormat._external:
+            RenderFormat._registry.pop(name, None)
+        RenderFormat._external.clear()
+
     @abstractmethod
     def render(
         self,
@@ -73,5 +95,7 @@ class RenderFormat(ABC):
         font: _ty.Optional[str] = None,
         font_size: float = 11.0,
         page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
+        horizontal_alignment: str = "left",
+        character_spacing_pt: float = 0.0,
     ) -> None:
         """Render already-paginated pages."""
