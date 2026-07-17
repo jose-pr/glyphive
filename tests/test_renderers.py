@@ -18,6 +18,7 @@ g1 = codec.get("g1")
 from glyphive import render as render_mod
 from glyphive.render import lines_per_page_for, render
 from glyphive.render.formats.text import FORM_FEED
+from glyphive.render.formats.pdf import _fitted_font_size
 
 
 def _make_pages(nbytes=800, seed=5):
@@ -76,6 +77,16 @@ def test_render_rejects_unknown_format(tmp_path):
     _data, pages = _make_pages()
     with pytest.raises(ValueError):
         render(pages, tmp_path / "x.out", "bogus")
+
+
+def test_page_rows_scale_with_font_size_and_margins():
+    assert lines_per_page_for(8.0) > lines_per_page_for(11.0)
+    assert lines_per_page_for(8.0, page_margin_pt=12.0) > lines_per_page_for(8.0)
+
+
+def test_pdf_long_lines_fit_available_width_without_wrapping():
+    assert _fitted_font_size(8.0, 400.0, 500.0) == 8.0
+    assert _fitted_font_size(8.0, 1000.0, 500.0) == 4.0
 
 
 def test_all_backends_present():

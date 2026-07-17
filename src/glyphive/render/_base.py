@@ -11,6 +11,8 @@ from glyphive.layout import Page
 DEFAULT_MONO_FONT = "Consolas"
 DEFAULT_DOCX_FONT = DEFAULT_MONO_FONT
 DEFAULT_PDF_FONT = "Courier"
+DEFAULT_PAGE_MARGIN_PT = 36.0
+MINIMAL_PAGE_MARGIN_PT = 12.0
 
 
 class RenderFormat(ABC):
@@ -70,5 +72,6 @@ class RenderFormat(ABC):
         *,
         font: _ty.Optional[str] = None,
         font_size: float = 11.0,
+        page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
     ) -> None:
         """Render already-paginated pages."""
