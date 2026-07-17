@@ -67,15 +67,20 @@ inside the limits of the intended printer and scanner before relying on it:
 glyphive create -f dense.pdf --format pdf --font-size 8 --minimal-margins -C project .
 ```
 
-PDF creation also measures the selected font's widest safe glyph and chooses
-the largest even `base16c-crc16-rs` payload width that fits between the margins at the
-requested size and character spacing. This lets a genuinely narrower measured
-font carry more than the conservative 60 payload characters per row without
-shrinking the rendered text. Text and Word output retain 60 by default because
-they do not expose reliable physical font metrics. Use `--line-width N` to pin
-the codec row width for a reproducible tested channel; PDF rejects an override
-that exceeds its measured fit. Decode infers row width from the frames, so no
-separate restore option is needed.
+PDF creation also measures the selected font's widest safe glyph and clamps the
+payload width to whichever is smaller: what fits between the margins at the
+requested size/spacing, or 60 characters -- the one width every OCR-safety
+measurement in this project (including the OCR-B "dense" preset) was actually
+taken at. A font whose glyphs are narrow enough to geometrically fit more than
+60 characters does **not** automatically get a wider row: real-content testing
+found a wider row (e.g. OCR-B 6pt's own ~90-char geometric fit) measurably less
+reliable than 60, even for a font otherwise considered OCR-safe. Text and Word
+output retain 60 by default for the same reason, on top of not exposing
+reliable physical font metrics. Use `--line-width N` to explicitly opt into an
+unmeasured wider (or an intentionally narrower) row for your own experiments;
+PDF rejects an override that exceeds its geometric fit, but does not stop you
+from choosing a wider-than-60 row that hasn't been OCR-verified. Decode infers
+row width from the frames, so no separate restore option is needed.
 
 Create uses disk-backed temporary spools so archive-sized payloads and encoded
 page lists do not have to remain in memory. Spools use the system temporary
