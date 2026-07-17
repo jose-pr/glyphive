@@ -14,6 +14,14 @@ not CI performance claims.
 - `ocraI-fast.json`, `ocraIII-fast.json`, and `ocraIV-fast.json` complete the
   external OCRA repository history. Their filenames do **not** establish ISO
   OCR-B Size I/III/IV conformance.
+- `ocraI-portable16-constrained.json`,
+  `ocraIII-portable16-constrained.json`, and
+  `ocraIV-portable16-constrained.json` test those external OCR-A files at 6.0,
+  6.8, 9.1, and 10.2 pt. All were rejected; the point sizes do not turn the
+  filenames into ISO OCR-B optical sizes.
+- `layout-ocrb6.json` compares left, centered, and justified OCR-B rows with
+  0.0--0.3 pt character spacing. This is a constrained character-grid
+  diagnostic, not an end-to-end restore result or CI performance evidence.
 - `ocrb-sizes-*` is the earlier 60-row point-size sweep. Prefer the 150-row
   model reports for recommendations; the shorter sweep is retained so future
   work can explain rather than erase the conflicting result.

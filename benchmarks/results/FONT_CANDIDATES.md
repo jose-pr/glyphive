@@ -13,7 +13,7 @@ gate on the intended printer/scanner or rasterization path.
 | --- | --- | --- | --- |
 | OCR-B by Raisty | [`jaycee723/ocr-b` commit `fedeba8`](https://github.com/jaycee723/ocr-b/tree/fedeba81519770109925b5bec70e940be5948d8f); `OCR-B.ttf`, 36,780 bytes, SHA-256 `367d876cca948ecd4900851f6e85687cbb6e71de9d0d2f36348edec5655526af` | [SIL OFL 1.1](https://github.com/jaycee723/ocr-b/blob/fedeba81519770109925b5bec70e940be5948d8f/OFL.txt), Reserved Font Name `OCR-B`; the unmodified file and license are bundled | Measured; see below |
 | OCRAB hybrid | [`smallwat3r/ocrab-font` commit `9a06a45`](https://github.com/smallwat3r/ocrab-font/tree/9a06a45c7571adc071b506605beb2a9a4ba29eca); `ocrab.ttf`, 27,184 bytes, SHA-256 `3bc94e4b92388fbed7a6b4be9713f70c1c07a70911a7520e4a0c948dd5f91e5d` | [SIL OFL 1.1](https://github.com/smallwat3r/ocrab-font/blob/9a06a45c7571adc071b506605beb2a9a4ba29eca/LICENSE); evaluated externally, not bundled | Measured and rejected for the current channel. This is intentionally a new OCR-A/OCR-B hybrid, not an ISO OCR-B size or style |
-| OCRA repository fonts | [`bcssupp0rt/ocrafont` commit `c6d0c8b`](https://github.com/bcssupp0rt/ocrafont/tree/c6d0c8bae5fe4d0da46eeb43d0f61f5f21b77974); measured `ocra.ttf` SHA-256 `7b85eb41528147dd4aa8f697b6bbc1656163e937f54cd71d64b541823d2a1725` and `OCRAII.TTF` SHA-256 `8cbc3c09199e3a6d94c619cffadde4776dfd53eb8760519e1083f4ade093d61e` | [GPL-3.0 repository](https://github.com/bcssupp0rt/ocrafont/blob/c6d0c8bae5fe4d0da46eeb43d0f61f5f21b77974/LICENSE); evaluated externally, not bundled | Two files measured and rejected. `ocraI.ttf`, `ocraIII.ttf`, and `ocraIV.ttf` remain pending |
+| OCRA repository fonts | [`bcssupp0rt/ocrafont` commit `c6d0c8b`](https://github.com/bcssupp0rt/ocrafont/tree/c6d0c8bae5fe4d0da46eeb43d0f61f5f21b77974); `ocra.ttf` SHA-256 `7b85eb41528147dd4aa8f697b6bbc1656163e937f54cd71d64b541823d2a1725`; `OCRAII.TTF` `8cbc3c09199e3a6d94c619cffadde4776dfd53eb8760519e1083f4ade093d61e`; `ocraI.ttf` `c9dd24ad539197486544034f571e31c9d06ddf18d0edea060ca13da19b7c7695`; `ocraIII.ttf` `4336316f2e69d9db121e0662dfecb5edc19c8da04798aa466b4db3cb0cb52f3d`; `ocraIV.ttf` `e1e683b83d0cf53956f186f68374bcb995455b97e99a4e047eecad9ce17fdbcc` | [GPL-3.0 repository](https://github.com/bcssupp0rt/ocrafont/blob/c6d0c8bae5fe4d0da46eeb43d0f61f5f21b77974/LICENSE); evaluated externally, not bundled | All five measured files rejected. The numbered variants are OCR-A artifacts, not ISO OCR-B sizes |
 | Tsukurimashou OCR fonts | [Tsukurimashou project](https://tsukurimashou.org/) and its [OCR font design notes](https://tsukurimashou.org/ocr.pdf) | Licensing and embedding terms require a separate review; not bundled | Pending controlled measurement |
 
 The OCRA repository's filenames containing `I`, `III`, or `IV` are OCR-A
@@ -60,6 +60,31 @@ The ordinary configuration did not impose those constraints.
 | OCRA `OCRAII.TTF` / system and `tessdata_fast` English / 6--10 pt | 100 per size | Ordinary | 11--12/16 | 8 | 69--79% | at most 697.5 | Rejected |
 | OCRAB / `tessdata_fast` English / 6 pt | 150 | `glyphive-safe` | 0/16 | 0 | 59.3% | 0 | Rejected |
 | OCRA `ocra.ttf` / `tessdata_fast` English / 6 pt | 150 | `glyphive-safe` | 0/16 | 0 | 52% | 0 | Rejected |
+| OCRA `ocraI.ttf` / `tessdata_fast` English / 6.0--10.2 pt | 100 per size | `glyphive-safe` | 0/16 | 0 | 58--74% | 0 | Rejected at every size |
+| OCRA `ocraIII.ttf` / `tessdata_fast` English / 6.0--10.2 pt | 100 per size | `glyphive-safe` | 0/16 | 0 | 75--88% | 0 | Rejected at every size |
+| OCRA `ocraIV.ttf` / `tessdata_fast` English / 6.0--10.2 pt | 100 per size | `glyphive-safe` | 0/16 | 0 | 100% | 0 | Rejected: every line erased |
+
+The OCRA variant sweep used 6.0, 6.8, 9.1, and 10.2 pt only as a common
+comparison scale near nominal OCR-B heights. It does not establish that these
+OCR-A files implement ISO OCR-B Size I, III, or IV.
+
+### OCR-B alignment and character spacing
+
+The constrained 6 pt OCR-B grid used 150 randomized rows, 300 DPI, and 100
+calculated lines per page. Left alignment with 0 pt added spacing retained all
+16 symbols with no erasures and yielded 5,050 usable bytes/page. Adding 0.1 pt
+reduced row width by one character and capacity to 5,000 bytes/page without an
+accuracy benefit. Centering at 0 pt lost `A` and `4`, fell to radix 8, and
+yielded 3,787.5 bytes/page; 0.1 pt spacing recovered all symbols but still
+yielded only 5,000 bytes/page. Justification at 0 pt tied the left-aligned
+5,050-byte result rather than improving it, while 0.1 and 0.2 pt introduced
+one and two erased rows respectively. Larger spacing reduced characters per
+row in every alignment.
+
+The best measured grid is therefore left aligned with no added character
+spacing. Justification did not create useful OCR separation and sometimes
+worsened erasures. These values are constrained character-grid diagnostics,
+not CI performance evidence or proof of full-frame recovery.
 
 The OCR-B 6 pt constrained result is a character-grid result, not yet a wire
 profile. Real pages also contain frame labels, indices, separators, and display
@@ -88,13 +113,11 @@ on its synthetic training samples.
 
 - Run complete restore gates for constrained OCR-B and Courier pages, including
   every frame marker and compressed payload modes.
-- Measure OCR-B point size, rendered stroke width, line spacing, centered and
-  justified placement, and minimum-margin layouts. Alignment is a hypothesis:
-  extra inter-character spacing may help OCR but can also reduce characters per
-  row or create word-gap insertions.
+- Continue OCR-B point-size, rendered stroke-width, line-spacing, and
+  minimum-margin tests. The first alignment sweep favored left alignment with
+  no added spacing; repeat it through an end-to-end restore path before making
+  that diagnostic winner a wire profile.
 - Source separately identifiable OCR-B constant-stroke and letterpress outlines;
   do not infer them from a filename or synthetic bolding.
-- Measure the remaining OCRA repository files only to complete the historical
-  record; their names must remain classified as OCR-A artifacts.
 - Measure Tsukurimashou candidates after recording exact files, hashes, and
   redistribution terms.
