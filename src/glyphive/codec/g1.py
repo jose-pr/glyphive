@@ -71,12 +71,13 @@ Reed-Solomon parity
 -------------------
 Parity is computed over the group's data bytes (header + original bytes) with
 ``reedsolo.RSCodec(nsym)``. The data is split into interleaved RS blocks of at
-most 255 bytes so arbitrarily large pages are supported while each block stays
-within the GF(2^8) code length. ``nsym = clamp(round(k * parity_ratio), 2, 100)``
-parity symbols per block, where ``k`` is that block's data length. Because the
-per-line CRC tells decode *exactly which* lines are wrong, decode feeds those
-lines' byte positions to RS as **erasures** — RS corrects up to ``nsym`` erasures
-per block (twice its blind-error budget).
+most 255 bytes so arbitrarily large documents are supported while each block
+stays within the GF(2^8) code length. Glyphive chooses one ``nsym`` in 2..100
+whose aggregate parity bytes across all blocks are closest to
+``protected_bytes * parity_ratio``. Because the per-line CRC tells decode
+*exactly which* lines are wrong, decode feeds those lines' byte positions to RS
+as **erasures** — RS corrects up to ``nsym`` erasures per block (twice its
+blind-error budget).
 
 Decode oracle discipline (CRITICAL)
 -----------------------------------
@@ -459,6 +460,24 @@ def _num_blocks(data_len: int, nsym: int) -> int:
     return (data_len + max_data_per_block - 1) // max_data_per_block
 
 
+def _select_nsym(data_len: int, parity_ratio: float) -> int:
+    """Choose per-block parity nearest the requested aggregate byte ratio."""
+    candidates = []
+    for nsym in range(2, 101):
+        nblocks = _num_blocks(data_len, nsym)
+        parity_len = nblocks * nsym
+        actual_ratio = parity_len / data_len
+        candidates.append(
+            (
+                abs(actual_ratio - parity_ratio),
+                actual_ratio < parity_ratio,
+                parity_len,
+                nsym,
+            )
+        )
+    return min(candidates)[-1]
+
+
 def _candidate_nsym(data_len: int, parity_len: int) -> _ty.List[int]:
     """Candidate ``nsym`` values consistent with the observed stream shapes.
 
@@ -579,7 +598,7 @@ def _encoding_shape(data_len: int, line_width: int, parity_ratio: float):
     if bytes_per_line < 1:
         raise ValueError("line_width too small to carry a byte")
     protected_len = _HEADER_LEN + data_len
-    nsym = max(2, min(100, round(protected_len * parity_ratio)))
+    nsym = _select_nsym(protected_len, parity_ratio)
     nblocks = _num_blocks(protected_len, nsym)
     parity_len = nblocks * nsym
     data_lines = (protected_len + bytes_per_line - 1) // bytes_per_line
@@ -703,7 +722,7 @@ class G1Codec(Codec):
 
         orig_len = len(data)
         protected_len = _HEADER_LEN + orig_len
-        nsym = max(2, min(100, round(protected_len * parity_ratio)))
+        nsym = _select_nsym(protected_len, parity_ratio)
         header = _make_header(nsym, orig_len)
         stream = header + data
         data_bytes, parity_bytes, _nblocks = _rs_encode(stream, nsym)
