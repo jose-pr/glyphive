@@ -38,8 +38,11 @@ from __future__ import annotations
 
 import hashlib
 import io
+import logging as _logging
 import tempfile
 import typing as _ty
+
+_logger = _logging.getLogger("glyphive.restore")
 
 from .. import archive, codec, compression, layout
 
@@ -145,6 +148,21 @@ def decode_document_to_spool(
         dir=temp_dir
     ) as compressed_spool:
         meta, _encoded_count = layout.read_pages_to_spool(text_lines, encoded_spool)
+
+        # Surface unreadable-index diagnostics NOW, before decode can fail on an
+        # RS-budget error -- otherwise finding #5's whole point (tell the reader
+        # *which* line broke the restore) is lost when decode raises first.
+        for entry in meta.get("_unreadable_lines", []) or []:
+            where = (
+                f"page {entry['page']}" if entry.get("page") is not None
+                else "unknown page"
+            )
+            _logger.warning(
+                "unreadable frame index (%s): %r -- Reed-Solomon must recover "
+                "this line's data from parity",
+                where,
+                entry.get("raw"),
+            )
 
         # 2) Resolve the header's data identifier before decoding anything. Header
         # identifiers are data, not import paths, and unknown names must fail before

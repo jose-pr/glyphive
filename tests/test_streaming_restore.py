@@ -212,6 +212,31 @@ def test_on_progress_reports_staged_then_published_events(tmp_path):
     assert last_published["count"] == last_published["total"] == 2
 
 
+def test_unreadable_line_is_logged_even_when_decode_subsequently_fails(
+    tmp_path, caplog
+):
+    """The unreadable-index diagnostic surfaces before an RS-budget failure.
+
+    Real-recovery finding #5: at no point did extract report which line broke
+    a restore -- every fix required hand-written bisection scripts. Corrupting
+    a data line's index token on a tiny document (too little RS budget to
+    survive losing that line) must still log which raw line was unreadable and
+    on which page, before the eventual CodecError propagates.
+    """
+    raw = _raw_tree(tmp_path, content=b"unreadable line diagnostic ordering")
+    lines = _transcript(raw)
+    idx = next(i for i, line in enumerate(lines) if line.startswith("L"))
+    label, payload, check = lines[idx].split()
+    lines[idx] = f"L{label[1]}K{label[2:]} {payload} {check}"
+
+    with caplog.at_level("WARNING", logger="glyphive.restore"):
+        with pytest.raises(Exception):
+            unarchive.restore_document_spooled(lines, tmp_path / "destination")
+
+    messages = [r.getMessage() for r in caplog.records]
+    assert any("unreadable frame index" in m for m in messages)
+
+
 def test_streamed_unarchive_peak_allocation_is_bounded(tmp_path):
     peaks = []
     for size in (64 * 1024, 1024 * 1024):
