@@ -63,6 +63,16 @@ Restore or inspect an already-generated GQ1 QR image set explicitly with
 OCR; QR mode requires `glyphive[qr]` and rejects mixed, duplicate, corrupt, or
 incomplete symbol sets before writing files.
 
+Create QR-only or hybrid human-readable/QR PDF pages with an explicit format:
+
+```bash
+glyphive create -f backup.pdf --format qr -C project .
+glyphive create -f backup-hybrid.pdf --format hybrid -C project .
+```
+
+A `.pdf` filename without `--format` remains the ordinary text PDF renderer;
+the suffix cannot distinguish PDF, QR, and hybrid presentations.
+
 Tar-style mode flags are equivalent when a positional command is inconvenient:
 
 ```bash
@@ -120,7 +130,9 @@ glyphive list -f backup.pdf --ocr-engine tesseract
 
 Restore verifies global integrity before publishing staged files. Advanced
 resource controls include `--temp-dir`, `--chunk-size`, and
-`--max-output-bytes` on both `extract` and `list`.
+`--max-output-bytes` on both `extract` and `list`. Transcript frames,
+compressed payload, decompressed archive, and staged files are disk-backed;
+Reed-Solomon correction retains only compact offsets and one codeword at a time.
 
 The operating-system Tesseract executable and language data must also be
 installed. PDF input uses `pypdfium2`; Glyphive-generated DOCX transcripts are

@@ -66,6 +66,21 @@ class RenderFormat(ABC):
     def is_available(cls) -> bool:
         return True
 
+    def payload_capacity(
+        self,
+        *,
+        font: _ty.Optional[str] = None,
+        font_size: float = 11.0,
+        page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
+        character_spacing_pt: float = 0.0,
+    ) -> _ty.Optional[int]:
+        """Return the largest fitting codec payload width, if measurable.
+
+        Formats without reliable physical font metrics return ``None`` and
+        creation retains the conservative 60-character wire row.
+        """
+        return None
+
     @classmethod
     def _register_external(cls, name: str, implementation: _ty.Type["RenderFormat"]) -> None:
         if name in RenderFormat._registry:

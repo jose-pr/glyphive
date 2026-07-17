@@ -209,6 +209,35 @@ def test_metadata_basic_selector_is_recorded_and_restored(tmp_path):
     _compare_dirs(src, outdir)
 
 
+def test_create_explicit_line_width_controls_g1_rows(tmp_path):
+    src = _make_srcdir(tmp_path)
+    (src / "wide.bin").write_bytes(bytes(range(256)) * 8)
+    archive_file = tmp_path / "wide.txt"
+
+    assert cli.run(
+        [
+            "create", "-f", str(archive_file), "-C", str(src),
+            "--compression", "none", "--line-width", "100", ".",
+        ]
+    ) == 0
+
+    payloads = [
+        line.split()[1]
+        for line in archive_file.read_text(encoding="utf-8").splitlines()
+        if line.startswith(("L", "P"))
+    ]
+    assert max(map(len, payloads)) == 100
+
+
+def test_create_rejects_too_small_line_width(tmp_path):
+    src = _make_srcdir(tmp_path)
+    with pytest.raises(SystemExit, match="line-width must be at least 2"):
+        cli.run(
+            ["create", "-f", str(tmp_path / "bad.txt"), "-C", str(src),
+             "--line-width", "1", "."]
+        )
+
+
 def test_generic_codec_and_compression_selectors_roundtrip(tmp_path):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "custom.txt"
@@ -375,6 +404,14 @@ def test_explicit_output_format_wins_over_destination_suffix(tmp_path):
         ]
     ) == 0
     assert archive_file.read_text(encoding="utf-8").startswith("#!glyphive")
+
+
+def test_pdf_suffix_remains_ordinary_pdf_without_explicit_qr_format():
+    from glyphive.cli.create import _output_format
+
+    assert _output_format("archive.pdf", None) == "pdf"
+    assert _output_format("archive.pdf", "qr") == "qr"
+    assert _output_format("archive.pdf", "hybrid") == "hybrid"
 
 
 def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch):

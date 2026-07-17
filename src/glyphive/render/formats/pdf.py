@@ -21,6 +21,8 @@ _CORE_FONTS = frozenset(
     {"courier", "helvetica", "times", "symbol", "zapfdingbats", "arial"}
 )
 _BUNDLED_FONTS = {"ocr-b": ("glyphive.assets.fonts.ocr_b", "OCR-B.ttf")}
+_FRAME_KINDS = "HLPT"
+_SAFE_ALPHABET = "ABCDHKLMPRTVXY34"
 
 
 @contextmanager
@@ -98,6 +100,41 @@ class PdfRenderFormat(RenderFormat):
             return importlib.util.find_spec("fpdf") is not None
         except Exception:
             return False
+
+    def payload_capacity(
+        self,
+        *,
+        font: _ty.Optional[str] = None,
+        font_size: float = 11.0,
+        page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
+        character_spacing_pt: float = 0.0,
+    ) -> _ty.Optional[int]:
+        """Measure the largest even payload fitting one Letter frame line."""
+        import fpdf
+
+        if font_size <= 0:
+            raise ValueError("font_size must be > 0")
+        available = 612.0 - 2.0 * page_margin_pt
+        if available <= 0:
+            raise ValueError("page_margin_pt must leave positive printable width")
+        if character_spacing_pt < 0:
+            raise ValueError("character_spacing_pt must be >= 0")
+        pdf = fpdf.FPDF(orientation="P", unit="pt", format="Letter")
+        with registered_pdf_font(pdf, font) as family:
+            pdf.set_font(family, size=font_size)
+            widest_safe = max(pdf.get_string_width(char) for char in _SAFE_ALPHABET)
+            widest_kind = max(pdf.get_string_width(char) for char in _FRAME_KINDS)
+            fixed_width = (
+                widest_kind
+                + 9 * widest_safe  # five index and four check characters
+                + 2 * pdf.get_string_width(" ")
+                + pdf.get_string_width("#")
+            )
+        # A frame with N payload characters has N+13 total characters and
+        # therefore N+12 tracking gaps.
+        remaining = available - fixed_width - 12 * character_spacing_pt
+        capacity = int(remaining // (widest_safe + character_spacing_pt))
+        return max(0, capacity - capacity % 2)
 
     def render(
         self,

@@ -20,7 +20,12 @@ from ._common import format_selector_error, resolve_destination
 __all__ = ["Create"]
 
 
-_FORMAT_EXTRAS = {"pdf": "glyphive[pdf]", "docx": "glyphive[docx]"}
+_FORMAT_EXTRAS = {
+    "pdf": "glyphive[pdf]",
+    "docx": "glyphive[docx]",
+    "qr": "glyphive[qr,pdf]",
+    "hybrid": "glyphive[qr,pdf]",
+}
 _COMPRESSION_EXTRAS = {"zstd": "glyphive[zstd]"}
 _FORMAT_BY_SUFFIX = {
     ".txt": "text",
@@ -123,7 +128,7 @@ class Create(LoggingArgs):
     ("--compression",)
 
     format: "_ty.Optional[str]" = None
-    "Output render format registry name (default: infer from -f; otherwise text)."
+    "Output format name; QR/hybrid must be explicit because both write PDF."
     ("--format",)
 
     gzip: "_ty.Annotated[bool, NS(conflicts='legacy_compression')]" = False
@@ -165,6 +170,10 @@ class Create(LoggingArgs):
     character_spacing: float = 0.0
     "Extra space between characters in points for pdf/docx output."
     ("--character-spacing",)
+
+    line_width: "_ty.Optional[int]" = None
+    "Codec payload characters per row (default: largest measured PDF fit)."
+    ("--line-width",)
 
     temp_dir: "_ty.Optional[str]" = None
     "Directory for bounded-memory spool files (default: system temporary directory)."
@@ -221,6 +230,29 @@ class Create(LoggingArgs):
         lines_per_page = _render.lines_per_page_for(
             self.font_size, page_margin_pt=page_margin_pt
         )
+        measured_capacity = renderer.payload_capacity(
+            font=self.font,
+            font_size=self.font_size,
+            page_margin_pt=page_margin_pt,
+            character_spacing_pt=self.character_spacing,
+        )
+        if measured_capacity is not None and measured_capacity < 60:
+            raise SystemExit(
+                "error: selected PDF geometry fits only %d payload characters; "
+                "at least 60 are required for protected header/footer frames"
+                % measured_capacity
+            )
+        if self.line_width is not None:
+            if self.line_width < 2:
+                raise SystemExit("error: --line-width must be at least 2")
+            if measured_capacity is not None and self.line_width > measured_capacity:
+                raise SystemExit(
+                    "error: --line-width %d exceeds the measured PDF capacity %d"
+                    % (self.line_width, measured_capacity)
+                )
+            line_width = self.line_width
+        else:
+            line_width = measured_capacity or 60
         out = Path(self.file)
         with _tempfile.TemporaryFile(dir=self.temp_dir) as raw_spool:
             measured_raw = _DigestWriter(raw_spool)
@@ -254,11 +286,15 @@ class Create(LoggingArgs):
                     encoded = codec.iter_encode(
                         compressed_spool,
                         compressed_len,
+                        line_width=line_width,
                         temp_dir=self.temp_dir,
                     )
-                    n_encoded = _g1_encoded_line_count(compressed_len)
+                    n_encoded = _g1_encoded_line_count(
+                        compressed_len, line_width=line_width
+                    )
                 else:
-                    materialized = codec.encode(compressed_spool.read())
+                    options = {"line_width": line_width} if codec_name == "g1" else {}
+                    materialized = codec.encode(compressed_spool.read(), **options)
                     encoded, n_encoded = iter(materialized), len(materialized)
                 pages = _layout.iter_paginate(
                     encoded,
