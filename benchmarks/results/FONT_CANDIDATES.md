@@ -86,6 +86,13 @@ spacing. Justification did not create useful OCR separation and sometimes
 worsened erasures. These values are constrained character-grid diagnostics,
 not CI performance evidence or proof of full-frame recovery.
 
+The matching constrained Courier 8 pt matrix also favored zero added spacing:
+left and centered placement each retained 16/16 symbols with no erasures at
+4,125 usable bytes/page. Justification at 0 pt fell to 14 safe symbols and
+radix 8; 0.1 pt recovered radix 16 but yielded only 4,023 bytes/page. Thus
+neither centering, justification, nor added tracking displaced OCR-B left/0 as
+the densest measured constrained grid.
+
 The OCR-B 6 pt constrained result is a character-grid result, not yet a wire
 profile. Real pages also contain frame labels, indices, separators, and display
 text. It must survive complete PDF creation, rasterization, OCR, and restore
