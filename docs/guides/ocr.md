@@ -81,7 +81,12 @@ OCR-B has now been measured in diagnostic character-grid sweeps. At 6 pt it
 retained all 16 current symbols with no insertions only when Tesseract used an
 exact whitelist and disabled its system/frequency dictionaries; ordinary model
 runs lost enough symbols to fall to radix 8. That constrained cell has not yet
-passed a full-frame restore gate. Treat an OCR-B file, a coding font, a
+passed a full-frame restore gate. A follow-up layout grid found that left
+alignment with no added spacing was best: 5,050 usable bytes/page versus 5,000
+for centered text with 0.1 pt spacing. Centering with no spacing lost two safe
+symbols, and justification tied the best capacity only at 0 pt while sometimes
+adding erasures at wider spacing. Centering or justification should therefore
+not be assumed to improve OCR separation. Treat an OCR-B file, a coding font, a
 different weight, or a trained language model as a new channel:
 record the exact font file and license, renderer, size, DPI, engine and model
 versions, then run the alphabet sweep and a byte-for-byte restore gate. See

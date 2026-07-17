@@ -1,0 +1,3659 @@
+{
+  "results": [
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocraIII.ttf",
+      "font_label": "ocraIII.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.0,
+      "rows": 100,
+      "line_length": 110,
+      "chars_per_line": 110,
+      "lines_per_page": 100,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.84,
+      "length_mismatches": 84,
+      "per_char": {
+        "A": {
+          "samples": 103,
+          "errors": 2,
+          "error_rate": 0.019417475728155338,
+          "misreads": [
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "B": {
+          "samples": 135,
+          "errors": 9,
+          "error_rate": 0.06666666666666667,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "C": {
+          "samples": 127,
+          "errors": 6,
+          "error_rate": 0.047244094488188976,
+          "misreads": [
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "D": {
+          "samples": 117,
+          "errors": 6,
+          "error_rate": 0.05128205128205128,
+          "misreads": [
+            {
+              "target": "4",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "H": {
+          "samples": 118,
+          "errors": 15,
+          "error_rate": 0.1271186440677966,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 9,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "K": {
+          "samples": 106,
+          "errors": 2,
+          "error_rate": 0.018867924528301886,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "L": {
+          "samples": 125,
+          "errors": 8,
+          "error_rate": 0.064,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "M": {
+          "samples": 95,
+          "errors": 3,
+          "error_rate": 0.031578947368421054,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "P": {
+          "samples": 109,
+          "errors": 8,
+          "error_rate": 0.07339449541284404,
+          "misreads": [
+            {
+              "target": "B",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "R": {
+          "samples": 109,
+          "errors": 8,
+          "error_rate": 0.07339449541284404,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "T": {
+          "samples": 103,
+          "errors": 4,
+          "error_rate": 0.038834951456310676,
+          "misreads": [
+            {
+              "target": "B",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "V": {
+          "samples": 109,
+          "errors": 6,
+          "error_rate": 0.05504587155963303,
+          "misreads": [
+            {
+              "target": "P",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "X": {
+          "samples": 92,
+          "errors": 8,
+          "error_rate": 0.08695652173913043,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "Y": {
+          "samples": 131,
+          "errors": 9,
+          "error_rate": 0.06870229007633588,
+          "misreads": [
+            {
+              "target": "D",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "3": {
+          "samples": 81,
+          "errors": 65,
+          "error_rate": 0.8024691358024691,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 54,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "4": {
+          "samples": 100,
+          "errors": 85,
+          "error_rate": 0.85,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 71,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 5,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "effective_bits": 0.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.0,
+      "corrupting_pairs": [
+        [
+          "A",
+          "L",
+          1
+        ],
+        [
+          "A",
+          "X",
+          1
+        ],
+        [
+          "B",
+          "Y",
+          2
+        ],
+        [
+          "B",
+          "L",
+          1
+        ],
+        [
+          "B",
+          "C",
+          1
+        ],
+        [
+          "B",
+          "T",
+          1
+        ],
+        [
+          "B",
+          "R",
+          1
+        ],
+        [
+          "C",
+          "H",
+          2
+        ],
+        [
+          "C",
+          "D",
+          1
+        ],
+        [
+          "C",
+          "Y",
+          1
+        ],
+        [
+          "C",
+          "X",
+          1
+        ],
+        [
+          "C",
+          "V",
+          1
+        ],
+        [
+          "D",
+          "4",
+          2
+        ],
+        [
+          "D",
+          "K",
+          1
+        ],
+        [
+          "D",
+          "A",
+          1
+        ],
+        [
+          "D",
+          "L",
+          1
+        ],
+        [
+          "D",
+          "Y",
+          1
+        ],
+        [
+          "H",
+          "A",
+          9
+        ],
+        [
+          "H",
+          "T",
+          1
+        ],
+        [
+          "H",
+          "4",
+          1
+        ],
+        [
+          "H",
+          "C",
+          1
+        ],
+        [
+          "H",
+          "R",
+          1
+        ],
+        [
+          "K",
+          "Y",
+          1
+        ],
+        [
+          "K",
+          "M",
+          1
+        ],
+        [
+          "L",
+          "A",
+          2
+        ],
+        [
+          "L",
+          "P",
+          2
+        ],
+        [
+          "L",
+          "C",
+          1
+        ],
+        [
+          "L",
+          "B",
+          1
+        ],
+        [
+          "L",
+          "R",
+          1
+        ],
+        [
+          "M",
+          "Y",
+          2
+        ],
+        [
+          "M",
+          "P",
+          1
+        ],
+        [
+          "P",
+          "B",
+          2
+        ],
+        [
+          "P",
+          "Y",
+          2
+        ],
+        [
+          "P",
+          "D",
+          1
+        ],
+        [
+          "P",
+          "H",
+          1
+        ],
+        [
+          "P",
+          "R",
+          1
+        ],
+        [
+          "R",
+          "A",
+          3
+        ],
+        [
+          "R",
+          "P",
+          1
+        ],
+        [
+          "R",
+          "M",
+          1
+        ],
+        [
+          "R",
+          "Y",
+          1
+        ],
+        [
+          "R",
+          "V",
+          1
+        ],
+        [
+          "T",
+          "B",
+          2
+        ],
+        [
+          "T",
+          "4",
+          1
+        ],
+        [
+          "T",
+          "P",
+          1
+        ],
+        [
+          "V",
+          "P",
+          2
+        ],
+        [
+          "V",
+          "4",
+          1
+        ],
+        [
+          "V",
+          "T",
+          1
+        ],
+        [
+          "V",
+          "A",
+          1
+        ],
+        [
+          "V",
+          "L",
+          1
+        ],
+        [
+          "X",
+          "A",
+          3
+        ],
+        [
+          "X",
+          "C",
+          2
+        ],
+        [
+          "X",
+          "L",
+          1
+        ],
+        [
+          "X",
+          "B",
+          1
+        ],
+        [
+          "X",
+          "Y",
+          1
+        ],
+        [
+          "Y",
+          "D",
+          2
+        ],
+        [
+          "Y",
+          "T",
+          1
+        ],
+        [
+          "Y",
+          "4",
+          1
+        ],
+        [
+          "Y",
+          "A",
+          1
+        ],
+        [
+          "Y",
+          "K",
+          1
+        ],
+        [
+          "3",
+          "A",
+          54
+        ],
+        [
+          "3",
+          "4",
+          3
+        ],
+        [
+          "3",
+          "Y",
+          3
+        ],
+        [
+          "3",
+          "H",
+          2
+        ],
+        [
+          "3",
+          "R",
+          1
+        ],
+        [
+          "4",
+          "Y",
+          71
+        ],
+        [
+          "4",
+          "H",
+          5
+        ],
+        [
+          "4",
+          "V",
+          2
+        ],
+        [
+          "4",
+          "L",
+          2
+        ],
+        [
+          "4",
+          "D",
+          1
+        ]
+      ],
+      "chars_per_page": 11000,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocraIII.ttf",
+      "font_label": "ocraIII.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.8,
+      "rows": 100,
+      "line_length": 97,
+      "chars_per_line": 97,
+      "lines_per_page": 88,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.88,
+      "length_mismatches": 88,
+      "per_char": {
+        "A": {
+          "samples": 69,
+          "errors": 15,
+          "error_rate": 0.21739130434782608,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "B": {
+          "samples": 85,
+          "errors": 13,
+          "error_rate": 0.15294117647058825,
+          "misreads": [
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "C": {
+          "samples": 81,
+          "errors": 13,
+          "error_rate": 0.16049382716049382,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "D": {
+          "samples": 69,
+          "errors": 10,
+          "error_rate": 0.14492753623188406,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "H": {
+          "samples": 92,
+          "errors": 26,
+          "error_rate": 0.2826086956521739,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 10,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 2,
+              "corrupting": true
+            }
+          ]
+        },
+        "K": {
+          "samples": 54,
+          "errors": 9,
+          "error_rate": 0.16666666666666666,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "L": {
+          "samples": 59,
+          "errors": 7,
+          "error_rate": 0.11864406779661017,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "M": {
+          "samples": 78,
+          "errors": 13,
+          "error_rate": 0.16666666666666666,
+          "misreads": [
+            {
+              "target": "H",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "P": {
+          "samples": 85,
+          "errors": 15,
+          "error_rate": 0.17647058823529413,
+          "misreads": [
+            {
+              "target": "V",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 2,
+              "corrupting": true
+            }
+          ]
+        },
+        "R": {
+          "samples": 69,
+          "errors": 15,
+          "error_rate": 0.21739130434782608,
+          "misreads": [
+            {
+              "target": "K",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 2,
+              "corrupting": true
+            }
+          ]
+        },
+        "T": {
+          "samples": 81,
+          "errors": 10,
+          "error_rate": 0.12345679012345678,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "V": {
+          "samples": 90,
+          "errors": 16,
+          "error_rate": 0.17777777777777778,
+          "misreads": [
+            {
+              "target": "3",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 2,
+              "corrupting": true
+            }
+          ]
+        },
+        "X": {
+          "samples": 49,
+          "errors": 10,
+          "error_rate": 0.20408163265306123,
+          "misreads": [
+            {
+              "target": "T",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "Y": {
+          "samples": 78,
+          "errors": 13,
+          "error_rate": 0.16666666666666666,
+          "misreads": [
+            {
+              "target": "R",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "3": {
+          "samples": 56,
+          "errors": 45,
+          "error_rate": 0.8035714285714286,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 30,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 2,
+              "corrupting": true
+            }
+          ]
+        },
+        "4": {
+          "samples": 69,
+          "errors": 53,
+          "error_rate": 0.7681159420289855,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 40,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "3",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "effective_bits": 0.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.0,
+      "corrupting_pairs": [
+        [
+          "A",
+          "Y",
+          4
+        ],
+        [
+          "A",
+          "M",
+          3
+        ],
+        [
+          "A",
+          "D",
+          2
+        ],
+        [
+          "A",
+          "C",
+          1
+        ],
+        [
+          "A",
+          "T",
+          1
+        ],
+        [
+          "B",
+          "H",
+          2
+        ],
+        [
+          "B",
+          "R",
+          2
+        ],
+        [
+          "B",
+          "V",
+          1
+        ],
+        [
+          "B",
+          "K",
+          1
+        ],
+        [
+          "B",
+          "P",
+          1
+        ],
+        [
+          "C",
+          "Y",
+          3
+        ],
+        [
+          "C",
+          "P",
+          3
+        ],
+        [
+          "C",
+          "H",
+          2
+        ],
+        [
+          "C",
+          "V",
+          1
+        ],
+        [
+          "C",
+          "D",
+          1
+        ],
+        [
+          "D",
+          "Y",
+          2
+        ],
+        [
+          "D",
+          "M",
+          2
+        ],
+        [
+          "D",
+          "A",
+          1
+        ],
+        [
+          "D",
+          "H",
+          1
+        ],
+        [
+          "D",
+          "C",
+          1
+        ],
+        [
+          "H",
+          "A",
+          10
+        ],
+        [
+          "H",
+          "X",
+          4
+        ],
+        [
+          "H",
+          "Y",
+          3
+        ],
+        [
+          "H",
+          "C",
+          3
+        ],
+        [
+          "H",
+          "M",
+          2
+        ],
+        [
+          "K",
+          "A",
+          3
+        ],
+        [
+          "K",
+          "P",
+          2
+        ],
+        [
+          "K",
+          "T",
+          2
+        ],
+        [
+          "K",
+          "V",
+          1
+        ],
+        [
+          "K",
+          "C",
+          1
+        ],
+        [
+          "L",
+          "Y",
+          2
+        ],
+        [
+          "L",
+          "A",
+          2
+        ],
+        [
+          "L",
+          "T",
+          1
+        ],
+        [
+          "L",
+          "M",
+          1
+        ],
+        [
+          "L",
+          "H",
+          1
+        ],
+        [
+          "M",
+          "H",
+          3
+        ],
+        [
+          "M",
+          "V",
+          3
+        ],
+        [
+          "M",
+          "A",
+          2
+        ],
+        [
+          "M",
+          "P",
+          1
+        ],
+        [
+          "M",
+          "K",
+          1
+        ],
+        [
+          "P",
+          "V",
+          3
+        ],
+        [
+          "P",
+          "B",
+          3
+        ],
+        [
+          "P",
+          "A",
+          3
+        ],
+        [
+          "P",
+          "R",
+          3
+        ],
+        [
+          "P",
+          "D",
+          2
+        ],
+        [
+          "R",
+          "K",
+          4
+        ],
+        [
+          "R",
+          "A",
+          3
+        ],
+        [
+          "R",
+          "Y",
+          3
+        ],
+        [
+          "R",
+          "L",
+          2
+        ],
+        [
+          "R",
+          "M",
+          2
+        ],
+        [
+          "T",
+          "Y",
+          2
+        ],
+        [
+          "T",
+          "K",
+          2
+        ],
+        [
+          "T",
+          "H",
+          1
+        ],
+        [
+          "T",
+          "C",
+          1
+        ],
+        [
+          "T",
+          "P",
+          1
+        ],
+        [
+          "V",
+          "3",
+          2
+        ],
+        [
+          "V",
+          "P",
+          2
+        ],
+        [
+          "V",
+          "L",
+          2
+        ],
+        [
+          "V",
+          "A",
+          2
+        ],
+        [
+          "V",
+          "X",
+          2
+        ],
+        [
+          "X",
+          "T",
+          3
+        ],
+        [
+          "X",
+          "K",
+          2
+        ],
+        [
+          "X",
+          "A",
+          2
+        ],
+        [
+          "X",
+          "B",
+          2
+        ],
+        [
+          "X",
+          "4",
+          1
+        ],
+        [
+          "Y",
+          "R",
+          2
+        ],
+        [
+          "Y",
+          "L",
+          2
+        ],
+        [
+          "Y",
+          "A",
+          1
+        ],
+        [
+          "Y",
+          "H",
+          1
+        ],
+        [
+          "Y",
+          "B",
+          1
+        ],
+        [
+          "3",
+          "A",
+          30
+        ],
+        [
+          "3",
+          "4",
+          3
+        ],
+        [
+          "3",
+          "Y",
+          2
+        ],
+        [
+          "3",
+          "V",
+          2
+        ],
+        [
+          "3",
+          "C",
+          2
+        ],
+        [
+          "4",
+          "Y",
+          40
+        ],
+        [
+          "4",
+          "H",
+          3
+        ],
+        [
+          "4",
+          "B",
+          2
+        ],
+        [
+          "4",
+          "3",
+          2
+        ],
+        [
+          "4",
+          "P",
+          1
+        ]
+      ],
+      "chars_per_page": 8536,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocraIII.ttf",
+      "font_label": "ocraIII.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 9.1,
+      "rows": 100,
+      "line_length": 73,
+      "chars_per_line": 73,
+      "lines_per_page": 65,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.83,
+      "length_mismatches": 83,
+      "per_char": {
+        "A": {
+          "samples": 67,
+          "errors": 3,
+          "error_rate": 0.04477611940298507,
+          "misreads": [
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "B": {
+          "samples": 87,
+          "errors": 13,
+          "error_rate": 0.14942528735632185,
+          "misreads": [
+            {
+              "target": "R",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "C": {
+          "samples": 86,
+          "errors": 11,
+          "error_rate": 0.12790697674418605,
+          "misreads": [
+            {
+              "target": "B",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "D": {
+          "samples": 86,
+          "errors": 7,
+          "error_rate": 0.08139534883720931,
+          "misreads": [
+            {
+              "target": "B",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "H": {
+          "samples": 89,
+          "errors": 19,
+          "error_rate": 0.21348314606741572,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "K": {
+          "samples": 67,
+          "errors": 9,
+          "error_rate": 0.13432835820895522,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "L": {
+          "samples": 72,
+          "errors": 8,
+          "error_rate": 0.1111111111111111,
+          "misreads": [
+            {
+              "target": "X",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "M": {
+          "samples": 62,
+          "errors": 10,
+          "error_rate": 0.16129032258064516,
+          "misreads": [
+            {
+              "target": "4",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "P": {
+          "samples": 100,
+          "errors": 14,
+          "error_rate": 0.14,
+          "misreads": [
+            {
+              "target": "L",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "R": {
+          "samples": 82,
+          "errors": 15,
+          "error_rate": 0.18292682926829268,
+          "misreads": [
+            {
+              "target": "K",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "T": {
+          "samples": 77,
+          "errors": 9,
+          "error_rate": 0.11688311688311688,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "V": {
+          "samples": 73,
+          "errors": 6,
+          "error_rate": 0.0821917808219178,
+          "misreads": [
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "X": {
+          "samples": 76,
+          "errors": 11,
+          "error_rate": 0.14473684210526316,
+          "misreads": [
+            {
+              "target": "K",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "Y": {
+          "samples": 82,
+          "errors": 4,
+          "error_rate": 0.04878048780487805,
+          "misreads": [
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "3": {
+          "samples": 57,
+          "errors": 43,
+          "error_rate": 0.7543859649122807,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 30,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "4": {
+          "samples": 78,
+          "errors": 64,
+          "error_rate": 0.8205128205128205,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 54,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "effective_bits": 0.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.0,
+      "corrupting_pairs": [
+        [
+          "A",
+          "C",
+          1
+        ],
+        [
+          "A",
+          "R",
+          1
+        ],
+        [
+          "A",
+          "T",
+          1
+        ],
+        [
+          "B",
+          "R",
+          3
+        ],
+        [
+          "B",
+          "H",
+          2
+        ],
+        [
+          "B",
+          "C",
+          2
+        ],
+        [
+          "B",
+          "K",
+          2
+        ],
+        [
+          "B",
+          "4",
+          1
+        ],
+        [
+          "C",
+          "B",
+          3
+        ],
+        [
+          "C",
+          "Y",
+          2
+        ],
+        [
+          "C",
+          "R",
+          2
+        ],
+        [
+          "C",
+          "V",
+          1
+        ],
+        [
+          "C",
+          "H",
+          1
+        ],
+        [
+          "D",
+          "B",
+          2
+        ],
+        [
+          "D",
+          "T",
+          1
+        ],
+        [
+          "D",
+          "Y",
+          1
+        ],
+        [
+          "D",
+          "P",
+          1
+        ],
+        [
+          "D",
+          "H",
+          1
+        ],
+        [
+          "H",
+          "A",
+          4
+        ],
+        [
+          "H",
+          "Y",
+          3
+        ],
+        [
+          "H",
+          "D",
+          3
+        ],
+        [
+          "H",
+          "C",
+          1
+        ],
+        [
+          "H",
+          "T",
+          1
+        ],
+        [
+          "K",
+          "Y",
+          3
+        ],
+        [
+          "K",
+          "M",
+          2
+        ],
+        [
+          "K",
+          "A",
+          2
+        ],
+        [
+          "K",
+          "V",
+          1
+        ],
+        [
+          "K",
+          "P",
+          1
+        ],
+        [
+          "L",
+          "X",
+          2
+        ],
+        [
+          "L",
+          "B",
+          2
+        ],
+        [
+          "L",
+          "P",
+          1
+        ],
+        [
+          "L",
+          "T",
+          1
+        ],
+        [
+          "L",
+          "H",
+          1
+        ],
+        [
+          "M",
+          "4",
+          2
+        ],
+        [
+          "M",
+          "Y",
+          1
+        ],
+        [
+          "M",
+          "T",
+          1
+        ],
+        [
+          "M",
+          "H",
+          1
+        ],
+        [
+          "M",
+          "C",
+          1
+        ],
+        [
+          "P",
+          "L",
+          3
+        ],
+        [
+          "P",
+          "K",
+          2
+        ],
+        [
+          "P",
+          "X",
+          2
+        ],
+        [
+          "P",
+          "C",
+          1
+        ],
+        [
+          "P",
+          "D",
+          1
+        ],
+        [
+          "R",
+          "K",
+          3
+        ],
+        [
+          "R",
+          "A",
+          2
+        ],
+        [
+          "R",
+          "P",
+          2
+        ],
+        [
+          "R",
+          "X",
+          2
+        ],
+        [
+          "R",
+          "L",
+          1
+        ],
+        [
+          "T",
+          "Y",
+          2
+        ],
+        [
+          "T",
+          "M",
+          2
+        ],
+        [
+          "T",
+          "A",
+          1
+        ],
+        [
+          "T",
+          "X",
+          1
+        ],
+        [
+          "T",
+          "V",
+          1
+        ],
+        [
+          "V",
+          "H",
+          2
+        ],
+        [
+          "V",
+          "M",
+          1
+        ],
+        [
+          "V",
+          "X",
+          1
+        ],
+        [
+          "V",
+          "T",
+          1
+        ],
+        [
+          "V",
+          "A",
+          1
+        ],
+        [
+          "X",
+          "K",
+          2
+        ],
+        [
+          "X",
+          "M",
+          2
+        ],
+        [
+          "X",
+          "A",
+          1
+        ],
+        [
+          "X",
+          "T",
+          1
+        ],
+        [
+          "X",
+          "B",
+          1
+        ],
+        [
+          "Y",
+          "D",
+          1
+        ],
+        [
+          "Y",
+          "K",
+          1
+        ],
+        [
+          "Y",
+          "R",
+          1
+        ],
+        [
+          "Y",
+          "H",
+          1
+        ],
+        [
+          "3",
+          "A",
+          30
+        ],
+        [
+          "3",
+          "P",
+          4
+        ],
+        [
+          "3",
+          "4",
+          3
+        ],
+        [
+          "3",
+          "H",
+          2
+        ],
+        [
+          "3",
+          "B",
+          1
+        ],
+        [
+          "4",
+          "Y",
+          54
+        ],
+        [
+          "4",
+          "P",
+          2
+        ],
+        [
+          "4",
+          "H",
+          2
+        ],
+        [
+          "4",
+          "C",
+          2
+        ],
+        [
+          "4",
+          "K",
+          1
+        ]
+      ],
+      "chars_per_page": 4745,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    },
+    {
+      "font_arg": "/tmp/glyphive-fonts/ocraIII.ttf",
+      "font_label": "ocraIII.ttf",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 10.2,
+      "rows": 100,
+      "line_length": 65,
+      "chars_per_line": 65,
+      "lines_per_page": 58,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": true,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.75,
+      "length_mismatches": 75,
+      "per_char": {
+        "A": {
+          "samples": 81,
+          "errors": 6,
+          "error_rate": 0.07407407407407407,
+          "misreads": [
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "B": {
+          "samples": 115,
+          "errors": 6,
+          "error_rate": 0.05217391304347826,
+          "misreads": [
+            {
+              "target": "P",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "C": {
+          "samples": 106,
+          "errors": 6,
+          "error_rate": 0.05660377358490566,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "D": {
+          "samples": 106,
+          "errors": 4,
+          "error_rate": 0.03773584905660377,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "3",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "H": {
+          "samples": 125,
+          "errors": 12,
+          "error_rate": 0.096,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 5,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "K": {
+          "samples": 101,
+          "errors": 7,
+          "error_rate": 0.06930693069306931,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "L": {
+          "samples": 97,
+          "errors": 7,
+          "error_rate": 0.07216494845360824,
+          "misreads": [
+            {
+              "target": "R",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "M": {
+          "samples": 82,
+          "errors": 4,
+          "error_rate": 0.04878048780487805,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "3",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "P": {
+          "samples": 105,
+          "errors": 7,
+          "error_rate": 0.06666666666666667,
+          "misreads": [
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "R": {
+          "samples": 101,
+          "errors": 5,
+          "error_rate": 0.04950495049504951,
+          "misreads": [
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "T": {
+          "samples": 101,
+          "errors": 9,
+          "error_rate": 0.0891089108910891,
+          "misreads": [
+            {
+              "target": "L",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "V": {
+          "samples": 111,
+          "errors": 13,
+          "error_rate": 0.11711711711711711,
+          "misreads": [
+            {
+              "target": "T",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "X": {
+          "samples": 99,
+          "errors": 3,
+          "error_rate": 0.030303030303030304,
+          "misreads": [
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "Y": {
+          "samples": 117,
+          "errors": 7,
+          "error_rate": 0.05982905982905983,
+          "misreads": [
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "3": {
+          "samples": 80,
+          "errors": 54,
+          "error_rate": 0.675,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 42,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        },
+        "4": {
+          "samples": 98,
+          "errors": 66,
+          "error_rate": 0.673469387755102,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 61,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "effective_bits": 0.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.0,
+      "corrupting_pairs": [
+        [
+          "A",
+          "H",
+          1
+        ],
+        [
+          "A",
+          "Y",
+          1
+        ],
+        [
+          "A",
+          "P",
+          1
+        ],
+        [
+          "A",
+          "L",
+          1
+        ],
+        [
+          "A",
+          "V",
+          1
+        ],
+        [
+          "B",
+          "P",
+          2
+        ],
+        [
+          "B",
+          "T",
+          1
+        ],
+        [
+          "B",
+          "L",
+          1
+        ],
+        [
+          "B",
+          "V",
+          1
+        ],
+        [
+          "B",
+          "K",
+          1
+        ],
+        [
+          "C",
+          "Y",
+          2
+        ],
+        [
+          "C",
+          "P",
+          1
+        ],
+        [
+          "C",
+          "L",
+          1
+        ],
+        [
+          "C",
+          "V",
+          1
+        ],
+        [
+          "C",
+          "H",
+          1
+        ],
+        [
+          "D",
+          "A",
+          1
+        ],
+        [
+          "D",
+          "B",
+          1
+        ],
+        [
+          "D",
+          "T",
+          1
+        ],
+        [
+          "D",
+          "3",
+          1
+        ],
+        [
+          "H",
+          "A",
+          5
+        ],
+        [
+          "H",
+          "Y",
+          2
+        ],
+        [
+          "H",
+          "C",
+          1
+        ],
+        [
+          "H",
+          "D",
+          1
+        ],
+        [
+          "H",
+          "X",
+          1
+        ],
+        [
+          "K",
+          "A",
+          2
+        ],
+        [
+          "K",
+          "B",
+          1
+        ],
+        [
+          "K",
+          "M",
+          1
+        ],
+        [
+          "K",
+          "Y",
+          1
+        ],
+        [
+          "K",
+          "H",
+          1
+        ],
+        [
+          "L",
+          "R",
+          2
+        ],
+        [
+          "L",
+          "C",
+          2
+        ],
+        [
+          "L",
+          "K",
+          1
+        ],
+        [
+          "L",
+          "V",
+          1
+        ],
+        [
+          "L",
+          "D",
+          1
+        ],
+        [
+          "M",
+          "Y",
+          1
+        ],
+        [
+          "M",
+          "T",
+          1
+        ],
+        [
+          "M",
+          "3",
+          1
+        ],
+        [
+          "M",
+          "H",
+          1
+        ],
+        [
+          "P",
+          "V",
+          2
+        ],
+        [
+          "P",
+          "L",
+          1
+        ],
+        [
+          "P",
+          "K",
+          1
+        ],
+        [
+          "P",
+          "Y",
+          1
+        ],
+        [
+          "P",
+          "H",
+          1
+        ],
+        [
+          "R",
+          "V",
+          1
+        ],
+        [
+          "R",
+          "T",
+          1
+        ],
+        [
+          "R",
+          "B",
+          1
+        ],
+        [
+          "R",
+          "Y",
+          1
+        ],
+        [
+          "R",
+          "K",
+          1
+        ],
+        [
+          "T",
+          "L",
+          2
+        ],
+        [
+          "T",
+          "Y",
+          2
+        ],
+        [
+          "T",
+          "H",
+          1
+        ],
+        [
+          "T",
+          "R",
+          1
+        ],
+        [
+          "T",
+          "V",
+          1
+        ],
+        [
+          "V",
+          "T",
+          2
+        ],
+        [
+          "V",
+          "X",
+          1
+        ],
+        [
+          "V",
+          "D",
+          1
+        ],
+        [
+          "V",
+          "H",
+          1
+        ],
+        [
+          "V",
+          "A",
+          1
+        ],
+        [
+          "X",
+          "V",
+          1
+        ],
+        [
+          "X",
+          "4",
+          1
+        ],
+        [
+          "X",
+          "H",
+          1
+        ],
+        [
+          "Y",
+          "V",
+          2
+        ],
+        [
+          "Y",
+          "K",
+          2
+        ],
+        [
+          "Y",
+          "T",
+          1
+        ],
+        [
+          "Y",
+          "4",
+          1
+        ],
+        [
+          "Y",
+          "A",
+          1
+        ],
+        [
+          "3",
+          "A",
+          42
+        ],
+        [
+          "3",
+          "4",
+          3
+        ],
+        [
+          "3",
+          "T",
+          2
+        ],
+        [
+          "3",
+          "V",
+          2
+        ],
+        [
+          "3",
+          "C",
+          1
+        ],
+        [
+          "4",
+          "Y",
+          61
+        ],
+        [
+          "4",
+          "C",
+          1
+        ],
+        [
+          "4",
+          "H",
+          1
+        ],
+        [
+          "4",
+          "A",
+          1
+        ],
+        [
+          "4",
+          "P",
+          1
+        ]
+      ],
+      "chars_per_page": 3770,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "charset_label": "custom",
+      "engine_version": "4.1.1"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "tesseract"
+    ],
+    "dense": {
+      "font": "ocraIII.ttf",
+      "size": 6.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "line_insert_rate": 0.84,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "ocraIII.ttf",
+      "size": 6.0,
+      "charset": "custom",
+      "engines": [
+        "tesseract"
+      ],
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "line_insert_rate": 0.84
+    },
+    "retype": {
+      "font": "ocraIII.ttf",
+      "size": 10.2,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "",
+      "safe_len": 0,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}
