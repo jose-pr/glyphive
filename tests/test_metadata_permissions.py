@@ -138,7 +138,7 @@ def test_decode_resolves_profile_and_checks_header_profile(tmp_path):
         "bytes": len(raw),
         "sha256": hashlib.sha256(raw).hexdigest(),
     }
-    pages = layout.paginate(encoded, meta, lines_per_page=11)
+    pages = layout.paginate(encoded, meta, lines_per_page=13)
     lines = [line for page in pages for line in page.text_lines]
 
     resolved, decoded = decode.decode_document(lines)
@@ -147,7 +147,7 @@ def test_decode_resolves_profile_and_checks_header_profile(tmp_path):
     assert resolved["archive_version"] == 2
 
     mismatched_meta = dict(meta, meta="basic")
-    mismatch_pages = layout.paginate(encoded, mismatched_meta, lines_per_page=11)
+    mismatch_pages = layout.paginate(encoded, mismatched_meta, lines_per_page=13)
     lines = [line for page in mismatch_pages for line in page.text_lines]
     with pytest.raises(unarchive.RestoreError, match="profile mismatch"):
         decode.decode_document(lines)
