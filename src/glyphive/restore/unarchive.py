@@ -308,24 +308,68 @@ def unarchive_spool(
             stage.replace(dest_path)
             stage = None
         else:
-            for header, staged_target, final_target in staged:
-                if header.type == archive.REC_EMPTY_DIR:
-                    final_target.mkdir(parents=True, exist_ok=True)
-                elif header.path not in identical:
-                    final_target.parent.mkdir(parents=True, exist_ok=True)
-                    staged_target.replace(final_target)
-                _restore_metadata(
-                    final_target,
-                    header.mode,
-                    header.mtime,
-                    enabled=apply_metadata,
-                )
+            _publish_with_rollback(
+                staged,
+                identical,
+                stage_resolved,
+                apply_metadata=apply_metadata,
+            )
         return [header.path for header, _staged, _final in staged]
     finally:
         if current_stream is not None:
             current_stream.close()
         if stage is not None and stage.exists():
             _shutil.rmtree(str(stage), ignore_errors=True)
+
+
+def _publish_with_rollback(
+    staged: _ty.Sequence[_ty.Tuple[archive.RecordHeader, "Path", "Path"]],
+    identical: _ty.Set[str],
+    stage_resolved: "Path",
+    *,
+    apply_metadata: bool,
+) -> None:
+    """Move every staged entry onto an existing destination, or undo cleanly.
+
+    Existing final files about to be replaced are moved aside into a backup
+    directory (inside the private stage, so the move is same-filesystem)
+    before the new content lands. If any staged move raises partway through,
+    every already-moved file is undone: newly created finals are removed and
+    backed-up originals are restored to their exact prior location. On full
+    success the backups are simply discarded with the rest of the stage.
+    """
+    backup_root = stage_resolved / ".glyphive-rollback"
+    # (final_target, backup_path_or_None). None means "this final path did not
+    # exist before publish" -- on rollback it must be deleted, not restored.
+    moved: _ty.List[_ty.Tuple["Path", _ty.Optional["Path"]]] = []
+    try:
+        for index, (header, staged_target, final_target) in enumerate(staged):
+            if header.type == archive.REC_EMPTY_DIR:
+                final_target.mkdir(parents=True, exist_ok=True)
+                continue
+            if header.path in identical:
+                continue
+            final_target.parent.mkdir(parents=True, exist_ok=True)
+            backup_path = None
+            if final_target.exists():
+                backup_path = backup_root.joinpath(f"{index:08d}")
+                backup_path.parent.mkdir(parents=True, exist_ok=True)
+                final_target.replace(backup_path)
+            staged_target.replace(final_target)
+            moved.append((final_target, backup_path))
+            _restore_metadata(
+                final_target, header.mode, header.mtime, enabled=apply_metadata
+            )
+    except BaseException:
+        for final_target, backup_path in reversed(moved):
+            try:
+                if backup_path is not None:
+                    backup_path.replace(final_target)
+                else:
+                    final_target.unlink(missing_ok=True)
+            except OSError:
+                pass  # best-effort rollback; the original failure still raises
+        raise
 
 
 def restore_document(
