@@ -1,4 +1,4 @@
-"""glyphive codec ``g1`` — byte stream ↔ OCR-safe printable text lines.
+"""glyphive codec ``base16c-crc16-rs`` — byte stream ↔ OCR-safe printable text lines.
 
 This module is the core of the format. The alphabet is the **measured-safe**
 16-character set below, every line carries its own CRC check, and Reed-Solomon
@@ -62,7 +62,7 @@ The very first bytes of a group's payload carry an 8-byte binary header so decod
 can reconstruct the exact original byte length (nibble bit-packing pads the
 final 4-bit group, so the raw length must be carried, never guessed):
 
-    b"G1" | version:u8 | nsym:u8 | orig_len:u32-big-endian
+    b"B1" | version:u8 | nsym:u8 | orig_len:u32-big-endian
 
 The header bytes are part of the RS-protected data stream, so they are covered by
 parity and per-line CRC just like the payload.
@@ -100,7 +100,7 @@ from ._base import Codec
 __all__ = [
     "ALPHABET",
     "CodecError",
-    "G1Codec",
+    "Base16CCodec",
     "nibble_encode",
     "nibble_decode",
     "encoded_line_count",
@@ -419,7 +419,7 @@ def _parse_line(line: str) -> _ty.Optional[_ParsedLine]:
 # Group header (carries exact original length + RS params)
 # ---------------------------------------------------------------------------
 
-_MAGIC: _ty.Final[bytes] = b"G1"
+_MAGIC: _ty.Final[bytes] = b"B1"
 _VERSION: _ty.Final[int] = 1
 _HEADER_LEN: _ty.Final[int] = len(_MAGIC) + 1 + 1 + 4  # magic + ver + nsym + u32
 
@@ -612,7 +612,7 @@ def encoded_line_count(
 ) -> int:
     """Return the exact number of lines without reading or encoding payload data."""
     if data_len < 0 or data_len > 0xFFFFFFFF:
-        raise ValueError("data length must fit the g1 unsigned 32-bit header")
+        raise ValueError("data length must fit the base16c-crc16-rs unsigned 32-bit header")
     return sum(_encoding_shape(data_len, line_width, parity_ratio)[-2:])
 
 
@@ -748,10 +748,10 @@ def _first_failed_label(
     return "L00000"
 
 
-class G1Codec(Codec):
-    """The stable ``g1`` codec implementation."""
+class Base16CCodec(Codec):
+    """The ``base16c-crc16-rs`` codec: 16-char OCR-safe alphabet / CRC-16-CCITT / Reed-Solomon."""
 
-    name = "g1"
+    name = "base16c-crc16-rs"
 
     def encode(
         self,
@@ -795,7 +795,7 @@ class G1Codec(Codec):
         at most 255 bytes in Python memory.
         """
         if data_len < 0 or data_len > 0xFFFFFFFF:
-            raise ValueError("data length must fit the g1 unsigned 32-bit header")
+            raise ValueError("data length must fit the base16c-crc16-rs unsigned 32-bit header")
         (
             bytes_per_line,
             protected_len,

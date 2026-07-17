@@ -42,10 +42,10 @@ def _external_classes():
         name = "external_codec"
 
         def encode(self, data, **options):
-            return codec.G1Codec().encode(data, **options)
+            return codec.Base16CCodec().encode(data, **options)
 
         def decode(self, lines, **options):
-            return codec.G1Codec().decode(lines, **options)
+            return codec.Base16CCodec().decode(lines, **options)
 
     class TestCompression(compression.CompressionMethod):
         name = "external_compression"
@@ -121,7 +121,7 @@ def test_invalid_broken_and_colliding_candidates_are_isolated(monkeypatch):
     entries = FakeEntryPoints(
         [
             FakeEntryPoint("glyphive.codecs", "wrong", WrongName),
-            FakeEntryPoint("glyphive.codecs", "g1", codec.G1Codec),
+            FakeEntryPoint("glyphive.codecs", "base16c-crc16-rs", codec.Base16CCodec),
             FakeEntryPoint("glyphive.codecs", "broken", error=RuntimeError("boom")),
             FakeEntryPoint("glyphive.compression", "not-a-class", object()),
         ]
@@ -136,7 +136,7 @@ def test_invalid_broken_and_colliding_candidates_are_isolated(monkeypatch):
     assert "does not match" in messages
     assert "duplicate codec" in messages
     assert "not a CompressionMethod subclass" in messages
-    assert codec.names() == ["g1"]
+    assert codec.names() == ["base16c-crc16-rs"]
 
 
 def test_reset_removes_only_external_classes(monkeypatch):
@@ -161,5 +161,5 @@ def test_no_discovery_without_explicit_call(monkeypatch):
         "entry_points",
         lambda: pytest.fail("entry points were enumerated eagerly"),
     )
-    assert codec.names() == ["g1"]
+    assert codec.names() == ["base16c-crc16-rs"]
     assert "gzip" in compression.names()
