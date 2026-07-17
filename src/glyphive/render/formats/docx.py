@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io as _io
 import os as _os
 import typing as _ty
 
@@ -31,7 +30,7 @@ class DocxRenderFormat(RenderFormat):
 
     def render(
         self,
-        pages: _ty.List[Page],
+        pages: _ty.Iterable[Page],
         out: _ty.Union[str, "_os.PathLike[str]"],
         *,
         font: _ty.Optional[str] = None,
@@ -97,6 +96,4 @@ class DocxRenderFormat(RenderFormat):
                     spacing = OxmlElement("w:spacing")
                     spacing.set(qn("w:val"), str(round(character_spacing_pt * 20)))
                     rpr.append(spacing)
-        buffer = _io.BytesIO()
-        document.save(buffer)
-        Path(_os.fspath(out)).write_bytes(buffer.getvalue())
+        document.save(str(Path(_os.fspath(out))))

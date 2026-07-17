@@ -99,6 +99,9 @@ pip install "glyphive[pdf,zstd]"
 glyphive create -f backup.pdf --compression zstd -C project .
 ```
 
+Creation uses bounded-memory disk spools; `--temp-dir` selects their location
+and `--chunk-size` tunes sequential I/O for unusually constrained systems.
+
 Restore scans or generated documents with Tesseract. Input type is detected
 from file contents first and the extension second:
 
