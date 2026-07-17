@@ -47,6 +47,15 @@ font name. A smaller font fits more characters on a page, but it must be
 validated on the intended printer, scanner, resolution, and OCR engine; nominal
 density is not the same as recoverable density.
 
+The number of rows per page is calculated from the selected font size and page
+geometry. Use `--minimal-margins` to reduce all margins from 36 points to 12
+points and use more of the sheet. Confirm that the resulting printable area is
+inside the limits of the intended printer and scanner before relying on it:
+
+```bash
+glyphive create -f dense.pdf --format pdf --font-size 8 --minimal-margins -C project .
+```
+
 Text output preserves exact line endings and separates pages with a form-feed
 character. Do not reflow or word-wrap a transcript.
 

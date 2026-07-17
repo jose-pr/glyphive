@@ -124,6 +124,10 @@ class Create(LoggingArgs):
     "Font size in points for pdf/docx output."
     ("--font-size",)
 
+    minimal_margins: bool = False
+    "Use compact 12-point page margins for denser pdf/docx output."
+    ("--minimal-margins",)
+
     def _legacy_compression(self) -> _ty.Optional[str]:
         for name, selected in (
             ("gzip", self.gzip),
@@ -177,11 +181,24 @@ class Create(LoggingArgs):
             "bytes": len(raw),
             "sha256": _hashlib.sha256(raw).hexdigest(),
         }
-        lines_per_page = _render.lines_per_page_for(self.font_size)
+        page_margin_pt = (
+            _render.MINIMAL_PAGE_MARGIN_PT
+            if self.minimal_margins
+            else _render.DEFAULT_PAGE_MARGIN_PT
+        )
+        lines_per_page = _render.lines_per_page_for(
+            self.font_size, page_margin_pt=page_margin_pt
+        )
         pages = _layout.paginate(encoded, meta, lines_per_page=lines_per_page)
 
         out = Path(self.file)
-        renderer.render(pages, out, font=self.font, font_size=self.font_size)
+        renderer.render(
+            pages,
+            out,
+            font=self.font,
+            font_size=self.font_size,
+            page_margin_pt=page_margin_pt,
+        )
         self._logger_.info(
             "wrote %s (%d files, %d bytes, codec=%s, comp=%s, meta=%s, "
             "%d pages, format=%s)",
