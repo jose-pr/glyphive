@@ -113,6 +113,27 @@ class PdfRenderFormat(RenderFormat):
         except Exception:
             return False
 
+    def geometric_payload_capacity(
+        self,
+        *,
+        font: _ty.Optional[str] = None,
+        font_size: float = 11.0,
+        page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
+        character_spacing_pt: float = 0.0,
+    ) -> _ty.Optional[int]:
+        """Public hook for the uncapped physical fit (see the base class).
+
+        Delegates to :meth:`_geometric_payload_capacity`; kept as a thin public
+        override so the CLI (``--line-width max``) never reaches into a private
+        method and the geometry math stays in one place.
+        """
+        return self._geometric_payload_capacity(
+            font=font,
+            font_size=font_size,
+            page_margin_pt=page_margin_pt,
+            character_spacing_pt=character_spacing_pt,
+        )
+
     def _geometric_payload_capacity(
         self,
         *,

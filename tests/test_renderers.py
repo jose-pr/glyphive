@@ -174,6 +174,17 @@ def test_pdf_geometric_capacity_tracks_font_size_margins_and_spacing():
     assert tracked < base
 
 
+def test_geometric_payload_capacity_public_hook():
+    """The public geometric hook: uncapped on PDF, None on formats w/o metrics."""
+    from glyphive.render.formats.text import TextRenderFormat
+
+    pdf = PdfRenderFormat()
+    geo = pdf.geometric_payload_capacity(font="ocr-b", font_size=6)
+    capped = pdf.payload_capacity(font="ocr-b", font_size=6)
+    assert geo is not None and geo >= capped and geo > 60
+    assert TextRenderFormat().geometric_payload_capacity(font_size=8) is None
+
+
 def test_pdf_payload_capacity_is_clamped_to_the_measured_safe_width():
     """The public API never exceeds the one width this project has OCR evidence for.
 
