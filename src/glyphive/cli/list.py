@@ -99,7 +99,12 @@ class List(LoggingArgs):
             )
             try:
                 _list(_load(AUTO_DESCAN_RETRY_RADII))
-            except retryable:
+            except retryable as retry_error:
+                self._logger_.debug(
+                    "de-scan blur retry did not recover the document (%s); "
+                    "re-raising the original sharp-pass error",
+                    type(retry_error).__name__,
+                )
                 raise first_error
         return 0
 
