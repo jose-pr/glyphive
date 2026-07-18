@@ -151,6 +151,12 @@ class Create(LoggingArgs):
     "Do not honor .gitignore/.ignore files (archive everything)."
     ("--no-ignore",)
 
+    no_header: bool = False
+    "Omit the display-only '#!glyphive' summary line from page 1. Restore does "
+    "not need it (metadata comes from the protected header frames); this yields "
+    "the tightest page. The line is emitted by default for human readability."
+    ("--no-header",)
+
     font: "_ty.Optional[str]" = None
     "Font family for pdf/docx output (PDF default: bundled dejavu-sans-mono; DOCX default: Consolas)."
     ("--font",)
@@ -413,6 +419,7 @@ class Create(LoggingArgs):
                         meta,
                         lines_per_page=lines_per_page,
                         parity_pages=self.parity_pages,
+                        emit_human_header=not self.no_header,
                     )
                     if self.parity_pages:
                         pages = list(pages)
