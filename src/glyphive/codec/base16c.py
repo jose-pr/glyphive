@@ -1068,6 +1068,48 @@ class Base16CCodec(Codec):
                 )
             data_erasure_set = set(data_erasures)
             parity_erasure_set = set(parity_erasures)
+
+            # Fast path: a stream with ZERO erasures is already fully trusted by
+            # the per-line CRC oracle (every byte came from a CRC-matching line),
+            # so Reed-Solomon has nothing to correct -- skip it entirely and
+            # stream the payload straight out. RS's only remaining service on a
+            # clean block is *blind* correction of an astronomically-rare CRC
+            # false positive (~1/65536 per corrupted line); dropping that bonus
+            # is safe because the whole-document SHA-256 gate (restore/decode.py)
+            # still converts any residual corruption into a LOUD failure. Only
+            # taken when the stream shape is unambiguous and consistent.
+            if (
+                not data_erasures
+                and not parity_erasures
+                and len(candidates) == 1
+            ):
+                only_nsym = candidates[0]
+                if _num_blocks(data_len, only_nsym) * only_nsym == parity_len:
+                    data_spool.seek(0)
+                    prefix = data_spool.read(_HEADER_LEN)
+                    try:
+                        hdr_nsym, orig_len = _parse_header(prefix)
+                    except ValueError:
+                        hdr_nsym, orig_len = None, None
+                    if (
+                        hdr_nsym == only_nsym
+                        and orig_len is not None
+                        and orig_len <= data_len - _HEADER_LEN
+                    ):
+                        remaining = orig_len
+                        while remaining:
+                            chunk = data_spool.read(min(1024 * 1024, remaining))
+                            if not chunk:
+                                raise ValueError(
+                                    "clean payload spool is truncated"
+                                )
+                            payload_sink.write(chunk)
+                            remaining -= len(chunk)
+                        return
+                    # Header didn't validate cleanly (should not happen for a
+                    # zero-erasure stream); fall through to the RS path, which
+                    # will either recover or raise the appropriate named error.
+
             data_spool.flush()
             parity_spool.flush()
             data_map = _mmap.mmap(data_spool.fileno(), 0, access=_mmap.ACCESS_READ)
@@ -1099,6 +1141,13 @@ class Base16CCodec(Codec):
                                 if parity_base + offset in parity_erasure_set
                                 or parity_base + offset >= parity_len
                             )
+                            # Per-block fast path: a block with no erasures is
+                            # already CRC-trusted and its data bytes are already
+                            # in ``corrected`` (a copy of data_spool), so skip
+                            # the syndrome/RS work for it. Only blocks that
+                            # actually carry an erasure need rs.decode.
+                            if not erase_pos:
+                                continue
                             try:
                                 decoded = rs.decode(
                                     bytearray(block_data + block_parity),
