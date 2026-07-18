@@ -104,19 +104,27 @@ installed, still ranks first but needs model downloads and is unusable offline).
 Raw phone photos are frequently too sharp/noisy for the frame CRC/RS to
 recover — decode fails with `... failed CRC and exceeds RS correction budget`
 even on an otherwise-good scan. A light Gaussian blur softens the glyph edges
-enough for reliable OCR:
+enough for reliable OCR — and **this happens automatically by default**:
 
 ```bash
-glyphive extract -f photos/ --from-images --descan 0.6 -C restored
+glyphive extract -f photos/ --from-images -C restored   # auto-retries with blur
 ```
 
-`--descan` measured best around radius `0.6` on real scans. You can pass
-several radii to try — `--descan 0,0.6,1.0` — in which case each image is OCR'd
-at every radius and the CRC-valid lines are **merged across passes**: different
-blurs recover different lines, and the per-line CRC makes combining them safe,
-so a document no single blur can fully read may still restore from the union.
-`--descan 0` (the default) applies no blur. It affects `--from-images` and
-PDF/image auto-input only, never text transcripts.
+With the default `--descan auto`, `extract` and `list` first try a single sharp
+(no-blur) pass; if that fails to decode an image/PDF input, they automatically
+retry once with a light `0.6` blur (the measured sweet spot on real scans).
+There is no extra cost when the first pass already works. The cross-pass CRC
+merge means the blurred retry can only *add* recoverable lines, never corrupt a
+transcript that would already decode.
+
+- `--descan 0` disables the auto-retry (a single no-blur pass).
+- `--descan 0.6` — or a list like `--descan 0,0.6,1.0` — is an explicit sweep:
+  each image is OCR'd at every radius and the CRC-valid lines are **merged
+  across passes** (different blurs recover different lines), with no additional
+  auto-retry.
+
+De-scanning affects image/PDF input only; it is ignored for text transcripts
+and DOCX.
 
 Both `extract` and `list` accept a transcript, image, PDF, DOCX, or a directory
 containing a mixture of those inputs. Direct child files are processed in

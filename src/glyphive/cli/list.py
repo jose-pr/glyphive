@@ -28,6 +28,12 @@ class List(LoggingArgs):
     "OCR registry provider for image or document input (default: automatic preference)."
     ("--ocr-engine",)
 
+    descan: str = "auto"
+    "De-scan blur for image/PDF input (see `extract --descan`): 'auto' retries "
+    "once with a light 0.6 blur if the sharp pass fails to decode; '0' disables "
+    "it; an explicit list is an OCR sweep merged across radii."
+    ("--descan",)
+
     from_qr: bool = False
     "Decode -f as GQ1 QR page images (requires glyphive[qr])."
     ("--from-qr",)
@@ -46,34 +52,67 @@ class List(LoggingArgs):
 
     def __call__(self) -> int:
         from ..restore import decode as _decode
+        from ..codec.base16c import CodecError
+        from .. import layout as _layout
+        from ._common import (
+            AUTO_DESCAN_RETRY_RADII,
+            input_is_image_or_pdf,
+            resolve_descan,
+        )
 
         source = Path(self.file)
-        lines = (
-            load_qr_lines(source)
-            if self.from_qr
-            else load_input_lines(source, engine=self.ocr_engine)
-        )
-        # Decode first so every displayed field comes from the integrity-
-        # protected H frames, never from the unrestricted human summary.
-        with _tempfile.TemporaryFile(dir=self.temp_dir) as raw:
-            header = _decode.decode_document_to_spool(
-                lines,
-                raw,
-                max_output_bytes=self.max_output_bytes,
-                chunk_size=self.chunk_size,
-                temp_dir=self.temp_dir,
-            )
-            profile = header.get("meta")
-            profile_token = f" meta={profile}" if profile is not None else ""
-            print(
-                "glyphive v{v} codec={codec} comp={comp}{profile} files={files} "
-                "bytes={bytes} pages={pages}".format(
-                    **header, profile=profile_token
+        blur_radii, auto_retry = resolve_descan(self.descan)
+
+        def _load(radii):
+            return (
+                load_qr_lines(source)
+                if self.from_qr
+                else load_input_lines(
+                    source, engine=self.ocr_engine, blur=radii
                 )
             )
-            raw.seek(0)
-            for event in _archive.iter_record_events(raw, chunk_size=self.chunk_size):
-                if isinstance(event, _archive.RecordHeader):
-                    kind = "d" if event.type == _archive.REC_EMPTY_DIR else "f"
-                    print(f"{kind} {event.path}")
+
+        def _list(lines):
+            # Decode first so every displayed field comes from the integrity-
+            # protected H frames, never from the unrestricted human summary.
+            with _tempfile.TemporaryFile(dir=self.temp_dir) as raw:
+                header = _decode.decode_document_to_spool(
+                    lines,
+                    raw,
+                    max_output_bytes=self.max_output_bytes,
+                    chunk_size=self.chunk_size,
+                    temp_dir=self.temp_dir,
+                )
+                self._print_manifest(header, raw)
+
+        lines = _load(blur_radii)
+        retryable = (_layout.LayoutError, CodecError)
+        try:
+            _list(lines)
+        except retryable as first_error:
+            if not (auto_retry and not self.from_qr and input_is_image_or_pdf(source)):
+                raise
+            self._logger_.warning(
+                "list failed on the sharp pass (%s); retrying with a light 0.6 "
+                "de-scan blur", type(first_error).__name__
+            )
+            try:
+                _list(_load(AUTO_DESCAN_RETRY_RADII))
+            except retryable:
+                raise first_error
         return 0
+
+    def _print_manifest(self, header, raw) -> None:
+        profile = header.get("meta")
+        profile_token = f" meta={profile}" if profile is not None else ""
+        print(
+            "glyphive v{v} codec={codec} comp={comp}{profile} files={files} "
+            "bytes={bytes} pages={pages}".format(
+                **header, profile=profile_token
+            )
+        )
+        raw.seek(0)
+        for event in _archive.iter_record_events(raw, chunk_size=self.chunk_size):
+            if isinstance(event, _archive.RecordHeader):
+                kind = "d" if event.type == _archive.REC_EMPTY_DIR else "f"
+                print(f"{kind} {event.path}")
