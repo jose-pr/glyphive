@@ -240,9 +240,15 @@ def test_codec_error_is_valueerror():
     assert issubclass(CodecError, ValueError)
 
 
+_BUILTIN_CODECS = [
+    "base16c-crc16-rs", "base32-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
+]
+
+
 def test_codec_registry_exposes_g1_and_direct_api():
-    assert codec.names() == ["base16c-crc16-rs"]
-    assert codec.available() == ["base16c-crc16-rs"]
+    # base16c is the default; base8/base32/base64 are the denser family.
+    assert codec.names() == _BUILTIN_CODECS
+    assert codec.available() == _BUILTIN_CODECS
     assert isinstance(codec.get("base16c-crc16-rs"), codec.Base16CCodec)
     payload = b"registry compatibility"
     assert base16c.decode(codec.get("base16c-crc16-rs").encode(payload)) == payload
@@ -524,3 +530,54 @@ def test_crc_false_positive_is_caught_by_the_sha_gate(tmp_path):
     assert "sha256" in str(excinfo.value).lower() or "digest" in str(
         excinfo.value
     ).lower() or "mismatch" in str(excinfo.value).lower()
+
+
+# --- radix codec family (base8/base32/base64) -------------------------------
+
+_RADIX_CODECS = [
+    "base8-crc16-rs", "base16c-crc16-rs", "base32-crc16-rs", "base64-crc16-rs",
+]
+
+
+@pytest.mark.parametrize("name", _RADIX_CODECS)
+@pytest.mark.parametrize("size", [0, 1, 2, 7, 60, 61, 255, 256, 4000])
+def test_radix_family_roundtrips(name, size):
+    c = codec.get(name)
+    data = bytes(random.Random(size).randrange(256) for _ in range(size))
+    lines = c.encode(data, line_width=60, parity_ratio=0.12)
+    assert c.decode(lines) == data
+
+
+def test_denser_codec_uses_fewer_lines():
+    """Higher radix packs more bits/char -> fewer lines for the same payload."""
+    data = bytes(random.Random(0).randrange(256) for _ in range(4000))
+    counts = {
+        name: len(codec.get(name).encode(data, line_width=60))
+        for name in _RADIX_CODECS
+    }
+    assert counts["base8-crc16-rs"] > counts["base16c-crc16-rs"]
+    assert counts["base16c-crc16-rs"] > counts["base32-crc16-rs"]
+    assert counts["base32-crc16-rs"] > counts["base64-crc16-rs"]
+
+
+def test_base64_is_case_significant_but_base16c_is_not():
+    """base64 must NOT case-fold (A=0, a=26 are distinct); base16c may."""
+    from glyphive.codec.base16c import BASE16C
+    from glyphive.codec.radix import BASE64
+    assert BASE16C.case_fold is True
+    assert BASE64.case_fold is False
+    # A base64 payload round-trips through its own case-preserving path.
+    c = codec.get("base64-crc16-rs")
+    data = bytes(range(256))
+    assert c.decode(c.encode(data)) == data
+
+
+def test_no_uniform_run_index_per_radix():
+    """The index token never prints as a run of identical glyphs, any radix."""
+    from glyphive.codec.base16c import _encode_index, _decode_index, BASE16C
+    from glyphive.codec.radix import BASE8, BASE32, BASE64
+    for spec in (BASE8, BASE16C, BASE32, BASE64):
+        for i in range(0, 5001):
+            tok = _encode_index(i, spec)
+            assert len(set(tok)) > 1, (spec.name, i, tok)
+            assert _decode_index(tok, spec) == i
