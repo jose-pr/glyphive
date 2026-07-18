@@ -12,6 +12,18 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Changed
 
+- **Compact `#!glyphive` header line**: the display-only summary is now
+  `#!glyphive v<N> <codec>[,<comp>] files=.. bytes=.. pages=..` — a bare `v<N>`
+  token, codec and compression collapsed to one positional `codec[,comp]` token,
+  and `sha256`/`meta` dropped entirely (they live in the protected `H` frames).
+  Fewer characters on page 1 means less to OCR and less display-line overflow.
+  Any line beginning with `#!` is now treated as a comment on the read path, so
+  documents can carry arbitrary `#!` notes. (Pre-release format change; no
+  backward compatibility with the old header grammar.)
+- **`--descan auto` retry now sweeps a `0.6`/`0.8` blur ladder** (was a single
+  `0.6` pass): the widest glyphs (e.g. Courier 12 pt) can need `~0.8` to decode
+  from a raw photo, so the auto-retry covers both. The per-line CRC merge keeps
+  this strictly additive — extra blur passes only ever recover more lines.
 - **Default PDF font is now `dejavu-sans-mono`** (was Courier). DejaVu was one of
   only two fonts that held up on real photographed scans under `tesseract-glyphive`
   and passes the byte-for-byte restore gate, so it is preferred for recovery
@@ -79,6 +91,10 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Added
 
+- **`create --no-header`**: omit the display-only `#!glyphive` summary line from
+  page 1 for the tightest possible page. Restore needs nothing from it (all
+  authoritative metadata comes from the CRC-protected `H` frames), so a
+  `--no-header` document restores byte-for-byte identically.
 - **Bundled `dejavu-sans-mono` PDF font**: DejaVu Sans Mono 2.37 (permissive
   DejaVu Fonts License) is now a selectable bundled font
   (`--font dejavu-sans-mono`), embedded in PDF output. It was one of only two
