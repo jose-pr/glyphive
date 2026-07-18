@@ -81,7 +81,7 @@ glyphive-modified alphabet chosen from OCR measurement:
 | `base8g-crc16-rs`    | 3 | safe | safe |
 | `base16g-crc16-rs`  | 4 | **safe (default)** | safe |
 | `base32g-crc16-rs`  | 5 | ~14.8% CER | **0.0% CER** |
-| `base64g-crc16-rs`  | 6 | ~15% CER | **0.0% CER** |
+| `base64g-crc16-rs`  | 6 | ~13% CER | ~0.1% clean / 0% blurred |
 
 **standard (textbook alphabets)** — plain, well-known encodings for interop,
 NOT OCR-tuned:
@@ -97,7 +97,9 @@ NOT OCR-tuned:
 
 The glyphive-tuned family also includes `base64g-crc16-rs` (a curated 64-glyph
 set favoring OCR-distinct glyphs — the confusion-union plus least-confusable
-extras; reads at 0% CER with a trained model, ~15% stock) and `basemaxg-crc16-rs`
+extras; a trained model reads it at ~0.1% CER clean / 0% blurred vs ~13% stock —
+slightly behind RFC-4648 base64's clean 0%, a small residual within the RS/CRC
+budget) and `basemaxg-crc16-rs`
 (43-glyph group-packed, the maximal OCR-distinct set — also model-backed).
 
 ## Two byte↔char packing strategies
