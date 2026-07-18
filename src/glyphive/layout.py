@@ -778,26 +778,29 @@ def iter_paginate(
     # ``page_block_bytes`` (B) is a protected header field, but it depends on
     # every data page's contents (the max block length across all of them),
     # which are not known until all data lines are chunked. Page 1's header
-    # is the very first thing yielded, so when K>0 we must pre-scan the data
-    # pages' chunk boundaries (line COUNTS only, not their bytes) before
-    # emitting anything -- consistent with the project's existing multi-pass,
-    # bounded-memory create path (see AGENTS.md). When K=0, B is irrelevant
-    # (never used) and stays 0, and no pre-scan happens: this keeps the K=0
-    # path byte-for-byte identical to the pre-parity-pages format.
+    # is the very first thing yielded, so when K>0 we chunk all data pages up
+    # front (consistent with the project's existing multi-pass, bounded-memory
+    # create path -- see AGENTS.md) and reuse those chunks for emission below,
+    # rather than consuming the encoded-line source twice. When K=0, none of
+    # this runs: pages are chunked lazily exactly as before, so the K=0 path
+    # is byte-for-byte identical to the pre-parity-pages format.
+    precomputed_chunks: _ty.Optional[_ty.List[_ty.List[str]]] = None
     block_bytes = 0
     if parity_pages:
-        chunk_lengths: _ty.List[int] = []
-        probe = iter(encoded_lines)
+        source = iter(encoded_lines)
         remaining_n = n_encoded
+        precomputed_chunks = []
         for page_no in range(1, data_total + 1):
             overhead = first_page_overhead if page_no == 1 else 1
             capacity = lines_per_page - overhead
             take = min(capacity, remaining_n)
-            chunk = list(itertools.islice(probe, take))
+            chunk = list(itertools.islice(source, take))
             remaining_n -= len(chunk)
-            chunk_lengths.append(len("\n".join(chunk).encode("utf-8")))
-        block_bytes = max(chunk_lengths, default=0)
-        encoded_lines = itertools.chain(iter(()))  # placeholder, replaced below
+            precomputed_chunks.append(chunk)
+        block_bytes = max(
+            (len("\n".join(chunk).encode("utf-8")) for chunk in precomputed_chunks),
+            default=0,
+        )
 
     meta["pages"] = data_total
     meta["page_block_bytes"] = block_bytes
@@ -806,21 +809,19 @@ def iter_paginate(
     if len(machine_header) != len(provisional_machine_header):
         raise LayoutError("machine header frame count changed during pagination")
 
-    encoded = iter(encoded_lines) if not parity_pages else _reiter_lines
-    if parity_pages:
-        # The pre-scan above already consumed the original iterator/generator
-        # for byte-length measurement, so the caller-provided ``encoded_lines``
-        # must be re-obtainable. Sequences are fine (iter() again); a one-shot
-        # iterator is not, so require a Sequence when K>0.
-        raise LayoutError("__unreachable__")
+    encoded = iter(()) if precomputed_chunks is not None else iter(encoded_lines)
     cursor = 0
     data_blocks: _ty.List[bytes] = []
     line_width_chars = 0
     for page_no in range(1, data_total + 1):
-        overhead = first_page_overhead if page_no == 1 else 1
-        capacity = lines_per_page - overhead
-        chunk = list(itertools.islice(encoded, min(capacity, n_encoded - cursor)))
-        cursor += len(chunk)
+        if precomputed_chunks is not None:
+            chunk = precomputed_chunks[page_no - 1]
+            cursor += len(chunk)
+        else:
+            overhead = first_page_overhead if page_no == 1 else 1
+            capacity = lines_per_page - overhead
+            chunk = list(itertools.islice(encoded, min(capacity, n_encoded - cursor)))
+            cursor += len(chunk)
 
         text_lines: _ty.List[str] = []
         if page_no == 1:
@@ -853,7 +854,6 @@ def iter_paginate(
     if parity_pages:
         from .codec.base16c import _frame_bytes
 
-        block_bytes = max((len(b) for b in data_blocks), default=0)
         padded_blocks = [b.ljust(block_bytes, b"\x00") for b in data_blocks]
         parity_blocks = _pagers.encode_page_parity(padded_blocks, parity_pages)
         # A parity block's printed width matches the widest data line seen (or
@@ -976,9 +976,16 @@ def read_pages_to_spool(
     header_frames: _ty.List[_ParsedMachineFrame] = []
     warnings: _ty.List[str] = []
     pages_seen: _ty.Dict[int, int] = {}
-    encoded_count = 0
     block_hash = hashlib.sha256()
     block_count = 0
+    # Per-page encoded lines (data ``L``/``P`` AND parity ``Q``), keyed by page
+    # number, in the order encountered on that page. Needed so a missing data
+    # page's block can be reconstructed from parity and re-injected at the
+    # correct spool position -- writing straight to ``sink`` as lines are read
+    # (the pre-parity-pages behavior) cannot do that, since a page might need
+    # to be rebuilt only after every page has been seen.
+    page_lines: _ty.Dict[int, _ty.List[str]] = {}
+    current_page_lines: _ty.List[str] = []
     # Frame-shaped lines whose index token is unreadable (findings #1/#2): buffer
     # them for the current page block and flush to that page's number on its
     # footer, so the reader gets ``{page, raw}`` detail instead of a silent drop.
@@ -1004,6 +1011,8 @@ def read_pages_to_spool(
                 unreadable_lines.append({"page": footer.n, "raw": raw})
             pending_unreadable = []
             pages_seen[footer.n] = footer.total
+            page_lines[footer.n] = current_page_lines
+            current_page_lines = []
             block_hash = hashlib.sha256()
             block_count = 0
             continue
@@ -1013,12 +1022,11 @@ def read_pages_to_spool(
             continue  # protected machine header is not a payload line
         if _looks_like_encoded(line):
             encoded = stripped.encode("utf-8")
-            sink.write(encoded + b"\n")
+            current_page_lines.append(stripped)
             if block_count:
                 block_hash.update(b"\n")
             block_hash.update(encoded)
             block_count += 1
-            encoded_count += 1
         elif _is_frame_shaped_but_unreadable(line):
             pending_unreadable.append(stripped)
         # else: OCR noise / blank-ish junk — ignored.
@@ -1028,24 +1036,97 @@ def read_pages_to_spool(
     for raw in pending_unreadable:
         unreadable_lines.append({"page": None, "raw": raw})
 
-    # Any trailing encoded lines with no footer after them are still real data
-    # (a footer could have been dropped by OCR); they are already in
-    # ``encoded_lines``. We only *warn* via the missing-page check below.
+    # Any trailing encoded lines with no footer after them belong to a page
+    # whose footer was itself dropped by OCR; they are not attributable to a
+    # known page number, so they cannot be placed by :func:`read_pages_to_spool`'s
+    # per-page reconstruction. They are lost from ``page_lines`` here (as they
+    # were before parity pages existed) -- the missing-page detection below
+    # still catches and reports the gap.
 
     # --- Missing-page detection via integrity-protected machine metadata. ---
     header_meta = _decode_machine_header(header_frames)
-    header_total = header_meta["pages"]
+    data_total = header_meta["pages"]  # D: data pages only (machine envelope)
+    parity_budget = header_meta.get("pgpar", 0)
+    block_bytes = header_meta.get("page_block_bytes", 0)
+    grand_total = data_total + parity_budget
     inconsistent = sorted(
         n for n, observed_total in pages_seen.items()
-        if observed_total != header_total
+        if observed_total != grand_total
     )
     if inconsistent:
         raise LayoutError(
             "machine footer total disagrees with protected header on page(s) "
             + ", ".join(str(n) for n in inconsistent)
         )
-    missing = [n for n in range(1, header_total + 1) if n not in pages_seen]
-    if missing:
+    missing = [n for n in range(1, grand_total + 1) if n not in pages_seen]
+    missing_data = [n for n in missing if n <= data_total]
+    missing_parity = [n for n in missing if n > data_total]
+
+    reconstructed_pages: _ty.Set[int] = set()
+    if missing_data and parity_budget and len(missing_data) <= parity_budget:
+        # Enough parity budget in principle -- attempt page-level RS recovery.
+        # Gather every data/parity page's block bytes (``"\n".join(lines)``,
+        # the same convention :func:`page_data_hash`/pagination use), in block
+        # order ``0..D+K-1`` (index i == page number i+1); missing pages are
+        # ``None`` erasures. Present parity pages must decode as clean ``Q``
+        # frames for their block to be trustworthy input to reconstruction.
+        from .codec import pagers as _pagers
+        from .codec.base16c import decode_index, nibble_decode, split_frame
+
+        def _q_block(lines: _ty.List[str]) -> _ty.Optional[bytes]:
+            chunks: _ty.List[str] = []
+            for line in lines:
+                split = split_frame(line)
+                if split is None:
+                    return None
+                label, payload, _check = split
+                if label[:1] != "Q" or decode_index(label[1:]) is None:
+                    return None
+                chunks.append(payload)
+            joined = "".join(chunks)
+            if len(joined) % 2:
+                return None
+            try:
+                return nibble_decode(joined, len(joined) // 2)
+            except ValueError:
+                return None
+
+        blocks: _ty.List[_ty.Optional[bytes]] = []
+        recoverable = True
+        for n in range(1, grand_total + 1):
+            if n in missing:
+                blocks.append(None)
+                continue
+            if n <= data_total:
+                block = "\n".join(page_lines.get(n, [])).encode("utf-8")
+                blocks.append(block.ljust(block_bytes, b"\x00")[:block_bytes] if block_bytes else block)
+            else:
+                q_block = _q_block(page_lines.get(n, []))
+                if q_block is None or len(q_block) != block_bytes:
+                    recoverable = False
+                    break
+                blocks.append(q_block)
+
+        if recoverable:
+            try:
+                rebuilt = _pagers.reconstruct_pages(blocks, parity_budget)
+            except _pagers.PageParityError:
+                rebuilt = None
+            if rebuilt is not None:
+                for n in missing_data:
+                    block = rebuilt[n - 1]
+                    text = block.rstrip(b"\x00").decode("utf-8")
+                    lines = text.split("\n") if text else []
+                    page_lines[n] = lines
+                    reconstructed_pages.add(n)
+                warnings.append(
+                    "reconstructed missing data page(s) "
+                    + ", ".join(str(n) for n in missing_data)
+                    + " from page-parity"
+                )
+
+    still_missing_data = [n for n in missing_data if n not in reconstructed_pages]
+    if still_missing_data:
         # Do NOT hard-fail here: a wholly missing page is just a contiguous
         # erasure burst in the encoded-line stream, and the codec's
         # document-wide interleaved Reed-Solomon can recover it outright when
@@ -1053,16 +1134,37 @@ def read_pages_to_spool(
         # gap and let codec.decode try; if the budget is exceeded it raises its
         # own named CodecError. Only when NO codec lines survived at all is the
         # transcript genuinely unrecoverable at this layer.
-        joined = ", ".join(str(n) for n in missing)
+        joined = ", ".join(str(n) for n in still_missing_data)
         warnings.append(
-            f"missing page(s) {joined} of {header_total}: relying on codec "
+            f"missing page(s) {joined} of {data_total}: relying on codec "
             "Reed-Solomon to recover them from the surviving pages"
         )
-        if encoded_count == 0:
-            raise MissingPageError(missing, header_total)
+
+    # --- Write the encoded-line spool in page order (1..D), skipping parity
+    # pages (D+1..D+K) entirely -- they never reach codec.decode. Writing in
+    # page order (rather than transcript order) guarantees a reconstructed
+    # interior/last page's lines land at the correct position in the spool,
+    # which downstream RS-parameter recovery depends on (a missing *last*
+    # page otherwise truncates the stream shape -- see Phase 0 findings).
+    encoded_count = 0
+    for n in range(1, data_total + 1):
+        for stripped in page_lines.get(n, []):
+            sink.write(stripped.encode("utf-8") + b"\n")
+            encoded_count += 1
+
+    if encoded_count == 0 and still_missing_data:
+        raise MissingPageError(still_missing_data, data_total)
+    if missing_parity:
+        warnings.append(
+            "missing parity page(s) "
+            + ", ".join(str(n) for n in missing_parity)
+            + f" of {grand_total}: parity pages carry no user data and are not "
+            "reconstructed"
+        )
 
     header_meta["_page_warnings"] = warnings
     header_meta["_pages_seen"] = sorted(pages_seen)
     header_meta["_unreadable_lines"] = unreadable_lines
     header_meta["_missing_pages"] = missing
+    header_meta["_reconstructed_pages"] = sorted(reconstructed_pages)
     return header_meta, encoded_count
