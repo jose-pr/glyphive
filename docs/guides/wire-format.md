@@ -78,7 +78,7 @@ glyphive-modified alphabet chosen from OCR measurement:
 
 | codec | bits/char | stock OCR | trained model |
 |-------|-----------|-----------|---------------|
-| `base8-crc16-rs`    | 3 | safe | safe |
+| `base8g-crc16-rs`    | 3 | safe | safe |
 | `base16g-crc16-rs`  | 4 | **safe (default)** | safe |
 | `base32g-crc16-rs`  | 5 | ~14.8% CER | **0.0% CER** |
 
@@ -101,7 +101,7 @@ group-packed, the maximal OCR-distinct set — needs a trained model like base32
 
 Codecs convert bytes to alphabet characters one of two ways:
 
-- **bit-packing** (power-of-two radices: base8/16/16g/32*/64): each char carries
+- **bit-packing** (power-of-two radices: base8g/16/16g/32*/64): each char carries
   `log2(radix)` bits, MSB-first, final group zero-padded.
 - **group-packing** (non-power-of-two radices: base85/z85/base-maxg): Ascii85-style
   — every *N* bytes map to *M* base-`radix` digits where `radix**M >= 256**N`

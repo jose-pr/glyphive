@@ -28,10 +28,10 @@ from .base16c import BASE16G, Base16GCodec, _RadixSpec
 
 __all__ = [
     # glyphive-tuned (OCR-safe) codecs
-    "Base8Codec",
+    "Base8GCodec",
     "Base32GCodec",
     "Base64Codec",
-    "BASE8",
+    "BASE8G",
     "BASE32G",
     "BASE64",
     # standard (textbook alphabet) codecs
@@ -51,11 +51,12 @@ __all__ = [
 
 
 # --- base8 -----------------------------------------------------------------
-# 8 chars = 3 bits/char. A sparse, maximally-distinct subset of the base16c
-# alphabet (all measured stock-safe). check_width = ceil(16/3) = 6; index_width
+# 8 chars = 3 bits/char. base8g = a glyphive-curated maximally-distinct SUBSET of
+# the base16g OCR-safe set (NOT standard octal). All 8 measured stock-safe.
+# check_width = ceil(16/3) = 6; index_width
 # = 7 (8**7 = 2,097,152 lines of headroom). index_mask: 7 distinct values < 8.
-BASE8: _ty.Final[_RadixSpec] = _RadixSpec(
-    name="base8-crc16-rs",
+BASE8G: _ty.Final[_RadixSpec] = _RadixSpec(
+    name="base8g-crc16-rs",
     alphabet="ABCD34XY",
     bits=3,
     check_width=6,
@@ -197,11 +198,11 @@ BASEMAXG: _ty.Final[_RadixSpec] = _RadixSpec(
 )
 
 
-class Base8Codec(Base16GCodec):
+class Base8GCodec(Base16GCodec):
     """Sparse 8-char (3 bits/char) codec — most OCR-robust, least dense."""
 
-    name = "base8-crc16-rs"
-    _spec = BASE8
+    name = "base8g-crc16-rs"
+    _spec = BASE8G
 
 
 class Base32GCodec(Base16GCodec):

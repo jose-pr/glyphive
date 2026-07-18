@@ -242,7 +242,7 @@ def test_codec_error_is_valueerror():
 
 _BUILTIN_CODECS = [
     "base16-crc16-rs", "base16g-crc16-rs", "base32-crc16-rs", "base32c-crc16-rs",
-    "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs", "base85-crc16-rs",
+    "base32g-crc16-rs", "base64-crc16-rs", "base85-crc16-rs", "base8g-crc16-rs",
     "basemaxg-crc16-rs", "z85-crc16-rs",
 ]
 
@@ -538,7 +538,7 @@ def test_crc_false_positive_is_caught_by_the_sha_gate(tmp_path):
 
 _RADIX_CODECS = [
     "base16-crc16-rs", "base16g-crc16-rs", "base32-crc16-rs", "base32c-crc16-rs",
-    "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs", "base85-crc16-rs",
+    "base32g-crc16-rs", "base64-crc16-rs", "base85-crc16-rs", "base8g-crc16-rs",
     "basemaxg-crc16-rs", "z85-crc16-rs",
 ]
 
@@ -559,7 +559,7 @@ def test_denser_codec_uses_fewer_lines():
         name: len(codec.get(name).encode(data, line_width=60))
         for name in _RADIX_CODECS
     }
-    assert counts["base8-crc16-rs"] > counts["base16g-crc16-rs"]
+    assert counts["base8g-crc16-rs"] > counts["base16g-crc16-rs"]
     assert counts["base16g-crc16-rs"] > counts["base32g-crc16-rs"]
     assert counts["base32g-crc16-rs"] > counts["base64-crc16-rs"]
 
@@ -579,8 +579,8 @@ def test_base64_is_case_significant_but_base16c_is_not():
 def test_no_uniform_run_index_per_radix():
     """The index token never prints as a run of identical glyphs, any radix."""
     from glyphive.codec.base16c import _encode_index, _decode_index, BASE16G
-    from glyphive.codec.radix import BASE8, BASE32G, BASE64
-    for spec in (BASE8, BASE16G, BASE32G, BASE64):
+    from glyphive.codec.radix import BASE8G, BASE32G, BASE64
+    for spec in (BASE8G, BASE16G, BASE32G, BASE64):
         for i in range(0, 5001):
             tok = _encode_index(i, spec)
             assert len(set(tok)) > 1, (spec.name, i, tok)

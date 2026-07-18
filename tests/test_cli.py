@@ -902,7 +902,7 @@ def test_footer_hash_advisory_logs_at_info_not_warning(caplog):
 
 
 @pytest.mark.parametrize("codec_name", [
-    "base8-crc16-rs", "base16-crc16-rs", "base16g-crc16-rs", "base32-crc16-rs",
+    "base8g-crc16-rs", "base16-crc16-rs", "base16g-crc16-rs", "base32-crc16-rs",
     "base32c-crc16-rs", "base32g-crc16-rs", "base64-crc16-rs", "base85-crc16-rs",
     "basemaxg-crc16-rs", "z85-crc16-rs",
 ])
