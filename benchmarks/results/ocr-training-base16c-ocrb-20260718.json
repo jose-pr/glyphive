@@ -1,0 +1,35 @@
+{
+  "benchmark": "custom_ocr_font_training",
+  "date": "2026-07-18",
+  "question": "Does a font-specific fine-tuned Tesseract LSTM beat stock eng on the glyphive channel, measured on held-out data?",
+  "environment": {
+    "host": "root@10.7.19.75 (Rocky 9)",
+    "tesseract": "5.x local build (/usr/local/bin), tessdata_best/eng base",
+    "font": "OCR-B (/usr/share/fonts/glyphive/OCR-B.ttf)",
+    "channel": "base16c alphabet ABCDHKLMPRTVXY34"
+  },
+  "recipe": {
+    "note": "Fixes the exploratory run's failures (uniform-random + --psm 13 + 1200 iters + no held-out CER gate).",
+    "ground_truth_lines": {"train": 200, "eval": 40},
+    "line_length_chars": "40-70",
+    "ptsize": 8,
+    "dpi": 300,
+    "psm": 6,
+    "max_iterations": 6000,
+    "degrade_image": false,
+    "seed": 4242,
+    "eval_set": "40 held-out lines, never trained on"
+  },
+  "results": {
+    "stock_eng": {"held_out_CER_pct": 2.311, "held_out_WER_pct": 47.5},
+    "finetuned_base16c_ocrb": {"held_out_CER_pct": 0.0, "held_out_WER_pct": 0.0},
+    "convergence": "training BCER reached 0.000% by iteration 1100 of 6000; best model selected at 1100"
+  },
+  "verdict": "ACCEPT (measured). Font-specific fine-tuning eliminates held-out character error (2.311% -> 0.000%) on the base16c x OCR-B channel. Overturns the earlier exploratory failure, which was caused by the broken recipe (--psm 13, 1200 iters, no held-out gate), not by the approach.",
+  "caveats": [
+    "Single font x alphabet cell (the shipped channel); a full sweep would confirm generality across fonts/degradation.",
+    "Ground truth was clean-rendered (degrade_image=false); real-scan robustness of the fine-tune is not measured here and would need the physical_scan_regression_gate fixture.",
+    "0.000% on 40 held-out lines is a strong signal but a small eval set; a larger eval set would tighten the bound.",
+    "These are VM diagnostic numbers; any shipped accuracy claim must come from CI."
+  ]
+}
