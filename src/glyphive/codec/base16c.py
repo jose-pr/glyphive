@@ -164,40 +164,73 @@ def _build_decode_map(alphabet: str) -> _ty.Dict[str, int]:
 
 
 class _RadixSpec:
-    """Immutable per-codec parameters derived from the alphabet + bits/char.
+    """Immutable per-codec parameters for byte<->char conversion + framing.
 
-    ``bits`` is bits per printed character (``log2(len(alphabet))``, must be an
-    integer power-of-two alphabet). ``check_width`` = chars to hold the 16-bit
-    CRC = ``ceil(16 / bits)``. ``index_width`` is chosen per spec so index
-    capacity (``radix ** index_width``) stays ~1e6+ lines. ``index_mask`` is a
-    tuple of ``index_width`` distinct values in ``[0, radix)`` XORed per position
-    to defeat OCR phantom-insertion into uniform runs.
+    Two packing strategies (``packing``):
+
+    - ``"bits"`` (default): each char carries ``bits = log2(radix)`` bits; the
+      alphabet MUST be a power of two. This is base8/16g/32*/64.
+    - ``"group"``: Ascii85-style GROUP packing — every ``group_bytes`` bytes map
+      to ``group_chars`` base-``radix`` digits (``radix ** group_chars >=
+      256 ** group_bytes``). Used for non-power-of-two radices (base85/z85/
+      base-maxg) so the fractional bit is not wasted.
+
+    ``check_width`` = chars holding the 16-bit CRC. ``index_width``/``index_mask``
+    frame the per-line index (mask defeats OCR phantom-insertion into uniform runs).
+    In group mode ``bits`` is the floor bits/char (``floor(log2(radix))``), used
+    only for index/check digit math, not for payload packing.
     """
 
     __slots__ = (
-        "name", "alphabet", "bits", "mask", "check_width", "index_width",
+        "name", "alphabet", "radix", "bits", "mask", "check_width", "index_width",
         "index_mask", "decode_map", "max_idx", "case_fold",
+        "packing", "group_bytes", "group_chars", "delimiter",
     )
 
-    def __init__(self, name, alphabet, bits, check_width, index_width, index_mask):
+    def __init__(self, name, alphabet, bits, check_width, index_width, index_mask,
+                 packing="bits", group_bytes=0, group_chars=0, delimiter="#"):
         radix = len(alphabet)
-        if radix != (1 << bits):
+        self.packing = packing
+        # The frame check-field delimiter (``payload <delim>check``) MUST NOT be
+        # a payload glyph, or split_frame cannot locate the check field. '#' is
+        # the default (outside base16g/32g); base85/z85 include '#' so they pick
+        # a free char.
+        if len(delimiter) != 1 or delimiter in alphabet or delimiter.isspace():
             raise ValueError(
-                f"{name}: alphabet length {radix} != 2**{bits}"
+                f"{name}: delimiter {delimiter!r} must be one non-space char "
+                f"outside the alphabet"
             )
+        self.delimiter = delimiter
+        if packing == "bits":
+            if radix != (1 << bits):
+                raise ValueError(f"{name}: alphabet length {radix} != 2**{bits}")
+            self.mask = (1 << bits) - 1
+        elif packing == "group":
+            if radix < 2:
+                raise ValueError(f"{name}: group alphabet needs >= 2 chars")
+            if radix ** group_chars < 256 ** group_bytes:
+                raise ValueError(
+                    f"{name}: group {group_bytes}->{group_chars} cannot hold the bytes"
+                    f" ({radix}**{group_chars} < 256**{group_bytes})"
+                )
+            self.mask = 0  # unused in group mode
+        else:
+            raise ValueError(f"{name}: unknown packing {packing!r}")
         if len(index_mask) != index_width:
             raise ValueError(f"{name}: index_mask needs {index_width} values")
         if any(not (0 <= v < radix) for v in index_mask):
             raise ValueError(f"{name}: index_mask values must be in [0,{radix})")
         self.name = name
         self.alphabet = alphabet
+        self.radix = radix
         self.bits = bits
-        self.mask = (1 << bits) - 1
         self.check_width = check_width
         self.index_width = index_width
         self.index_mask = tuple(index_mask)
         self.decode_map = _build_decode_map(alphabet)
         self.max_idx = radix ** index_width
+        self.group_bytes = group_bytes
+        self.group_chars = group_chars
         # Case-folding OCR drift (.upper()) is only valid for a single-case
         # alphabet; a case-significant one (base64) must compare verbatim.
         _letters = [c for c in alphabet if c.isalpha()]
@@ -224,13 +257,68 @@ class CodecError(ValueError):
     """
 
 
-def radix_encode(data: bytes, spec: "_RadixSpec" = BASE16G) -> str:
-    """Encode raw bytes to an alphabet string, ``spec.bits`` bits per char.
+def _group_encode(data: bytes, spec: "_RadixSpec") -> str:
+    """Ascii85-style group packing: ``group_bytes`` bytes -> ``group_chars`` digits.
 
-    MSB-first; the final group is zero-padded. This is *not* self-delimiting:
-    the caller must track the original byte length to strip pad bits on decode
-    (:func:`radix_decode` takes that length explicitly).
+    Each full group reads big-endian, emits ``group_chars`` base-``radix`` digits
+    MSB-first. A final partial group of ``k`` bytes emits ``ceil(8k/log2(radix))``
+    digits (the minimum that round-trips ``k`` bytes). Not self-delimiting.
     """
+    if not data:
+        return ""
+    nb, nc, alphabet, radix = spec.group_bytes, spec.group_chars, spec.alphabet, spec.radix
+    import math
+
+    out: _ty.List[str] = []
+    for start in range(0, len(data), nb):
+        chunk = data[start:start + nb]
+        value = int.from_bytes(chunk, "big")
+        chars = nc if len(chunk) == nb else math.ceil(len(chunk) * 8 / math.log2(radix))
+        digits = [""] * chars
+        for i in range(chars - 1, -1, -1):
+            value, rem = divmod(value, radix)
+            digits[i] = alphabet[rem]
+        out.append("".join(digits))
+    return "".join(out)
+
+
+def _group_decode(text: str, byte_len: int, spec: "_RadixSpec") -> bytes:
+    """Inverse of :func:`_group_encode`; returns exactly ``byte_len`` bytes."""
+    if byte_len == 0:
+        return b""
+    nb, nc, decode_map, radix = spec.group_bytes, spec.group_chars, spec.decode_map, spec.radix
+    import math
+
+    out = bytearray()
+    pos = 0
+    text = text.strip()
+    while len(out) < byte_len:
+        remaining = byte_len - len(out)
+        this_bytes = min(nb, remaining)
+        chars = nc if this_bytes == nb else math.ceil(this_bytes * 8 / math.log2(radix))
+        group = text[pos:pos + chars]
+        pos += chars
+        if len(group) < chars:
+            raise ValueError(f"payload too short: got {len(out)} bytes, need {byte_len}")
+        value = 0
+        for ch in group:
+            try:
+                value = value * radix + decode_map[ch]
+            except KeyError:
+                raise ValueError(f"invalid alphabet character {ch!r}") from None
+        out.extend(value.to_bytes(this_bytes, "big"))
+    return bytes(out[:byte_len])
+
+
+def radix_encode(data: bytes, spec: "_RadixSpec" = BASE16G) -> str:
+    """Encode raw bytes to an alphabet string per ``spec`` (bit- or group-packing).
+
+    Bit-packing: ``spec.bits`` bits per char, MSB-first, final group zero-padded.
+    Group-packing: Ascii85-style (see :func:`_group_encode`). Not self-delimiting;
+    the caller tracks the original byte length (:func:`radix_decode`).
+    """
+    if spec.packing == "group":
+        return _group_encode(data, spec)
     if not data:
         return ""
     bits = spec.bits
@@ -251,13 +339,15 @@ def radix_encode(data: bytes, spec: "_RadixSpec" = BASE16G) -> str:
 
 
 def radix_decode(text: str, byte_len: int, spec: "_RadixSpec" = BASE16G) -> bytes:
-    """Decode an alphabet string back to exactly ``byte_len`` bytes.
+    """Decode an alphabet string back to exactly ``byte_len`` bytes (bit/group).
 
     Case-insensitive. No confusable aliases are applied (see the comment above
     ``_DECODE_MAP``): any character outside the alphabet raises ``ValueError``
     rather than being guessed at. Trailing pad bits beyond ``byte_len`` bytes
     are discarded.
     """
+    if spec.packing == "group":
+        return _group_decode(text, byte_len, spec)
     if byte_len == 0:
         return b""
     bits = spec.bits
@@ -337,13 +427,20 @@ def _check_chars(idx_token: str, payload: str, spec: "_RadixSpec" = BASE16G) -> 
     when ``check_width * bits > 16`` (e.g. base8), the top pad bits are zero.
     """
     crc = _crc16_ccitt(idx_token.encode() + payload.encode())
-    bits = spec.bits
-    mask = spec.mask
     alphabet = spec.alphabet
-    chars = []
-    for shift in range(spec.check_width - 1, -1, -1):
-        chars.append(alphabet[(crc >> (bits * shift)) & mask])
-    return "".join(chars)
+    if spec.packing == "bits":
+        bits, mask = spec.bits, spec.mask
+        return "".join(
+            alphabet[(crc >> (bits * shift)) & mask]
+            for shift in range(spec.check_width - 1, -1, -1)
+        )
+    # group / arbitrary radix: render the 16-bit CRC as base-radix digits.
+    radix = spec.radix
+    digits = [0] * spec.check_width
+    v = crc
+    for i in range(spec.check_width - 1, -1, -1):
+        v, digits[i] = divmod(v, radix)
+    return "".join(alphabet[d] for d in digits)
 
 
 # ---------------------------------------------------------------------------
@@ -382,16 +479,26 @@ def _encode_index(idx: int, spec: "_RadixSpec") -> str:
 
     Never returns a run of identical characters, for any index in the tested
     range (0..5000; see the no-uniform-run test), thanks to ``spec.index_mask``.
+    Bit-packing masks the base-``radix`` digit with XOR (radix is a power of two,
+    so the result stays in range); group-packing (non-power-of-two radix) uses a
+    modular offset, which is likewise invertible and in-range.
     """
-    bits = spec.bits
-    mask = spec.mask
     alphabet = spec.alphabet
     width = spec.index_width
     imask = spec.index_mask
-    return "".join(
-        alphabet[((idx >> (bits * shift)) & mask) ^ imask[width - 1 - shift]]
-        for shift in range(width - 1, -1, -1)
-    )
+    radix = spec.radix
+    if spec.packing == "bits":
+        bits, mask = spec.bits, spec.mask
+        return "".join(
+            alphabet[((idx >> (bits * shift)) & mask) ^ imask[width - 1 - shift]]
+            for shift in range(width - 1, -1, -1)
+        )
+    # group / arbitrary radix: base-radix digits with a modular offset mask.
+    digits = [0] * width
+    v = idx
+    for i in range(width - 1, -1, -1):
+        v, digits[i] = divmod(v, radix)
+    return "".join(alphabet[(digits[i] + imask[i]) % radix] for i in range(width))
 
 
 def _decode_index(token: str, spec: "_RadixSpec") -> _ty.Optional[int]:
@@ -402,16 +509,25 @@ def _decode_index(token: str, spec: "_RadixSpec") -> _ty.Optional[int]:
     """
     if len(token) != spec.index_width:
         return None
-    bits = spec.bits
     decode_map = spec.decode_map
     imask = spec.index_mask
+    radix = spec.radix
     value = 0
+    if spec.packing == "bits":
+        bits = spec.bits
+        for position, char in enumerate(token):
+            try:
+                digit = decode_map[char]
+            except KeyError:
+                return None
+            value = (value << bits) | (digit ^ imask[position])
+        return value
     for position, char in enumerate(token):
         try:
             digit = decode_map[char]
         except KeyError:
             return None
-        value = (value << bits) | (digit ^ imask[position])
+        value = value * radix + ((digit - imask[position]) % radix)
     return value
 
 
@@ -430,7 +546,7 @@ def decode_index(token: str) -> _ty.Optional[int]:
 
 def _frame(kind: str, idx: int, payload: str, spec: "_RadixSpec" = BASE16G) -> str:
     token = _encode_index(idx, spec)
-    return f"{kind}{token} {payload} #{_check_chars(token, payload, spec)}"
+    return f"{kind}{token} {payload} {spec.delimiter}{_check_chars(token, payload, spec)}"
 
 
 class _ParsedLine(_ty.NamedTuple):
@@ -466,11 +582,12 @@ def split_frame(
     e.g. the ``PAGE 1/1 sha256=...`` footer, which is 3 tokens but whose last
     token is not a check field).
     """
+    delim = spec.delimiter
     parts = line.split()
     if len(parts) >= 3:
         check_positions = [
             index for index, part in enumerate(parts[1:], 1)
-            if part.startswith("#")
+            if part.startswith(delim)
         ]
         if len(check_positions) == 1:
             position = check_positions[0]
@@ -479,17 +596,17 @@ def split_frame(
 
     # A constrained Tesseract whitelist can remove both printed separator
     # spaces while preserving every protected glyph.  The label and check have
-    # fixed widths, and '#' is outside the payload alphabet, so this compact
-    # shape remains unambiguous and still flows through the ordinary CRC check.
+    # fixed widths, and the delimiter is outside the payload alphabet, so this
+    # compact shape remains unambiguous and still flows through the CRC check.
     stripped = line.strip()
     label_width = spec.index_width + 1
     if len(stripped) < label_width + 1 + spec.check_width:
         return None
     label = stripped[:label_width]
     remainder = stripped[label_width:]
-    if remainder.count("#") != 1:
+    if remainder.count(delim) != 1:
         return None
-    marker = remainder.index("#")
+    marker = remainder.index(delim)
     check_end = marker + 1 + spec.check_width
     if marker == 0 or check_end > len(remainder):
         return None
@@ -686,6 +803,17 @@ def _rs_decode(
 # ---------------------------------------------------------------------------
 
 
+def _bytes_per_line(line_width: int, spec: "_RadixSpec") -> int:
+    """Whole bytes carried by a full ``line_width``-char payload line (per spec).
+
+    Bit-packing: ``line_width * bits // 8``. Group-packing: whole groups only,
+    ``(line_width // group_chars) * group_bytes``.
+    """
+    if spec.packing == "group":
+        return (line_width // spec.group_chars) * spec.group_bytes
+    return (line_width * spec.bits) // 8
+
+
 def _frame_bytes(
     kind: str, data: bytes, line_width: int, spec: "_RadixSpec" = BASE16G
 ) -> _ty.List[str]:
@@ -700,7 +828,7 @@ def _frame_bytes(
     if not data:
         return []
     # bytes per full line: the largest B with ceil(8B/spec.bits) <= line_width.
-    bytes_per_line = (line_width * spec.bits) // 8
+    bytes_per_line = _bytes_per_line(line_width, spec)
     if bytes_per_line < 1:
         raise ValueError("line_width too small to carry a byte")
     lines: _ty.List[str] = []
@@ -724,7 +852,7 @@ def _encoding_shape(
         raise ValueError("line_width must be >= 1")
     if not 0 < parity_ratio < 1:
         raise ValueError("parity_ratio must be in (0, 1)")
-    bytes_per_line = (line_width * spec.bits) // 8
+    bytes_per_line = _bytes_per_line(line_width, spec)
     if bytes_per_line < 1:
         raise ValueError("line_width too small to carry a byte")
     protected_len = _HEADER_LEN + data_len
@@ -945,6 +1073,17 @@ def _payload_byte_len(
     line carries what its (possibly shorter) width encodes."""
     if not is_last:
         return bytes_per_line
+    if spec.packing == "group":
+        # Whole groups plus the partial final group's byte count.
+        n = len(payload)
+        whole, rem_chars = divmod(n, spec.group_chars)
+        total = whole * spec.group_bytes
+        if rem_chars:
+            import math
+            # largest k bytes whose char count == rem_chars
+            k = (rem_chars * math.log2(spec.radix)) // 8
+            total += int(k)
+        return total
     # Last line: derive byte count from its own char width (floor(bits*chars/8)).
     return (len(payload) * spec.bits) // 8
 
@@ -1187,7 +1326,7 @@ class Base16GCodec(Codec):
             for idx, (line_offset, ok, payload_len) in list(kind_index.items()):
                 if idx != last_idx and payload_len != modal_payload:
                     kind_index[idx] = (line_offset, False, payload_len)
-        bytes_per_line = (modal_payload * self._spec.bits) // 8
+        bytes_per_line = _bytes_per_line(modal_payload, self._spec)
         with _tempfile.TemporaryFile(dir=temp_dir) as data_spool, _tempfile.TemporaryFile(
             dir=temp_dir
         ) as parity_spool:
