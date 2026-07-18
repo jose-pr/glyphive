@@ -754,3 +754,76 @@ def test_inspect_json_is_machine_readable(tmp_path, capsys):
     assert payload["readable"] is True
     assert payload["codec"] == "base16c-crc16-rs"
     assert "line_rs_nsym" in payload
+
+
+def test_descan_auto_retries_with_blur_on_image_decode_failure(tmp_path, monkeypatch):
+    """descan=auto retries a failed sharp image pass with a 0.6 blur (Phase 1)."""
+    from glyphive import layout
+    from glyphive.cli import _common
+
+    image = tmp_path / "photo.png"
+    image.write_bytes(b"\x89PNG\r\n\x1a\nfake")  # image magic so it's image input
+    calls = []
+
+    good_lines = ["decoded", "lines"]
+
+    def fake_loader(source, *, engine=None, blur=None):
+        calls.append(list(blur) if blur is not None else None)
+        # First (sharp) call raises via the decode below; second returns good.
+        return ["sharp"] if len(calls) == 1 else good_lines
+
+    monkeypatch.setattr(_common, "load_image_lines", fake_loader)
+    # Also patch the name imported into extract's module namespace.
+    from glyphive.cli import extract as extract_mod
+    monkeypatch.setattr(extract_mod, "load_image_lines", fake_loader)
+
+    def fake_restore(lines, dest, **kw):
+        if lines == ["sharp"]:
+            raise layout.LayoutError("machine header frame copies failed")
+        return {"_page_warnings": []}, ["a.txt"]
+
+    from glyphive.restore import unarchive
+    monkeypatch.setattr(unarchive, "restore_document_spooled", fake_restore)
+
+    rc = cli.run(["extract", "-f", str(image), "--from-images", "-C", str(tmp_path / "o")])
+    assert rc == 0
+    # Two loads: the sharp [0.0], then the retry [0.0, 0.6].
+    assert calls[0] == [0.0]
+    assert calls[1] == [0.0, 0.6]
+
+
+def test_descan_auto_does_not_retry_text_input(tmp_path, monkeypatch):
+    """A text transcript failure is NOT retried with blur (blur can't help it)."""
+    from glyphive import layout
+    from glyphive.cli import extract as extract_mod
+
+    transcript = tmp_path / "doc.txt"
+    transcript.write_text("not a real transcript\n", encoding="utf-8")
+    calls = []
+
+    def fake_loader(source, *, engine=None, blur=None):
+        calls.append(list(blur) if blur is not None else None)
+        return ["lines"]
+
+    monkeypatch.setattr(extract_mod, "load_input_lines", fake_loader)
+
+    from glyphive.restore import unarchive
+    monkeypatch.setattr(
+        unarchive, "restore_document_spooled",
+        lambda lines, dest, **kw: (_ for _ in ()).throw(
+            layout.LayoutError("no glyphive header")
+        ),
+    )
+
+    with pytest.raises(layout.LayoutError):
+        cli.run(["extract", "-f", str(transcript), "-C", str(tmp_path / "o")])
+    # Only the single sharp pass -- no blur retry for text input.
+    assert calls == [[0.0]]
+
+
+def test_descan_explicit_value_does_not_auto_retry(tmp_path):
+    from glyphive.cli._common import resolve_descan
+
+    assert resolve_descan("auto") == ([0.0], True)
+    assert resolve_descan("0") == ([0.0], False)
+    assert resolve_descan("0,0.6") == ([0.0, 0.6], False)
