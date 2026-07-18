@@ -47,9 +47,10 @@ class Extract(LoggingArgs):
 
     descan: str = "auto"
     "Gaussian de-scan blur for image/PDF input before OCR. 'auto' (the default) "
-    "does one sharp pass, then automatically retries once with a light 0.6 blur "
-    "if decode fails -- raw phone photos are often too sharp/noisy to read "
-    "without it, and the retry costs an extra OCR pass only on failure. '0' "
+    "does one sharp pass, then automatically retries once over a light blur "
+    "ladder (0.6, 0.8) if decode fails -- raw phone photos are often too "
+    "sharp/noisy to read without it, and wider glyphs can need a touch more "
+    "blur; the retry costs extra OCR passes only on failure. '0' "
     "disables the auto-retry (single no-blur pass). An explicit list (e.g. "
     "'0,0.6,1.0') OCRs each image at every radius and merges the CRC-valid lines "
     "across passes -- different blurs recover different lines, and the per-line "
@@ -105,9 +106,9 @@ class Extract(LoggingArgs):
 
         The cross-pass OCR merge only ADDS CRC-valid lines, so a blurred retry
         can never corrupt a transcript that would already decode -- it can only
-        recover more. Retry is limited to one extra pass (0.6 blur) and only
-        when the input is entirely image/PDF and the user did not pass an
-        explicit --descan.
+        recover more. Retry is limited to one extra sweep over the blur ladder
+        (AUTO_DESCAN_RETRY_RADII) and only when the input is entirely image/PDF
+        and the user did not pass an explicit --descan.
         """
         from .. import layout as _layout
         from ..codec.base16c import CodecError
@@ -120,8 +121,9 @@ class Extract(LoggingArgs):
             if not (auto_retry and not self.from_qr and input_is_image_or_pdf(src)):
                 raise
             self._logger_.warning(
-                "restore failed on the sharp pass (%s); retrying with a light "
-                "0.6 de-scan blur", type(first_error).__name__
+                "restore failed on the sharp pass (%s); retrying over the light "
+                "de-scan blur ladder %s", type(first_error).__name__,
+                AUTO_DESCAN_RETRY_RADII,
             )
             retry_lines = load_fn(AUTO_DESCAN_RETRY_RADII)
             try:
