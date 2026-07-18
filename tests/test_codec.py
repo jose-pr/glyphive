@@ -241,12 +241,12 @@ def test_codec_error_is_valueerror():
 
 
 _BUILTIN_CODECS = [
-    "base16c-crc16-rs", "base32-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
+    "base16c-crc16-rs", "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
 ]
 
 
 def test_codec_registry_exposes_g1_and_direct_api():
-    # base16c is the default; base8/base32/base64 are the denser family.
+    # base16c is the default; base8/base32g/base64 are the denser family.
     assert codec.names() == _BUILTIN_CODECS
     assert codec.available() == _BUILTIN_CODECS
     assert isinstance(codec.get("base16c-crc16-rs"), codec.Base16CCodec)
@@ -532,10 +532,10 @@ def test_crc_false_positive_is_caught_by_the_sha_gate(tmp_path):
     ).lower() or "mismatch" in str(excinfo.value).lower()
 
 
-# --- radix codec family (base8/base32/base64) -------------------------------
+# --- radix codec family (base8/base32g/base64) -------------------------------
 
 _RADIX_CODECS = [
-    "base8-crc16-rs", "base16c-crc16-rs", "base32-crc16-rs", "base64-crc16-rs",
+    "base8-crc16-rs", "base16c-crc16-rs", "base32g-crc16-rs", "base64-crc16-rs",
 ]
 
 
@@ -556,8 +556,8 @@ def test_denser_codec_uses_fewer_lines():
         for name in _RADIX_CODECS
     }
     assert counts["base8-crc16-rs"] > counts["base16c-crc16-rs"]
-    assert counts["base16c-crc16-rs"] > counts["base32-crc16-rs"]
-    assert counts["base32-crc16-rs"] > counts["base64-crc16-rs"]
+    assert counts["base16c-crc16-rs"] > counts["base32g-crc16-rs"]
+    assert counts["base32g-crc16-rs"] > counts["base64-crc16-rs"]
 
 
 def test_base64_is_case_significant_but_base16c_is_not():
@@ -575,8 +575,8 @@ def test_base64_is_case_significant_but_base16c_is_not():
 def test_no_uniform_run_index_per_radix():
     """The index token never prints as a run of identical glyphs, any radix."""
     from glyphive.codec.base16c import _encode_index, _decode_index, BASE16C
-    from glyphive.codec.radix import BASE8, BASE32, BASE64
-    for spec in (BASE8, BASE16C, BASE32, BASE64):
+    from glyphive.codec.radix import BASE8, BASE32G, BASE64
+    for spec in (BASE8, BASE16C, BASE32G, BASE64):
         for i in range(0, 5001):
             tok = _encode_index(i, spec)
             assert len(set(tok)) > 1, (spec.name, i, tok)

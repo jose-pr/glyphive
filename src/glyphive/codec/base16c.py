@@ -143,7 +143,7 @@ del _i, _ch
 # Radix specification — the ONLY bits/char-dependent parameters. Everything else
 # in this module (RS coding, header, spooling) is byte-level and radix-agnostic.
 # A codec is one _RadixSpec + the shared pipeline. base16c is the spec below;
-# denser codecs (base32/base64) are other specs (see codec/radix.py).
+# denser codecs (base32g/base64) are other specs (see codec/radix.py).
 # ---------------------------------------------------------------------------
 
 
@@ -967,7 +967,7 @@ def _first_failed_label(
 class Base16CCodec(Codec):
     """The ``base16c-crc16-rs`` codec: 16-char OCR-safe alphabet / CRC-16-CCITT / Reed-Solomon.
 
-    This is also the shared base for the denser radix codecs (``base8``/``base32``/
+    This is also the shared base for the denser radix codecs (``base8``/``base32g``/
     ``base64``): they subclass it, overriding only ``name`` and ``_spec``. All the
     RS/header/spool machinery is radix-agnostic and driven by ``self._spec``.
     """

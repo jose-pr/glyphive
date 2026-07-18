@@ -921,7 +921,7 @@ def iter_paginate(
 # ---------------------------------------------------------------------------
 
 
-def _looks_like_encoded(line: str) -> bool:
+def _looks_like_encoded(line: str, spec=None) -> bool:
     """Cheap check: does ``line`` look like a codec ``L<idx>``/``P<idx>`` frame?
 
     We do NOT validate the CRC here (that is codec.decode's job) — we only decide
@@ -936,19 +936,20 @@ def _looks_like_encoded(line: str) -> bool:
     apart again, while still ignoring headers/footers/noise (e.g. the
     ``PAGE 1/1 sha256=...`` footer has no ``#check`` field and is rejected).
     """
-    from .codec.base16c import decode_index, split_frame
+    from .codec.base16c import BASE16C, _decode_index, split_frame
 
-    split = split_frame(line)
+    spec = spec or BASE16C
+    split = split_frame(line, spec=spec)
     if split is None:
         return False
     label, _payload, _check = split
     if label[:1] not in ("L", "P", "Q"):
         return False
 
-    return decode_index(label[1:]) is not None
+    return _decode_index(label[1:], spec) is not None
 
 
-def _is_frame_shaped_but_unreadable(line: str) -> bool:
+def _is_frame_shaped_but_unreadable(line: str, spec=None) -> bool:
     """True if ``line`` has the ``L``/``P``+``#check`` shape but a bad index token.
 
     This is exactly the OCR class (real-recovery findings #1/#2) where a stray
@@ -956,15 +957,16 @@ def _is_frame_shaped_but_unreadable(line: str) -> bool:
     it. Such a line is NOT noise -- it is a real, addressable data/parity line
     the reader should be told about, not silently dropped.
     """
-    from .codec.base16c import decode_index, split_frame
+    from .codec.base16c import BASE16C, _decode_index, split_frame
 
-    split = split_frame(line)
+    spec = spec or BASE16C
+    split = split_frame(line, spec=spec)
     if split is None:
         return False
     label, _payload, _check = split
     if label[:1] not in ("L", "P", "Q"):
         return False
-    return decode_index(label[1:]) is None
+    return _decode_index(label[1:], spec) is None
 
 
 def read_pages(
@@ -1004,6 +1006,29 @@ def read_pages(
     return header_meta, [line.decode("utf-8").rstrip("\n") for line in spool]
 
 
+def _resolve_payload_spec(header_frames):
+    """Return the payload codec's ``_RadixSpec`` from the decoded H-header frames.
+
+    The H (machine header) frames are always base16c-encoded (the bootstrap
+    alphabet), but the L/P payload frames use the *selected* codec's alphabet —
+    which for base32g/base64 includes glyphs base16c's parser would reject. This
+    reads the codec name from the protected header and returns that codec's spec
+    so L/P classification uses the right alphabet/index/check widths. Falls back
+    to the base16c spec if the header is not yet decodable or the codec is not a
+    built-in radix codec (e.g. a plugin codec that reuses the base16c frame shape).
+    """
+    from .codec.base16c import BASE16C
+
+    try:
+        meta = _decode_machine_header(header_frames)
+        from .codec import get as _get_codec
+
+        codec = _get_codec(str(meta["codec"]))
+        return getattr(codec, "_spec", BASE16C)
+    except Exception:
+        return BASE16C
+
+
 def read_pages_to_spool(
     all_text_lines: _ty.Iterable[str], sink: _ty.BinaryIO
 ) -> _ty.Tuple[_ty.Dict[str, _ty.Any], int]:
@@ -1039,6 +1064,7 @@ def read_pages_to_spool(
     # footer, so the reader gets ``{page, raw}`` detail instead of a silent drop.
     unreadable_lines: _ty.List[_ty.Dict[str, _ty.Any]] = []
     pending_unreadable: _ty.List[str] = []
+    payload_spec = None  # resolved lazily from the header once H frames are seen
     for line in all_text_lines:
         frame = _parse_machine_frame(line, _MACHINE_HEADER_KIND)
         if frame is not None:
@@ -1068,14 +1094,20 @@ def read_pages_to_spool(
             continue  # any '#!' line is a display-only comment, not a data line
         if _parse_machine_frame(line, _MACHINE_HEADER_KIND) is not None:
             continue  # protected machine header is not a payload line
-        if _looks_like_encoded(line):
+        # The payload L/P frames use the SELECTED codec's alphabet (e.g. base32g
+        # adds symbols), which differs from the base16c bootstrap used for the H
+        # header frames. All H frames precede the first payload line, so resolve
+        # the payload codec's spec once, lazily, before classifying L/P lines.
+        if payload_spec is None:
+            payload_spec = _resolve_payload_spec(header_frames)
+        if _looks_like_encoded(line, payload_spec):
             encoded = stripped.encode("utf-8")
             current_page_lines.append(stripped)
             if block_count:
                 block_hash.update(b"\n")
             block_hash.update(encoded)
             block_count += 1
-        elif _is_frame_shaped_but_unreadable(line):
+        elif _is_frame_shaped_but_unreadable(line, payload_spec):
             pending_unreadable.append(stripped)
         # else: OCR noise / blank-ish junk — ignored.
 
