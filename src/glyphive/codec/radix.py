@@ -38,9 +38,15 @@ __all__ = [
     "Base16Codec",
     "Base32Codec",
     "Base32CCodec",
+    "Base85Codec",
+    "Z85Codec",
+    "BaseMaxGCodec",
     "BASE16",
     "BASE32",
     "BASE32C",
+    "BASE85",
+    "Z85",
+    "BASEMAXG",
 ]
 
 
@@ -132,6 +138,64 @@ BASE32C: _ty.Final[_RadixSpec] = _RadixSpec(
     index_mask=(7, 26, 13, 21),
 )
 
+# --- base85 / z85 (GROUP packing, non-power-of-2) --------------------------
+# 85 chars: not a power of two, so these use Ascii85-style GROUP packing
+# (4 bytes -> 5 chars, 0.800 bytes/char -- ~7% denser than base64's 0.750).
+# Both canonical alphabets contain '#' (the default frame delimiter), so each
+# picks a free delimiter (',' for base85, '\\' for z85 -- both outside their
+# alphabets). bits=6 is the floor bits/char, used only for index/check digit
+# math (payload uses group packing). check_width=3 (16-bit CRC in base-85
+# digits: 85**3 = 614125 > 65535). index_width=5 (85**5 headroom). NOT OCR-safe
+# (85 glyphs) -- interop/density only.
+BASE85: _ty.Final[_RadixSpec] = _RadixSpec(
+    name="base85-crc16-rs",
+    alphabet="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+             "!#$%&()*+-;<=>?@^_`{|}~",
+    bits=6,
+    check_width=3,
+    index_width=5,
+    index_mask=(7, 13, 2, 11, 4),
+    packing="group",
+    group_bytes=4,
+    group_chars=5,
+    delimiter=",",
+)
+
+Z85: _ty.Final[_RadixSpec] = _RadixSpec(
+    name="z85-crc16-rs",
+    alphabet="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             ".-:+=^!/*?&<>()[]{}@%$#",
+    bits=6,
+    check_width=3,
+    index_width=5,
+    index_mask=(7, 13, 2, 11, 4),
+    packing="group",
+    group_bytes=4,
+    group_chars=5,
+    delimiter="\\",
+)
+
+# --- base-maxg (glyphive max-distinct set, GROUP packing) ------------------
+# 43 chars = the maximal mutually-distinct glyph set measured on stock OCR
+# (confusion-graph over ASCII, 2026-07-18; ~43 per font, this is Courier's set).
+# radix 43 is non-power-of-2 -> group packing 6 bytes -> 9 chars (0.983 eff,
+# ~1.33 bytes/char). check_width 3 (43**3 = 79507 > 65535). index_width 5.
+# Like base32g, this is a glyphive-recommended ('g') alphabet that needs a
+# trained model for reliable restore (the 43 count is the STOCK-distinct
+# ceiling; a per-font model would be trained on exactly this set). '#' is not a
+# member, so the default delimiter is fine.
+BASEMAXG: _ty.Final[_RadixSpec] = _RadixSpec(
+    name="basemaxg-crc16-rs",
+    alphabet="!&-012345689;ABCDGIKLMNPRSUVWXY`abdehknrt|~",
+    bits=5,
+    check_width=3,
+    index_width=5,
+    index_mask=(7, 13, 2, 11, 4),
+    packing="group",
+    group_bytes=6,
+    group_chars=9,
+)
+
 
 class Base8Codec(Base16GCodec):
     """Sparse 8-char (3 bits/char) codec — most OCR-robust, least dense."""
@@ -180,3 +244,28 @@ class Base32CCodec(Base16GCodec):
 
     name = "base32c-crc16-rs"
     _spec = BASE32C
+
+
+class Base85Codec(Base16GCodec):
+    """Standard base85 (RFC-1924-ish), group-packed 4->5. Densest; interop only."""
+
+    name = "base85-crc16-rs"
+    _spec = BASE85
+
+
+class Z85Codec(Base16GCodec):
+    """ZeroMQ Z85, group-packed 4->5. Interop only (85 glyphs, not OCR-safe)."""
+
+    name = "z85-crc16-rs"
+    _spec = Z85
+
+
+class BaseMaxGCodec(Base16GCodec):
+    """base-maxg: glyphive's 43-glyph max-distinct set, group-packed 6->9.
+
+    The largest mutually-distinct alphabet measured on stock OCR (~43/font).
+    Needs a trained model for reliable restore, like base32g; denser than 32.
+    """
+
+    name = "basemaxg-crc16-rs"
+    _spec = BASEMAXG

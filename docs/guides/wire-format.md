@@ -85,12 +85,34 @@ glyphive-modified alphabet chosen from OCR measurement:
 **standard (textbook alphabets)** — plain, well-known encodings for interop,
 NOT OCR-tuned:
 
-| codec | bits/char | alphabet |
-|-------|-----------|----------|
-| `base16-crc16-rs`   | 4 | hex `0-9A-F` |
-| `base32-crc16-rs`   | 5 | RFC 4648 `A-Z2-7` |
-| `base32c-crc16-rs`  | 5 | Crockford (`0-9A-Z` minus `ILOU`) |
-| `base64-crc16-rs`   | 6 | RFC 4648 `A-Za-z0-9+/` |
+| codec | radix | alphabet |
+|-------|-------|----------|
+| `base16-crc16-rs`   | 16 | hex `0-9A-F` |
+| `base32-crc16-rs`   | 32 | RFC 4648 `A-Z2-7` |
+| `base32c-crc16-rs`  | 32 | Crockford (`0-9A-Z` minus `ILOU`) |
+| `base64-crc16-rs`   | 64 | RFC 4648 `A-Za-z0-9+/` |
+| `base85-crc16-rs`   | 85 | base85 (group-packed, ~7% denser than base64) |
+| `z85-crc16-rs`      | 85 | ZeroMQ Z85 (group-packed) |
+
+The glyphive-tuned family also includes `basemaxg-crc16-rs` (43-glyph
+group-packed, the maximal OCR-distinct set — needs a trained model like base32g).
+
+## Two byte↔char packing strategies
+
+Codecs convert bytes to alphabet characters one of two ways:
+
+- **bit-packing** (power-of-two radices: base8/16/16g/32*/64): each char carries
+  `log2(radix)` bits, MSB-first, final group zero-padded.
+- **group-packing** (non-power-of-two radices: base85/z85/base-maxg): Ascii85-style
+  — every *N* bytes map to *M* base-`radix` digits where `radix**M >= 256**N`
+  (base85: 4 bytes → 5 chars; base-maxg: 6 → 9). Captures the fractional bit a
+  power-of-two packer wastes.
+
+The per-line index token and CRC check field are rendered in the same base-`radix`
+digits either way. The **check-field delimiter** (`payload <delim>check`) is `#`
+by default but is per-codec — an alphabet that contains `#` (base85, z85) uses a
+free character (`,` and `\` respectively), since the delimiter must be a glyph
+outside the payload alphabet.
 
 `base32g` (**32 glyphive**, not RFC-4648 base32) is the base16g 16 plus distinct
 letters/digits and OCR-safe punctuation `? @ ! & + =`:
