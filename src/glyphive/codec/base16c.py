@@ -139,6 +139,83 @@ for _i, _ch in enumerate(ALPHABET):
 del _i, _ch
 
 
+# ---------------------------------------------------------------------------
+# Radix specification — the ONLY bits/char-dependent parameters. Everything else
+# in this module (RS coding, header, spooling) is byte-level and radix-agnostic.
+# A codec is one _RadixSpec + the shared pipeline. base16c is the spec below;
+# denser codecs (base32/base64) are other specs (see codec/radix.py).
+# ---------------------------------------------------------------------------
+
+
+def _build_decode_map(alphabet: str) -> _ty.Dict[str, int]:
+    # Case-folding is only safe when the alphabet is single-case: if the same
+    # letter appears in BOTH cases (e.g. base64 has 'A'=0 and 'a'=26), folding
+    # would alias two DISTINCT values together and silently corrupt decode. So
+    # add the lowercase alias only for a single-case alphabet.
+    letters = [c for c in alphabet if c.isalpha()]
+    # Single-case iff folding letters to lowercase loses no distinctions.
+    single_case = len({c.lower() for c in letters}) == len(letters)
+    m: _ty.Dict[str, int] = {}
+    for i, ch in enumerate(alphabet):
+        m[ch] = i
+        if single_case:
+            m[ch.lower()] = i  # case-insensitive; no confusable aliases (see note)
+    return m
+
+
+class _RadixSpec:
+    """Immutable per-codec parameters derived from the alphabet + bits/char.
+
+    ``bits`` is bits per printed character (``log2(len(alphabet))``, must be an
+    integer power-of-two alphabet). ``check_width`` = chars to hold the 16-bit
+    CRC = ``ceil(16 / bits)``. ``index_width`` is chosen per spec so index
+    capacity (``radix ** index_width``) stays ~1e6+ lines. ``index_mask`` is a
+    tuple of ``index_width`` distinct values in ``[0, radix)`` XORed per position
+    to defeat OCR phantom-insertion into uniform runs.
+    """
+
+    __slots__ = (
+        "name", "alphabet", "bits", "mask", "check_width", "index_width",
+        "index_mask", "decode_map", "max_idx", "case_fold",
+    )
+
+    def __init__(self, name, alphabet, bits, check_width, index_width, index_mask):
+        radix = len(alphabet)
+        if radix != (1 << bits):
+            raise ValueError(
+                f"{name}: alphabet length {radix} != 2**{bits}"
+            )
+        if len(index_mask) != index_width:
+            raise ValueError(f"{name}: index_mask needs {index_width} values")
+        if any(not (0 <= v < radix) for v in index_mask):
+            raise ValueError(f"{name}: index_mask values must be in [0,{radix})")
+        self.name = name
+        self.alphabet = alphabet
+        self.bits = bits
+        self.mask = (1 << bits) - 1
+        self.check_width = check_width
+        self.index_width = index_width
+        self.index_mask = tuple(index_mask)
+        self.decode_map = _build_decode_map(alphabet)
+        self.max_idx = radix ** index_width
+        # Case-folding OCR drift (.upper()) is only valid for a single-case
+        # alphabet; a case-significant one (base64) must compare verbatim.
+        _letters = [c for c in alphabet if c.isalpha()]
+        self.case_fold = len({c.lower() for c in _letters}) == len(_letters)
+
+
+#: The shipped base16c spec. Its constants reproduce the historical values
+#: exactly, so every base16c-bound wrapper below is byte-for-byte unchanged.
+BASE16C: _ty.Final["_RadixSpec"] = _RadixSpec(
+    name="base16c-crc16-rs",
+    alphabet=ALPHABET,
+    bits=4,
+    check_width=4,
+    index_width=5,
+    index_mask=(7, 13, 2, 11, 4),
+)
+
+
 class CodecError(ValueError):
     """Raised when a line fails its CRC and RS cannot correct it.
 
@@ -147,49 +224,54 @@ class CodecError(ValueError):
     """
 
 
-def nibble_encode(data: bytes) -> str:
-    """Encode raw bytes to an alphabet string, 4 bits (one nibble) per char.
+def radix_encode(data: bytes, spec: "_RadixSpec" = BASE16C) -> str:
+    """Encode raw bytes to an alphabet string, ``spec.bits`` bits per char.
 
-    MSB-first; the final 4-bit group is zero-padded. This is *not*
-    self-delimiting: the caller must track the original byte length to strip
-    pad bits on decode (:func:`nibble_decode` takes that length explicitly).
+    MSB-first; the final group is zero-padded. This is *not* self-delimiting:
+    the caller must track the original byte length to strip pad bits on decode
+    (:func:`radix_decode` takes that length explicitly).
     """
     if not data:
         return ""
+    bits = spec.bits
+    mask = spec.mask
+    alphabet = spec.alphabet
     out: _ty.List[str] = []
     acc = 0
     nbits = 0
     for byte in data:
         acc = (acc << 8) | byte
         nbits += 8
-        while nbits >= 4:
-            nbits -= 4
-            out.append(ALPHABET[(acc >> nbits) & 0xF])
-    if nbits:  # flush the remaining bits, left-aligned (MSB-first) into a nibble
-        out.append(ALPHABET[(acc << (4 - nbits)) & 0xF])
+        while nbits >= bits:
+            nbits -= bits
+            out.append(alphabet[(acc >> nbits) & mask])
+    if nbits:  # flush remaining bits, left-aligned (MSB-first) into one char
+        out.append(alphabet[(acc << (bits - nbits)) & mask])
     return "".join(out)
 
 
-def nibble_decode(text: str, byte_len: int) -> bytes:
+def radix_decode(text: str, byte_len: int, spec: "_RadixSpec" = BASE16C) -> bytes:
     """Decode an alphabet string back to exactly ``byte_len`` bytes.
 
     Case-insensitive. No confusable aliases are applied (see the comment above
-    ``_DECODE_MAP``): any character outside the 16-char alphabet raises
-    ``ValueError`` rather than being guessed at. Trailing pad bits beyond
-    ``byte_len`` bytes are discarded.
+    ``_DECODE_MAP``): any character outside the alphabet raises ``ValueError``
+    rather than being guessed at. Trailing pad bits beyond ``byte_len`` bytes
+    are discarded.
     """
     if byte_len == 0:
         return b""
+    bits = spec.bits
+    decode_map = spec.decode_map
     acc = 0
     nbits = 0
     out = bytearray()
     for ch in text:
         try:
-            val = _DECODE_MAP[ch]
+            val = decode_map[ch]
         except KeyError:
             raise ValueError(f"invalid alphabet character {ch!r}") from None
-        acc = (acc << 4) | val
-        nbits += 4
+        acc = (acc << bits) | val
+        nbits += bits
         if nbits >= 8:
             nbits -= 8
             out.append((acc >> nbits) & 0xFF)
@@ -200,6 +282,17 @@ def nibble_decode(text: str, byte_len: int) -> bytes:
             f"payload too short: got {len(out)} bytes, need {byte_len}"
         )
     return bytes(out)
+
+
+# Base16c-bound public aliases (layout.py + tests import these names).
+def nibble_encode(data: bytes) -> str:
+    """base16c-bound :func:`radix_encode` (4 bits/char). Public API."""
+    return radix_encode(data, BASE16C)
+
+
+def nibble_decode(text: str, byte_len: int) -> bytes:
+    """base16c-bound :func:`radix_decode` (4 bits/char). Public API."""
+    return radix_decode(text, byte_len, BASE16C)
 
 
 # ---------------------------------------------------------------------------
@@ -235,16 +328,21 @@ def _crc16_ccitt(data: bytes) -> int:
 CHECK_WIDTH: _ty.Final[int] = 4
 
 
-def _check_chars(idx_token: str, payload: str) -> str:
-    """Compute the 4-char alphabet check field for a framed line.
+def _check_chars(idx_token: str, payload: str, spec: "_RadixSpec" = BASE16C) -> str:
+    """Compute the check field (``spec.check_width`` chars) for a framed line.
 
     The CRC covers exactly what is *printed* -- the index token and the payload
-    characters -- so a human can recompute it straight off the page.
+    characters -- so a human can recompute it straight off the page. The 16-bit
+    CRC is rendered MSB-first across ``check_width`` chars of ``spec.bits`` bits;
+    when ``check_width * bits > 16`` (e.g. base8), the top pad bits are zero.
     """
     crc = _crc16_ccitt(idx_token.encode() + payload.encode())
+    bits = spec.bits
+    mask = spec.mask
+    alphabet = spec.alphabet
     chars = []
-    for shift in range(CHECK_WIDTH - 1, -1, -1):
-        chars.append(ALPHABET[(crc >> (4 * shift)) & 0xF])
+    for shift in range(spec.check_width - 1, -1, -1):
+        chars.append(alphabet[(crc >> (bits * shift)) & mask])
     return "".join(chars)
 
 
@@ -279,41 +377,60 @@ _MAX_IDX: _ty.Final[int] = 16**INDEX_WIDTH  # index is INDEX_WIDTH alphabet char
 _RS_BLOCK: _ty.Final[int] = 255  # GF(2^8) code length ceiling
 
 
-def encode_index(idx: int) -> str:
-    """Render a line index as its printed, OCR-safe alphabet token.
+def _encode_index(idx: int, spec: "_RadixSpec") -> str:
+    """Render a line index as its printed, OCR-safe alphabet token (per spec).
 
-    ``0`` -> ``MYCVH``, ``1`` -> ``MYCVK``, ``1048575`` -> ``PCYHV``. Never
-    returns a run of identical characters, for any index in the tested range
-    (0..5000; see the no-uniform-run test).
+    Never returns a run of identical characters, for any index in the tested
+    range (0..5000; see the no-uniform-run test), thanks to ``spec.index_mask``.
     """
+    bits = spec.bits
+    mask = spec.mask
+    alphabet = spec.alphabet
+    width = spec.index_width
+    imask = spec.index_mask
     return "".join(
-        ALPHABET[((idx >> (4 * shift)) & 0xF) ^ _INDEX_MASK[INDEX_WIDTH - 1 - shift]]
-        for shift in range(INDEX_WIDTH - 1, -1, -1)
+        alphabet[((idx >> (bits * shift)) & mask) ^ imask[width - 1 - shift]]
+        for shift in range(width - 1, -1, -1)
     )
 
 
-def decode_index(token: str) -> _ty.Optional[int]:
-    """Inverse of :func:`encode_index`; ``None`` if the token is not readable.
+def _decode_index(token: str, spec: "_RadixSpec") -> _ty.Optional[int]:
+    """Inverse of :func:`_encode_index` (per spec); ``None`` if unreadable.
 
-    Case-insensitive; no confusable aliases are applied (see the comment above
-    ``_DECODE_MAP``). A wrong result cannot slip through anyway:
-    the per-line CRC covers the printed token and rejects it.
+    Case-insensitive; no confusable aliases (see ``_DECODE_MAP``). A wrong
+    result cannot slip through: the per-line CRC covers the printed token.
     """
-    if len(token) != INDEX_WIDTH:
+    if len(token) != spec.index_width:
         return None
+    bits = spec.bits
+    decode_map = spec.decode_map
+    imask = spec.index_mask
     value = 0
     for position, char in enumerate(token):
         try:
-            digit = _DECODE_MAP[char]
+            digit = decode_map[char]
         except KeyError:
             return None
-        value = (value << 4) | (digit ^ _INDEX_MASK[position])
+        value = (value << bits) | (digit ^ imask[position])
     return value
 
 
-def _frame(kind: str, idx: int, payload: str) -> str:
-    token = encode_index(idx)
-    return f"{kind}{token} {payload} #{_check_chars(token, payload)}"
+def encode_index(idx: int) -> str:
+    """base16c-bound :func:`_encode_index`. Public API.
+
+    ``0`` -> ``MYCVH``, ``1`` -> ``MYCVK``, ``1048575`` -> ``PCYHV``.
+    """
+    return _encode_index(idx, BASE16C)
+
+
+def decode_index(token: str) -> _ty.Optional[int]:
+    """base16c-bound :func:`_decode_index`. Public API."""
+    return _decode_index(token, BASE16C)
+
+
+def _frame(kind: str, idx: int, payload: str, spec: "_RadixSpec" = BASE16C) -> str:
+    token = _encode_index(idx, spec)
+    return f"{kind}{token} {payload} #{_check_chars(token, payload, spec)}"
 
 
 class _ParsedLine(_ty.NamedTuple):
@@ -324,7 +441,7 @@ class _ParsedLine(_ty.NamedTuple):
 
 
 def split_frame(
-    line: str, *, allow_trailing: bool = False
+    line: str, *, allow_trailing: bool = False, spec: "_RadixSpec" = BASE16C
 ) -> _ty.Optional[_ty.Tuple[str, str, str]]:
     """Structurally split a printed line into ``(label, payload, check)``.
 
@@ -365,15 +482,15 @@ def split_frame(
     # fixed widths, and '#' is outside the payload alphabet, so this compact
     # shape remains unambiguous and still flows through the ordinary CRC check.
     stripped = line.strip()
-    label_width = INDEX_WIDTH + 1
-    if len(stripped) < label_width + 1 + CHECK_WIDTH:
+    label_width = spec.index_width + 1
+    if len(stripped) < label_width + 1 + spec.check_width:
         return None
     label = stripped[:label_width]
     remainder = stripped[label_width:]
     if remainder.count("#") != 1:
         return None
     marker = remainder.index("#")
-    check_end = marker + 1 + CHECK_WIDTH
+    check_end = marker + 1 + spec.check_width
     if marker == 0 or check_end > len(remainder):
         return None
     trailing = remainder[check_end:]
@@ -384,7 +501,7 @@ def split_frame(
     return label, payload, check
 
 
-def _parse_line(line: str) -> _ty.Optional[_ParsedLine]:
+def _parse_line(line: str, spec: "_RadixSpec" = BASE16C) -> _ty.Optional[_ParsedLine]:
     """Parse one framed line. Returns None for blank/foreign lines.
 
     ``ok`` reflects whether the printed check field matches a freshly computed
@@ -400,7 +517,7 @@ def _parse_line(line: str) -> _ty.Optional[_ParsedLine]:
     stripped = line.strip()
     if not stripped:
         return None
-    split = split_frame(stripped)
+    split = split_frame(stripped, spec=spec)
     if split is None:
         return None
     label, payload, check = split
@@ -408,13 +525,18 @@ def _parse_line(line: str) -> _ty.Optional[_ParsedLine]:
     if kind not in ("L", "P"):
         return None
     idx_token = label[1:]
-    idx = decode_index(idx_token)
+    idx = _decode_index(idx_token, spec)
     if idx is None:
         return None
     # The CRC covers the printed token, so a misread index fails its own check and
-    # becomes an erasure -- it can never smuggle a bad line through.
-    expected = _check_chars(idx_token.upper(), payload)
-    ok = check[1:].upper() == expected
+    # becomes an erasure -- it can never smuggle a bad line through. OCR case
+    # drift is normalized with .upper() ONLY for a single-case alphabet; a
+    # case-significant one (base64) must compare the printed characters verbatim.
+    fold = spec.case_fold
+    token_for_crc = idx_token.upper() if fold else idx_token
+    check_chars = check[1:]
+    expected = _check_chars(token_for_crc, payload, spec)
+    ok = (check_chars.upper() if fold else check_chars) == expected
     return _ParsedLine(kind=kind, idx=idx, payload=payload, ok=ok)
 
 
@@ -564,7 +686,9 @@ def _rs_decode(
 # ---------------------------------------------------------------------------
 
 
-def _frame_bytes(kind: str, data: bytes, line_width: int) -> _ty.List[str]:
+def _frame_bytes(
+    kind: str, data: bytes, line_width: int, spec: "_RadixSpec" = BASE16C
+) -> _ty.List[str]:
     """Encode ``data`` with the alphabet and split into framed lines of ``line_width``.
 
     Each line's payload maps back to a whole number of bytes: we chunk the byte
@@ -575,30 +699,32 @@ def _frame_bytes(kind: str, data: bytes, line_width: int) -> _ty.List[str]:
     """
     if not data:
         return []
-    # bytes per full line: the largest B with ceil(8B/4) <= line_width.
-    bytes_per_line = (line_width * 4) // 8
+    # bytes per full line: the largest B with ceil(8B/spec.bits) <= line_width.
+    bytes_per_line = (line_width * spec.bits) // 8
     if bytes_per_line < 1:
         raise ValueError("line_width too small to carry a byte")
     lines: _ty.List[str] = []
     idx = 0
     for start in range(0, len(data), bytes_per_line):
         chunk = data[start:start + bytes_per_line]
-        payload = nibble_encode(chunk)
-        if idx >= _MAX_IDX:
+        payload = radix_encode(chunk, spec)
+        if idx >= spec.max_idx:
             raise ValueError(
-                f"{kind} stream exceeds {_MAX_IDX} lines; use smaller pages"
+                f"{kind} stream exceeds {spec.max_idx} lines; use smaller pages"
             )
-        lines.append(_frame(kind, idx, payload))
+        lines.append(_frame(kind, idx, payload, spec))
         idx += 1
     return lines
 
 
-def _encoding_shape(data_len: int, line_width: int, parity_ratio: float):
+def _encoding_shape(
+    data_len: int, line_width: int, parity_ratio: float, spec: "_RadixSpec" = BASE16C
+):
     if line_width < 1:
         raise ValueError("line_width must be >= 1")
     if not 0 < parity_ratio < 1:
         raise ValueError("parity_ratio must be in (0, 1)")
-    bytes_per_line = (line_width * 4) // 8
+    bytes_per_line = (line_width * spec.bits) // 8
     if bytes_per_line < 1:
         raise ValueError("line_width too small to carry a byte")
     protected_len = _HEADER_LEN + data_len
@@ -696,7 +822,8 @@ def describe_line_stream(lines: _ty.Iterable[str]) -> StreamShape:
     )
 
 
-def _frame_stream(kind: str, source, length: int, bytes_per_line: int):
+def _frame_stream(kind: str, source, length: int, bytes_per_line: int,
+                  spec: "_RadixSpec" = BASE16C):
     index = 0
     remaining = length
     while remaining:
@@ -704,23 +831,24 @@ def _frame_stream(kind: str, source, length: int, bytes_per_line: int):
         if not chunk:
             raise ValueError(f"truncated {kind} spool during framing")
         remaining -= len(chunk)
-        if index >= _MAX_IDX:
-            raise ValueError(f"{kind} stream exceeds {_MAX_IDX} lines")
-        yield _frame(kind, index, nibble_encode(chunk))
+        if index >= spec.max_idx:
+            raise ValueError(f"{kind} stream exceeds {spec.max_idx} lines")
+        yield _frame(kind, index, radix_encode(chunk, spec), spec)
         index += 1
     if source.read(1):
         raise ValueError(f"{kind} spool has trailing bytes")
 
 
-def _read_spooled_line(source, offset: int) -> _ParsedLine:
+def _read_spooled_line(source, offset: int, spec: "_RadixSpec" = BASE16C) -> _ParsedLine:
     source.seek(offset)
-    parsed = _parse_line(source.readline().decode("utf-8").rstrip("\r\n"))
+    parsed = _parse_line(source.readline().decode("utf-8").rstrip("\r\n"), spec)
     if parsed is None:
         raise ValueError("indexed codec line is no longer parseable")
     return parsed
 
 
-def _assemble_to_spool(source, index, sink, bytes_per_line: int):
+def _assemble_to_spool(source, index, sink, bytes_per_line: int,
+                       spec: "_RadixSpec" = BASE16C):
     erasures = []
     if not index:
         return 0, erasures
@@ -728,10 +856,10 @@ def _assemble_to_spool(source, index, sink, bytes_per_line: int):
     written = 0
     for idx in range(max_idx + 1):
         entry = index.get(idx)
-        parsed = _read_spooled_line(source, entry[0]) if entry is not None else None
+        parsed = _read_spooled_line(source, entry[0], spec) if entry is not None else None
         is_last = idx == max_idx
         if parsed is not None:
-            span = _payload_byte_len(parsed.payload, bytes_per_line, is_last)
+            span = _payload_byte_len(parsed.payload, bytes_per_line, is_last, spec)
         else:
             span = bytes_per_line
         # A line is usable only if it passes CRC on re-parse AND its stored
@@ -742,7 +870,7 @@ def _assemble_to_spool(source, index, sink, bytes_per_line: int):
         stored_ok = entry[1] if entry is not None else False
         if parsed is not None and parsed.ok and stored_ok:
             try:
-                chunk = nibble_decode(parsed.payload, span)
+                chunk = radix_decode(parsed.payload, span, spec)
             except ValueError:
                 chunk = b"\x00" * span
                 erasures.extend(range(written, written + span))
@@ -810,13 +938,15 @@ def _assemble(
     return out, erasures
 
 
-def _payload_byte_len(payload: str, bytes_per_line: int, is_last: bool) -> int:
+def _payload_byte_len(
+    payload: str, bytes_per_line: int, is_last: bool, spec: "_RadixSpec" = BASE16C
+) -> int:
     """Bytes carried by a payload: full lines carry ``bytes_per_line``; the last
     line carries what its (possibly shorter) width encodes."""
     if not is_last:
         return bytes_per_line
-    # Last line: derive byte count from its own char width (floor(4*chars/8)).
-    return (len(payload) * 4) // 8
+    # Last line: derive byte count from its own char width (floor(bits*chars/8)).
+    return (len(payload) * spec.bits) // 8
 
 
 def _first_failed_label(
@@ -835,9 +965,18 @@ def _first_failed_label(
 
 
 class Base16CCodec(Codec):
-    """The ``base16c-crc16-rs`` codec: 16-char OCR-safe alphabet / CRC-16-CCITT / Reed-Solomon."""
+    """The ``base16c-crc16-rs`` codec: 16-char OCR-safe alphabet / CRC-16-CCITT / Reed-Solomon.
+
+    This is also the shared base for the denser radix codecs (``base8``/``base32``/
+    ``base64``): they subclass it, overriding only ``name`` and ``_spec``. All the
+    RS/header/spool machinery is radix-agnostic and driven by ``self._spec``.
+    """
 
     name = "base16c-crc16-rs"
+
+    #: The radix parameters this codec frames with. Subclasses override this
+    #: (and ``name``) to get a denser alphabet; everything else is inherited.
+    _spec: _ty.ClassVar["_RadixSpec"] = BASE16C
 
     def encode(
         self,
@@ -860,8 +999,8 @@ class Base16CCodec(Codec):
         data_bytes, parity_bytes, _nblocks = _rs_encode(stream, nsym)
 
         lines: _ty.List[str] = []
-        lines.extend(_frame_bytes("L", data_bytes, line_width))
-        lines.extend(_frame_bytes("P", parity_bytes, line_width))
+        lines.extend(_frame_bytes("L", data_bytes, line_width, self._spec))
+        lines.extend(_frame_bytes("P", parity_bytes, line_width, self._spec))
         return lines
 
     def iter_encode(
@@ -889,7 +1028,7 @@ class Base16CCodec(Codec):
             nblocks,
             _data_lines,
             _parity_lines,
-        ) = _encoding_shape(data_len, line_width, parity_ratio)
+        ) = _encoding_shape(data_len, line_width, parity_ratio, self._spec)
         header = _make_header(nsym, data_len)
         source.seek(0, 2)
         actual_len = source.tell()
@@ -941,16 +1080,16 @@ class Base16CCodec(Codec):
                         continue
                     chunk = bytes(pending[:bytes_per_line])
                     del pending[:bytes_per_line]
-                    if line_index >= _MAX_IDX:
-                        raise ValueError(f"L stream exceeds {_MAX_IDX} lines")
-                    yield _frame("L", line_index, nibble_encode(chunk))
+                    if line_index >= self._spec.max_idx:
+                        raise ValueError(f"L stream exceeds {self._spec.max_idx} lines")
+                    yield _frame("L", line_index, radix_encode(chunk, self._spec), self._spec)
                     line_index += 1
                 if source.read(1):
                     raise ValueError("source grew during data framing")
 
                 parity.seek(0)
                 yield from _frame_stream(
-                    "P", parity, nblocks * nsym, bytes_per_line
+                    "P", parity, nblocks * nsym, bytes_per_line, self._spec
                 )
         finally:
             if mapping is not None:
@@ -990,7 +1129,7 @@ class Base16CCodec(Codec):
             raw = encoded_source.readline()
             if not raw:
                 break
-            parsed = _parse_line(raw.decode("utf-8").rstrip("\r\n"))
+            parsed = _parse_line(raw.decode("utf-8").rstrip("\r\n"), self._spec)
             if parsed is None:
                 continue
             target = data_lines if parsed.kind == "L" else parity_lines
@@ -1048,15 +1187,15 @@ class Base16CCodec(Codec):
             for idx, (line_offset, ok, payload_len) in list(kind_index.items()):
                 if idx != last_idx and payload_len != modal_payload:
                     kind_index[idx] = (line_offset, False, payload_len)
-        bytes_per_line = (modal_payload * 4) // 8
+        bytes_per_line = (modal_payload * self._spec.bits) // 8
         with _tempfile.TemporaryFile(dir=temp_dir) as data_spool, _tempfile.TemporaryFile(
             dir=temp_dir
         ) as parity_spool:
             data_len, data_erasures = _assemble_to_spool(
-                encoded_source, data_lines, data_spool, bytes_per_line
+                encoded_source, data_lines, data_spool, bytes_per_line, self._spec
             )
             parity_len, parity_erasures = _assemble_to_spool(
-                encoded_source, parity_lines, parity_spool, bytes_per_line
+                encoded_source, parity_lines, parity_spool, bytes_per_line, self._spec
             )
             if data_len < _HEADER_LEN:
                 raise ValueError("data stream shorter than the group header")
