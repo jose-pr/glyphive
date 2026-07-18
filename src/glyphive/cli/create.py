@@ -152,7 +152,7 @@ class Create(LoggingArgs):
     ("--no-ignore",)
 
     font: "_ty.Optional[str]" = None
-    "Font family for pdf/docx output (default: an OCR-friendly monospace)."
+    "Font family for pdf/docx output (PDF default: bundled dejavu-sans-mono; DOCX default: Consolas)."
     ("--font",)
 
     font_size: float = 11.0
