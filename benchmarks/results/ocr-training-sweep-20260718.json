@@ -1,0 +1,33 @@
+{
+  "benchmark": "custom_ocr_font_training — font × degradation sweep",
+  "date": "2026-07-18",
+  "question": "Does the held-out-gated fine-tune beat stock eng across fonts AND survive real-scan-style degradation, not just the single clean OCR-B cell?",
+  "environment": {
+    "host": "root@10.7.19.75 (Rocky 9)",
+    "tesseract": "5.x local build (/usr/local/bin), tessdata_best/eng base",
+    "alphabet": "base16c ABCDHKLMPRTVXY34 (shipped channel)",
+    "driver": "benchmarks/training/measure_sweep.py"
+  },
+  "recipe": {
+    "psm": 6,
+    "ground_truth_lines": {"train": 200, "eval": 40, "eval_blur": 40},
+    "line_length_chars": "40-70",
+    "ptsize": 8, "dpi": 300, "max_iterations": 6000,
+    "train_seed": 4242, "eval_seed": 777,
+    "eval_blur": "the 40 held-out eval lines rendered then Gaussian-blurred (sigma 0.8) as a scanner/camera proxy; re-saved as uncompressed grayscale TIFF because text2image emits G4 bilevel that cannot hold a blurred image",
+    "gate": "lstmeval CER on withheld eval sets for both stock eng and the fine-tune"
+  },
+  "results": [
+    {"font": "OCR-B",            "stock_clean_CER": 1.655, "trained_clean_CER": 0.0, "stock_blur_CER": 0.833, "trained_blur_CER": 0.0},
+    {"font": "Liberation Mono",  "stock_clean_CER": 4.635, "trained_clean_CER": 0.0, "stock_blur_CER": 3.258, "trained_blur_CER": 0.0},
+    {"font": "DejaVu Sans Mono", "stock_clean_CER": 4.613, "trained_clean_CER": 0.0, "stock_blur_CER": 1.235, "trained_blur_CER": 0.0}
+  ],
+  "verdict": "ACCEPT (measured), unanimous. Held-out-gated fine-tuning drives CER to 0.000% on every font tested, on BOTH clean and blurred held-out sets, while stock eng ranges 0.8-4.6%. The 2026-07-18 corrected recipe generalizes across fonts and survives real-scan-style blur. Phase 3 (stock measurement) and Phase 4 (train-beats-stock gate) are closed on data.",
+  "caveats": [
+    "3 fonts × 1 alphabet (base16c); a base64/ascii alphabet sweep was not run (base16c is the shipped channel).",
+    "Blur (sigma 0.8) is a synthetic scanner proxy, not a genuine print/scan; end-to-end real-scan restore is guarded separately by the physical_scan_regression_gate draft.",
+    "40 held-out lines per cell — a strong but small eval set.",
+    "VM diagnostics only; any shipped accuracy claim must come from CI.",
+    "These trained models are NOT cleared for distribution — that is a Phase 5 licensing decision (OFL Reserved-Font-Name + model-data), independent of accuracy."
+  ]
+}
