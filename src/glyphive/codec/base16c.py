@@ -655,7 +655,13 @@ def _assemble_to_spool(source, index, sink, bytes_per_line: int):
             span = _payload_byte_len(parsed.payload, bytes_per_line, is_last)
         else:
             span = bytes_per_line
-        if parsed is not None and parsed.ok:
+        # A line is usable only if it passes CRC on re-parse AND its stored
+        # index entry was not already marked bad (entry[1] is False). The
+        # stored flag is how the caller's modal-width check forces a
+        # wrong-width line into an erasure even when its CRC coincidentally
+        # passes -- without consulting it here, that force was inert.
+        stored_ok = entry[1] if entry is not None else False
+        if parsed is not None and parsed.ok and stored_ok:
             try:
                 chunk = nibble_decode(parsed.payload, span)
             except ValueError:

@@ -125,6 +125,39 @@ def test_pdf_overflowing_frame_line_fails_loud_but_header_may_shrink(tmp_path):
     assert (tmp_path / "header.pdf").exists()
 
 
+def test_pdf_parity_document_renders_and_q_frame_overflow_fails_loud(tmp_path):
+    """A K>0 PDF renders (Q rows now within width), and an over-wide Q raises (F2).
+
+    F2 regression: ``_FRAME_KINDS`` omitted ``Q``, so an overflowing parity
+    frame silently shrank instead of failing loud, and Q was excluded from the
+    fixed-width glyph max.
+    """
+    from glyphive.layout import Page
+
+    data, _pages = _make_pages(nbytes=1600, seed=9)
+    meta = {
+        "codec": "base16c-crc16-rs",
+        "comp": "none",
+        "files": 1,
+        "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    encoded = base16c.encode(data)
+    parity_pages = layout.paginate(
+        encoded, meta, lines_per_page=lines_per_page_for(11.0), parity_pages=2
+    )
+    # After F1, Q rows fit within the safe width, so a normal-size render works.
+    render(parity_pages, tmp_path / "parity.pdf", "pdf")
+    assert (tmp_path / "parity.pdf").exists()
+
+    # A deliberately over-wide Q frame must fail loud, not silently shrink.
+    renderer = PdfRenderFormat()
+    wide_q = "Q" + "A" * 90 + " " + "B" * 60 + " #ABCD"
+    q_page = [Page(number=1, total=1, text_lines=[wide_q], encoded_lines=[wide_q])]
+    with pytest.raises(ValueError, match="protected frame line overflows"):
+        renderer.render(q_page, tmp_path / "wide_q.pdf", font_size=40)
+
+
 def test_pdf_geometric_capacity_tracks_font_size_margins_and_spacing():
     """The underlying (uncapped) glyph-width measurement scales as expected."""
     renderer = PdfRenderFormat()
