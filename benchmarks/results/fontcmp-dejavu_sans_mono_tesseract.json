@@ -1,0 +1,1568 @@
+{
+  "results": [
+    {
+      "font_arg": "dejavu-sans-mono",
+      "font_label": "DejaVuSansMono.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "0123456789ABCDEF",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.0,
+      "rows": 150,
+      "line_length": 146,
+      "chars_per_line": 146,
+      "lines_per_page": 100,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.02666666666666667,
+      "length_mismatches": 4,
+      "per_char": {
+        "0": {
+          "samples": 1286,
+          "errors": 121,
+          "error_rate": 0.09409020217729394,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 112,
+              "corrupting": false
+            },
+            {
+              "target": "Q",
+              "count": 9,
+              "corrupting": false
+            }
+          ]
+        },
+        "1": {
+          "samples": 1355,
+          "errors": 1,
+          "error_rate": 0.0007380073800738007,
+          "misreads": [
+            {
+              "target": "I",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "2": {
+          "samples": 1327,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 1365,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 1410,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "5": {
+          "samples": 1310,
+          "errors": 4,
+          "error_rate": 0.0030534351145038168,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 4,
+              "corrupting": false
+            }
+          ]
+        },
+        "6": {
+          "samples": 1286,
+          "errors": 4,
+          "error_rate": 0.003110419906687403,
+          "misreads": [
+            {
+              "target": "G",
+              "count": 4,
+              "corrupting": false
+            }
+          ]
+        },
+        "7": {
+          "samples": 1322,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "8": {
+          "samples": 1337,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "9": {
+          "samples": 1354,
+          "errors": 4,
+          "error_rate": 0.0029542097488921715,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 2,
+              "corrupting": false
+            },
+            {
+              "target": "Q",
+              "count": 2,
+              "corrupting": false
+            }
+          ]
+        },
+        "A": {
+          "samples": 1335,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 1346,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 1269,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 1377,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "E": {
+          "samples": 1321,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "F": {
+          "samples": 1316,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "23478ABCDEF",
+      "safe_len": 11,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [],
+      "chars_per_page": 14600,
+      "bytes_per_page": 5475.0,
+      "usable_bytes_per_page": 5329.0,
+      "charset_label": "hex16",
+      "engine_version": "5.4.1"
+    },
+    {
+      "font_arg": "dejavu-sans-mono",
+      "font_label": "DejaVuSansMono.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.0,
+      "rows": 150,
+      "line_length": 146,
+      "chars_per_line": 146,
+      "lines_per_page": 100,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.0,
+      "length_mismatches": 0,
+      "per_char": {
+        "A": {
+          "samples": 1325,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 1385,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 1364,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 1402,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 1457,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 1349,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 1320,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 1368,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 1369,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 1387,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 1373,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 1386,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 1304,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 1411,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 1348,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 1352,
+          "errors": 2,
+          "error_rate": 0.0014792899408284023,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "BCDHKLMPRTVXY3",
+      "safe_len": 14,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "4",
+          "A",
+          2
+        ]
+      ],
+      "chars_per_page": 14600,
+      "bytes_per_page": 5475.0,
+      "usable_bytes_per_page": 5475.0,
+      "charset_label": "custom",
+      "engine_version": "5.4.1"
+    },
+    {
+      "font_arg": "dejavu-sans-mono",
+      "font_label": "DejaVuSansMono.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "0123456789ABCDEF",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 8.0,
+      "rows": 150,
+      "line_length": 109,
+      "chars_per_line": 109,
+      "lines_per_page": 75,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.03333333333333333,
+      "length_mismatches": 5,
+      "per_char": {
+        "0": {
+          "samples": 946,
+          "errors": 84,
+          "error_rate": 0.08879492600422834,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 77,
+              "corrupting": false
+            },
+            {
+              "target": "Q",
+              "count": 7,
+              "corrupting": false
+            }
+          ]
+        },
+        "1": {
+          "samples": 1012,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "2": {
+          "samples": 1006,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 998,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 1069,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "5": {
+          "samples": 969,
+          "errors": 1,
+          "error_rate": 0.0010319917440660474,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "6": {
+          "samples": 975,
+          "errors": 1,
+          "error_rate": 0.0010256410256410256,
+          "misreads": [
+            {
+              "target": "G",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "7": {
+          "samples": 1006,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "8": {
+          "samples": 1013,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "9": {
+          "samples": 992,
+          "errors": 5,
+          "error_rate": 0.005040322580645161,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 3,
+              "corrupting": false
+            },
+            {
+              "target": "I",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "Q",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "A": {
+          "samples": 1001,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 971,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 929,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 998,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "E": {
+          "samples": 968,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "F": {
+          "samples": 952,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "123478ABCDEF",
+      "safe_len": 12,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [],
+      "chars_per_page": 8175,
+      "bytes_per_page": 3065.625,
+      "usable_bytes_per_page": 2963.4375,
+      "charset_label": "hex16",
+      "engine_version": "5.4.1"
+    },
+    {
+      "font_arg": "dejavu-sans-mono",
+      "font_label": "DejaVuSansMono.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 8.0,
+      "rows": 150,
+      "line_length": 109,
+      "chars_per_line": 109,
+      "lines_per_page": 75,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.02,
+      "length_mismatches": 3,
+      "per_char": {
+        "A": {
+          "samples": 970,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 1022,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 1029,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 1007,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 1090,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 984,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 990,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 1011,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 1021,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 995,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 1011,
+          "errors": 1,
+          "error_rate": 0.0009891196834817012,
+          "misreads": [
+            {
+              "target": "1",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "V": {
+          "samples": 987,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 943,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 1013,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 982,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 968,
+          "errors": 2,
+          "error_rate": 0.002066115702479339,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "BCDHKLMPRVXY3",
+      "safe_len": 13,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "4",
+          "A",
+          2
+        ]
+      ],
+      "chars_per_page": 8175,
+      "bytes_per_page": 3065.625,
+      "usable_bytes_per_page": 3004.3125,
+      "charset_label": "custom",
+      "engine_version": "5.4.1"
+    },
+    {
+      "font_arg": "dejavu-sans-mono",
+      "font_label": "DejaVuSansMono.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "0123456789ABCDEF",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 10.0,
+      "rows": 150,
+      "line_length": 87,
+      "chars_per_line": 87,
+      "lines_per_page": 60,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.08,
+      "length_mismatches": 12,
+      "per_char": {
+        "0": {
+          "samples": 722,
+          "errors": 66,
+          "error_rate": 0.09141274238227147,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 60,
+              "corrupting": false
+            },
+            {
+              "target": "Q",
+              "count": 6,
+              "corrupting": false
+            }
+          ]
+        },
+        "1": {
+          "samples": 762,
+          "errors": 2,
+          "error_rate": 0.0026246719160104987,
+          "misreads": [
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "I",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "2": {
+          "samples": 792,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 776,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 799,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "5": {
+          "samples": 722,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "6": {
+          "samples": 756,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "7": {
+          "samples": 758,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "8": {
+          "samples": 768,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "9": {
+          "samples": 741,
+          "errors": 1,
+          "error_rate": 0.001349527665317139,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "A": {
+          "samples": 748,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 743,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 700,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 765,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "E": {
+          "samples": 738,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "F": {
+          "samples": 716,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "2345678ABCDEF",
+      "safe_len": 13,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [],
+      "chars_per_page": 5220,
+      "bytes_per_page": 1957.5,
+      "usable_bytes_per_page": 1800.9,
+      "charset_label": "hex16",
+      "engine_version": "5.4.1"
+    },
+    {
+      "font_arg": "dejavu-sans-mono",
+      "font_label": "DejaVuSansMono.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 10.0,
+      "rows": 150,
+      "line_length": 87,
+      "chars_per_line": 87,
+      "lines_per_page": 60,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.006666666666666667,
+      "length_mismatches": 1,
+      "per_char": {
+        "A": {
+          "samples": 774,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 822,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 841,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 827,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 861,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 777,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 803,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 825,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 835,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 803,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 820,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 806,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 771,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 833,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 795,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 770,
+          "errors": 1,
+          "error_rate": 0.0012987012987012987,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            }
+          ]
+        }
+      },
+      "safe": "BCDHKLMPRTVXY3",
+      "safe_len": 14,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "4",
+          "A",
+          1
+        ]
+      ],
+      "chars_per_page": 5220,
+      "bytes_per_page": 1957.5,
+      "usable_bytes_per_page": 1944.4499999999998,
+      "charset_label": "custom",
+      "engine_version": "5.4.1"
+    },
+    {
+      "font_arg": "dejavu-sans-mono",
+      "font_label": "DejaVuSansMono.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "0123456789ABCDEF",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 11.0,
+      "rows": 150,
+      "line_length": 79,
+      "chars_per_line": 79,
+      "lines_per_page": 54,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.07333333333333333,
+      "length_mismatches": 11,
+      "per_char": {
+        "0": {
+          "samples": 648,
+          "errors": 65,
+          "error_rate": 0.10030864197530864,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 61,
+              "corrupting": false
+            },
+            {
+              "target": "Q",
+              "count": 4,
+              "corrupting": false
+            }
+          ]
+        },
+        "1": {
+          "samples": 695,
+          "errors": 1,
+          "error_rate": 0.0014388489208633094,
+          "misreads": [
+            {
+              "target": "I",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "2": {
+          "samples": 712,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 705,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 752,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "5": {
+          "samples": 641,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "6": {
+          "samples": 685,
+          "errors": 1,
+          "error_rate": 0.00145985401459854,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "7": {
+          "samples": 690,
+          "errors": 11,
+          "error_rate": 0.015942028985507246,
+          "misreads": [
+            {
+              "target": "/",
+              "count": 11,
+              "corrupting": false
+            }
+          ]
+        },
+        "8": {
+          "samples": 718,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "9": {
+          "samples": 684,
+          "errors": 5,
+          "error_rate": 0.007309941520467836,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 2,
+              "corrupting": false
+            },
+            {
+              "target": "I",
+              "count": 2,
+              "corrupting": false
+            },
+            {
+              "target": "Q",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "A": {
+          "samples": 683,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 689,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 639,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 708,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "E": {
+          "samples": 676,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "F": {
+          "samples": 656,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "23458ABCDEF",
+      "safe_len": 11,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [],
+      "chars_per_page": 4266,
+      "bytes_per_page": 1599.75,
+      "usable_bytes_per_page": 1482.435,
+      "charset_label": "hex16",
+      "engine_version": "5.4.1"
+    },
+    {
+      "font_arg": "dejavu-sans-mono",
+      "font_label": "DejaVuSansMono.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 11.0,
+      "rows": 150,
+      "line_length": 79,
+      "chars_per_line": 79,
+      "lines_per_page": 54,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.02,
+      "length_mismatches": 3,
+      "per_char": {
+        "A": {
+          "samples": 692,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 739,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 753,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 726,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 784,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 691,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 724,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 741,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 753,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 719,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 735,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 726,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 691,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 745,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 710,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 684,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 4.0,
+      "efficiency": 1.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 4266,
+      "bytes_per_page": 2133.0,
+      "usable_bytes_per_page": 2090.34,
+      "charset_label": "custom",
+      "engine_version": "5.4.1"
+    },
+    {
+      "font_arg": "dejavu-sans-mono",
+      "font_label": "DejaVuSansMono.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "0123456789ABCDEF",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 12.0,
+      "rows": 150,
+      "line_length": 73,
+      "chars_per_line": 73,
+      "lines_per_page": 50,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.09333333333333334,
+      "length_mismatches": 14,
+      "per_char": {
+        "0": {
+          "samples": 584,
+          "errors": 50,
+          "error_rate": 0.08561643835616438,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 43,
+              "corrupting": false
+            },
+            {
+              "target": "Q",
+              "count": 7,
+              "corrupting": false
+            }
+          ]
+        },
+        "1": {
+          "samples": 624,
+          "errors": 1,
+          "error_rate": 0.0016025641025641025,
+          "misreads": [
+            {
+              "target": "I",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "2": {
+          "samples": 636,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 636,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 687,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "5": {
+          "samples": 598,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "6": {
+          "samples": 612,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "7": {
+          "samples": 644,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "8": {
+          "samples": 652,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "9": {
+          "samples": 626,
+          "errors": 1,
+          "error_rate": 0.001597444089456869,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 1,
+              "corrupting": false
+            }
+          ]
+        },
+        "A": {
+          "samples": 619,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 623,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 587,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 640,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "E": {
+          "samples": 588,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "F": {
+          "samples": 572,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "2345678ABCDEF",
+      "safe_len": 13,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [],
+      "chars_per_page": 3650,
+      "bytes_per_page": 1368.75,
+      "usable_bytes_per_page": 1241.0,
+      "charset_label": "hex16",
+      "engine_version": "5.4.1"
+    },
+    {
+      "font_arg": "dejavu-sans-mono",
+      "font_label": "DejaVuSansMono.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 12.0,
+      "rows": 150,
+      "line_length": 73,
+      "chars_per_line": 73,
+      "lines_per_page": 50,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.02666666666666667,
+      "length_mismatches": 4,
+      "per_char": {
+        "A": {
+          "samples": 625,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "B": {
+          "samples": 676,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "C": {
+          "samples": 691,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "D": {
+          "samples": 684,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "H": {
+          "samples": 730,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "K": {
+          "samples": 631,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "L": {
+          "samples": 653,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "M": {
+          "samples": 688,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "P": {
+          "samples": 689,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "R": {
+          "samples": 675,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "T": {
+          "samples": 672,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "V": {
+          "samples": 674,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "X": {
+          "samples": 626,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "Y": {
+          "samples": 679,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "3": {
+          "samples": 636,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        },
+        "4": {
+          "samples": 629,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": []
+        }
+      },
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 4.0,
+      "efficiency": 1.0,
+      "corrupting_pairs": [],
+      "chars_per_page": 3650,
+      "bytes_per_page": 1825.0,
+      "usable_bytes_per_page": 1776.3333333333335,
+      "charset_label": "custom",
+      "engine_version": "5.4.1"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "tesseract"
+    ],
+    "dense": {
+      "font": "DejaVuSansMono.ttf (bundled)",
+      "size": 6.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "BCDHKLMPRTVXY3",
+      "safe_len": 14,
+      "usable_radix": 8,
+      "bytes_per_page": 5475.0,
+      "usable_bytes_per_page": 5475.0,
+      "line_insert_rate": 0.0,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "DejaVuSansMono.ttf (bundled)",
+      "size": 6.0,
+      "charset": "custom",
+      "engines": [
+        "tesseract"
+      ],
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "3BCDHKLMPRTVXY",
+      "safe_len": 14,
+      "usable_radix": 8,
+      "bytes_per_page": 5475.0,
+      "usable_bytes_per_page": 5475.0,
+      "line_insert_rate": 0.0
+    },
+    "retype": {
+      "font": "DejaVuSansMono.ttf (bundled)",
+      "size": 12.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "ABCDHKLMPRTVXY34",
+      "safe_len": 16,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}
