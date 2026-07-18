@@ -45,15 +45,16 @@ class Extract(LoggingArgs):
     "OCR registry provider for image input (default: automatic preference)."
     ("--ocr-engine",)
 
-    descan: str = "0"
-    "Gaussian blur radii to try on image/scan input before OCR, comma-separated "
-    "(default '0' = off). Raw phone photos are often too sharp/noisy and fail "
-    "decode without a light blur; ~0.6 measured best on real photographed scans. "
-    "Give several (e.g. '0,0.6,1.0') to OCR each image at every radius and merge "
-    "the CRC-valid lines across all passes -- different blurs recover different "
-    "lines, and the per-line CRC makes combining them safe, so a document that "
-    "no single blur can fully read may still restore from the union. Applies to "
-    "--from-images and PDF/image auto-input; ignored for text transcripts."
+    descan: str = "auto"
+    "Gaussian de-scan blur for image/PDF input before OCR. 'auto' (the default) "
+    "does one sharp pass, then automatically retries once with a light 0.6 blur "
+    "if decode fails -- raw phone photos are often too sharp/noisy to read "
+    "without it, and the retry costs an extra OCR pass only on failure. '0' "
+    "disables the auto-retry (single no-blur pass). An explicit list (e.g. "
+    "'0,0.6,1.0') OCRs each image at every radius and merges the CRC-valid lines "
+    "across passes -- different blurs recover different lines, and the per-line "
+    "CRC makes combining them safe -- with no additional auto-retry. Ignored for "
+    "text transcripts and DOCX."
     ("--descan",)
 
     overwrite: bool = False
@@ -74,29 +75,62 @@ class Extract(LoggingArgs):
 
     def __call__(self) -> int:
         from ..restore import unarchive as _unarchive
+        from ._common import resolve_descan
 
         dest = resolve_destination(self.directory)
         src = Path(self.file)
         if self.from_images and self.from_qr:
             raise ValueError("--from-images and --from-qr are mutually exclusive")
-        try:
-            blur_radii = [float(part) for part in self.descan.split(",") if part.strip()]
-        except ValueError:
-            raise ValueError(
-                f"--descan must be a comma-separated list of numbers, got {self.descan!r}"
-            ) from None
-        if not blur_radii:
-            blur_radii = [0.0]
-        if any(r < 0 for r in blur_radii):
-            raise ValueError("--descan blur radii must be zero or greater")
-        if self.from_qr:
-            lines = load_qr_lines(src)
-        elif self.from_images:
-            lines = load_image_lines(src, engine=self.ocr_engine, blur=blur_radii)
-        else:
-            lines = load_input_lines(src, engine=self.ocr_engine, blur=blur_radii)
+        blur_radii, auto_retry = resolve_descan(self.descan)
 
-        meta, written = _unarchive.restore_document_spooled(
+        def _load(radii):
+            if self.from_qr:
+                return load_qr_lines(src)
+            if self.from_images:
+                return load_image_lines(src, engine=self.ocr_engine, blur=radii)
+            return load_input_lines(src, engine=self.ocr_engine, blur=radii)
+
+        lines = _load(blur_radii)
+        meta, written = self._restore_with_descan_retry(
+            _unarchive, dest, lines, _load, auto_retry, src
+        )
+        warn_page_integrity(self._logger_, meta)
+        self._logger_.info("restored %d entries into %s", len(written), dest)
+        return 0
+
+    def _restore_with_descan_retry(
+        self, _unarchive, dest, lines, load_fn, auto_retry, src
+    ):
+        """Restore; on a too-sharp-photo decode failure, auto-retry with a blur.
+
+        The cross-pass OCR merge only ADDS CRC-valid lines, so a blurred retry
+        can never corrupt a transcript that would already decode -- it can only
+        recover more. Retry is limited to one extra pass (0.6 blur) and only
+        when the input is entirely image/PDF and the user did not pass an
+        explicit --descan.
+        """
+        from .. import layout as _layout
+        from ..codec.base16c import CodecError
+        from ._common import AUTO_DESCAN_RETRY_RADII, input_is_image_or_pdf
+
+        retryable = (_layout.LayoutError, CodecError)
+        try:
+            return self._restore(_unarchive, dest, lines)
+        except retryable as first_error:
+            if not (auto_retry and not self.from_qr and input_is_image_or_pdf(src)):
+                raise
+            self._logger_.warning(
+                "restore failed on the sharp pass (%s); retrying with a light "
+                "0.6 de-scan blur", type(first_error).__name__
+            )
+            retry_lines = load_fn(AUTO_DESCAN_RETRY_RADII)
+            try:
+                return self._restore(_unarchive, dest, retry_lines)
+            except retryable:
+                raise first_error
+
+    def _restore(self, _unarchive, dest, lines):
+        return _unarchive.restore_document_spooled(
             lines,
             dest,
             overwrite=self.overwrite,
@@ -105,6 +139,3 @@ class Extract(LoggingArgs):
             max_output_bytes=self.max_output_bytes,
             on_progress=progress_logger(self._logger_),
         )
-        warn_page_integrity(self._logger_, meta)
-        self._logger_.info("restored %d entries into %s", len(written), dest)
-        return 0

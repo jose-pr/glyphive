@@ -78,15 +78,18 @@ OCR-friendly printable pages and back to a verified tree.
   requires `--force`. The renderer interface gains a public
   `geometric_payload_capacity` hook (uncapped fit) alongside the safety-capped
   `payload_capacity`.
-- **De-scan blur for photographed input (`--descan`)**: `extract`/`list` can
-  apply a Gaussian blur to image and rasterized-PDF input before OCR (default
-  0 = off; ~0.6 measured best on real phone photos, which otherwise fail decode
-  because they are too sharp/noisy for the frame CRC/RS). Accepts several radii
-  (`--descan 0,0.6,1.0`) to OCR each image at every radius and **merge the
+- **De-scan blur for photographed input (`--descan`, auto by default)**:
+  `extract`/`list` apply a Gaussian blur to image and rasterized-PDF input
+  before OCR. The default `--descan auto` does a single sharp pass, then
+  automatically retries once with a light `0.6` blur if that fails to decode
+  image/PDF input — raw phone photos are often too sharp/noisy for the frame
+  CRC/RS and otherwise fail, and the retry costs an extra OCR pass only on
+  failure. `--descan 0` disables the auto-retry; an explicit list
+  (`--descan 0,0.6,1.0`) OCRs each image at every radius and **merges the
   CRC-valid lines across passes** — different blurs recover different lines and
   the per-line CRC makes combining them safe, so a document no single blur can
   fully read may still restore from the union. Automatic OCR-engine selection
-  now also prefers the constrained `tesseract-glyphive` profile over plain
+  also prefers the constrained `tesseract-glyphive` profile over plain
   `tesseract` (measured substantially higher scan-restore success).
 - **Whole-page recovery (`--parity-pages K`)**: `create` can emit K extra
   document-level Reed-Solomon parity pages over the data pages, so a document
