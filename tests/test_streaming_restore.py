@@ -34,6 +34,40 @@ def _raw_tree(tmp_path, content=b"safe"):
     return archive.archive_tree(source, use_ignore=False)
 
 
+def test_missing_page_is_recovered_by_document_rs_when_budget_allows(tmp_path):
+    """A wholly missing page no longer hard-fails; codec RS recovers it.
+
+    User decision 2026-07-17: a missing page is a contiguous erasure burst the
+    document-wide interleaved Reed-Solomon can recover outright when the parity
+    budget suffices. read_pages records the gap in _missing_pages and lets the
+    codec try, instead of raising MissingPageError up front.
+    """
+    raw = b"whole-page recovery exercise payload " * 40  # multi-page at lpp=12
+    c = codec.get("base16c-crc16-rs")
+    encoded = c.encode(compression.get("none").compress(raw), parity_ratio=0.35)
+    meta = {
+        "v": 1, "codec": "base16c-crc16-rs", "comp": "none", "meta": "none",
+        "files": 1, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
+    }
+    pages = layout.paginate(encoded, dict(meta), lines_per_page=14)
+    assert len(pages) >= 3
+
+    # Delete every text line belonging to one interior data page.
+    victim = pages[1]
+    victim_lines = set(victim.text_lines)
+    surviving = [
+        line
+        for page in pages
+        for line in page.text_lines
+        if line not in victim_lines
+    ]
+
+    header_meta, encoded_lines = layout.read_pages(surviving)
+    assert 2 in header_meta["_missing_pages"]
+    restored = c.decode(encoded_lines)
+    assert compression.get("none").decompress(restored) == raw
+
+
 def test_traversal_is_staged_privately_and_destination_is_unchanged(tmp_path):
     raw = _raw_tree(tmp_path).replace(b"aa/evil", b"../evil")
     destination = tmp_path / "destination"
