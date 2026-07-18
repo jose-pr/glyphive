@@ -133,3 +133,37 @@ The source ZIP also contains regular-style OCR fonts:
 No candidate should enter a wire preset until randomized held-out glyph sweeps,
 line insertion/erasure measurements, and a complete byte-for-byte restore gate
 are recorded for a pinned font, renderer, DPI, and OCR model.
+
+## Recovery benchmark and verdict (2026-07-18, VM, Tesseract 4.1.1 `jpn`, PSM 6)
+
+The randomized held-out recovery sweep called for above was run. Raw data:
+`benchmarks/results/kanji-channel-recovery-20260718.json`. Matrix: Kaku/Mincho ×
+radix {256, 512, 1024} × {10, 12, 14} pt × {clean, blur 0.6} × {stock jpn,
+char-whitelist-constrained}, 900 random symbols/page at 300 DPI. The deciding
+metric for a *framed* codec is **positional exactness** (per-position symbol
+correctness) and **length match** (no net insertion/deletion) — sequence
+similarity is diagnostic only, since a length-shifted stream is unrecoverable.
+
+| radix | best positional exactness (any config) | usable bits/symbol at best | vs base16 (~4.0) |
+| ---: | ---: | ---: | --- |
+| 256 | 0.353 (Mincho 10 pt blur, stock) | 2.83 | worse |
+| 512 | 0.063 | 0.57 | far worse |
+| 1024 | 0.064 | 0.64 | far worse |
+
+- **Best cell anywhere: 0.353 positional exactness** — a ~65% symbol error rate
+  even at the most favorable radix/size/degradation. No RS budget survives that.
+- **Only 2 of 72 configurations** preserve stream length; the other 70 shift
+  alignment, which framing cannot recover from.
+- The character whitelist (which helps the base16 channel) made Kanji **worse** —
+  it collapsed alignment (e.g. 900 → 738 symbols out) rather than substituting.
+- Higher radix is strictly worse (256 → 512/1024: exactness 0.35 → 0.06): more
+  symbols means more confusable pairs.
+
+**VERDICT: REJECT the high-radix Kanji channel.** `usable_bits_per_symbol =
+log2(radix) × positional_exactness` peaks at **2.83 bits/symbol** (radix 256,
+best config) — below the current 16-char alphabet's ~4.0 usable bits/symbol at
+near-0% error — while needing CJK glyphs ~2–3× the base16 cell area. The channel
+delivers fewer usable bits per page AND worse recovery than the shipped default.
+A fine-tuned Kanji model might change this, but that is a separate higher-cost
+experiment that must clear this same recovery gate; the generic-model result is
+decisively negative. The experimental channel is not implemented.
