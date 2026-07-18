@@ -10,9 +10,10 @@ from duho import LoggingArgs
 
 from .create import Create
 from .extract import Extract
+from .inspect import Inspect
 from .list import List
 
-__all__ = ["Create", "Extract", "Glyphive", "List", "run"]
+__all__ = ["Create", "Extract", "Glyphive", "Inspect", "List", "run"]
 
 
 _MODE_FLAGS = {"-c": "create", "-x": "extract", "-t": "list"}
@@ -55,7 +56,7 @@ class Glyphive(LoggingArgs):
     """
 
     _version_ = duho.AUTO
-    _subcommands_ = [Create, Extract, List]
+    _subcommands_ = [Create, Extract, Inspect, List]
 
     plugins: bool = False
     "Discover trusted installed glyphive plugins before dispatch."
