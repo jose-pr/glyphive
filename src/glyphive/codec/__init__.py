@@ -17,6 +17,9 @@ from .radix import (
     Base32CCodec,
     Base32GCodec,
     Base64Codec,
+    Base85Codec,
+    Z85Codec,
+    BaseMaxGCodec,
 )
 
 __all__ = [
@@ -28,6 +31,9 @@ __all__ = [
     "Base32CCodec",
     "Base32GCodec",
     "Base64Codec",
+    "Base85Codec",
+    "Z85Codec",
+    "BaseMaxGCodec",
     "available",
     "get",
     "names",

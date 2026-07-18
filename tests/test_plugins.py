@@ -11,7 +11,8 @@ from glyphive.restore import ocr
 #: Built-in codecs (base16c default + the denser radix family), sorted.
 _BUILTIN_CODECS = [
     "base16-crc16-rs", "base16g-crc16-rs", "base32-crc16-rs", "base32c-crc16-rs",
-    "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
+    "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs", "base85-crc16-rs",
+    "basemaxg-crc16-rs", "z85-crc16-rs",
 ]
 
 

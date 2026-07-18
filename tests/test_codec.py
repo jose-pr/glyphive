@@ -242,7 +242,8 @@ def test_codec_error_is_valueerror():
 
 _BUILTIN_CODECS = [
     "base16-crc16-rs", "base16g-crc16-rs", "base32-crc16-rs", "base32c-crc16-rs",
-    "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
+    "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs", "base85-crc16-rs",
+    "basemaxg-crc16-rs", "z85-crc16-rs",
 ]
 
 
@@ -537,7 +538,8 @@ def test_crc_false_positive_is_caught_by_the_sha_gate(tmp_path):
 
 _RADIX_CODECS = [
     "base16-crc16-rs", "base16g-crc16-rs", "base32-crc16-rs", "base32c-crc16-rs",
-    "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
+    "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs", "base85-crc16-rs",
+    "basemaxg-crc16-rs", "z85-crc16-rs",
 ]
 
 
