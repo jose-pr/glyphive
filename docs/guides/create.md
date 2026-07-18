@@ -76,11 +76,25 @@ taken at. A font whose glyphs are narrow enough to geometrically fit more than
 found a wider row (e.g. OCR-B 6pt's own ~90-char geometric fit) measurably less
 reliable than 60, even for a font otherwise considered OCR-safe. Text and Word
 output retain 60 by default for the same reason, on top of not exposing
-reliable physical font metrics. Use `--line-width N` to explicitly opt into an
-unmeasured wider (or an intentionally narrower) row for your own experiments;
-PDF rejects an override that exceeds its geometric fit, but does not stop you
-from choosing a wider-than-60 row that hasn't been OCR-verified. Decode infers
-row width from the frames, so no separate restore option is needed.
+reliable physical font metrics.
+
+`--line-width` accepts three spellings:
+
+- `auto` (the default) — the OCR-measured-safe capacity (≤ 60). Same as
+  omitting the flag.
+- `max` — the largest row that *physically* fits the font/size/margins. This
+  may exceed 60 and is **not** OCR-verified; choosing it is the explicit opt-in
+  past the safe cap. On text/Word output (no physical font metrics) `max` is an
+  error — use `auto` or an integer.
+- an integer ≥ 2 — an explicit column count. An integer **above** the safe cap
+  needs `--force` (and must still fit the geometric width); below the cap it is
+  accepted directly. On formats without font metrics no cap is enforced.
+
+A wider-than-60 row (`max`, or a forced integer) hasn't passed the OCR
+print/rasterize/restore benchmark and may reduce restore reliability — the
+render-time guard still fails loud if a frame physically overflows the page.
+Decode infers row width from the frames, so no separate restore option is
+needed.
 
 Create uses disk-backed temporary spools so archive-sized payloads and encoded
 page lists do not have to remain in memory. Spools use the system temporary
