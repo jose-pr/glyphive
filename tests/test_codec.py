@@ -436,3 +436,91 @@ def test_describe_line_stream_ambiguous_shape_reports_none():
     shape = describe_line_stream(only_data)
     assert shape.parity_lines == 0
     assert shape.nsym is None
+
+
+def test_clean_decode_skips_reed_solomon_entirely(monkeypatch):
+    """A zero-erasure stream decodes without invoking reedsolo at all (Phase 1)."""
+    import reedsolo
+
+    calls = {"n": 0}
+    orig = reedsolo.RSCodec.decode
+
+    def spy(self, *a, **k):
+        calls["n"] += 1
+        return orig(self, *a, **k)
+
+    monkeypatch.setattr(reedsolo.RSCodec, "decode", spy)
+
+    data = bytes((i * 37) % 256 for i in range(8192))
+    lines = base16c.encode(data)
+    assert base16c.decode(lines) == data
+    assert calls["n"] == 0
+
+
+def test_damaged_decode_calls_rs_only_for_blocks_with_erasures(monkeypatch):
+    """A stream with a few bad lines RS-corrects only the affected blocks (Phase 2)."""
+    import reedsolo
+
+    calls = {"n": 0}
+    orig = reedsolo.RSCodec.decode
+
+    def spy(self, *a, **k):
+        calls["n"] += 1
+        return orig(self, *a, **k)
+
+    monkeypatch.setattr(reedsolo.RSCodec, "decode", spy)
+
+    data = bytes((i * 37) % 256 for i in range(8192))
+    lines = base16c.encode(data)
+    damaged = list(lines)
+    idx = _first_data_line_index(damaged)
+    damaged[idx] = _mutate_one_payload_char(damaged[idx])
+
+    assert base16c.decode(damaged) == data
+    # One corrupted line is an erasure across the blocks its interleaved bytes
+    # land in -- fewer than every block, so clean blocks were skipped.
+    nblocks = _encoding_shape(len(data), 60, 0.12)[3]
+    assert 0 < calls["n"] < nblocks
+
+
+def test_crc_false_positive_is_caught_by_the_sha_gate(tmp_path):
+    """The clean fast path skips RS; a slipped bad byte still fails loud via SHA.
+
+    Simulate a CRC false positive: a line whose CRC matches but whose payload
+    encodes a byte the encoder did not produce. The zero-erasure fast path
+    accepts it (no RS), but restore's whole-document SHA-256 gate must reject
+    the resulting document -- "no silent corruption" holds without RS.
+    """
+    import hashlib
+
+    from glyphive import compression, layout
+    from glyphive.codec.base16c import _check_chars
+    from glyphive.restore import decode as _decode
+
+    raw = bytes((i * 11) % 256 for i in range(2000))
+    encoded = base16c.encode(compression.get("none").compress(raw))
+    meta = {
+        "v": 1, "codec": "base16c-crc16-rs", "comp": "none", "meta": "none",
+        "files": 1, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
+    }
+    pages = layout.paginate(encoded, dict(meta), lines_per_page=30)
+    lines = [line for page in pages for line in page.text_lines]
+
+    # Flip one payload char on the LAST data line (past the group header, so it
+    # corrupts real payload bytes not the header) and RECOMPUTE its CRC so it
+    # "passes" -- a CRC false positive the zero-erasure fast path won't catch.
+    data_positions = [i for i, l in enumerate(lines) if l.startswith("L")]
+    li = data_positions[-1]
+    label, payload, _check = lines[li].split()
+    flipped = (ALPHABET[1] if payload[0] == ALPHABET[0] else ALPHABET[0]) + payload[1:]
+    lines[li] = f"{label} {flipped} #{_check_chars(label[1:], flipped)}"
+
+    spool = tmp_path / "raw.bin"
+    with pytest.raises((_decode.RestoreError, ValueError)) as excinfo:
+        with open(spool, "wb") as sink:
+            _decode.decode_document_to_spool(lines, sink)
+    # The corruption is caught loudly -- either the whole-document SHA gate or a
+    # downstream validation, never a silent wrong-bytes success.
+    assert "sha256" in str(excinfo.value).lower() or "digest" in str(
+        excinfo.value
+    ).lower() or "mismatch" in str(excinfo.value).lower()

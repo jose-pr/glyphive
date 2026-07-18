@@ -12,6 +12,14 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Changed
 
+- **Faster decode on clean input**: decode now skips Reed-Solomon entirely on
+  erasure-free blocks (the common case — text transcripts and good scans are
+  mostly clean), since a line whose per-line CRC matched is already trusted and
+  RS has nothing to correct. A partially-damaged stream RS-corrects only the
+  blocks that actually contain a bad/missing line. Correctness is unchanged: the
+  per-line CRC oracle plus the whole-document SHA-256 gate still catch any
+  corruption loudly. (Profiling put RS at ~75% of clean-decode time; the exact
+  speedup is measured in CI, not stated here.)
 - **Codec identifier renamed `g1` -> `base16c-crc16-rs`**: exposes the
   composable parts (16-char OCR-safe alphabet / CRC-16 / Reed-Solomon) instead
   of an opaque version tag. `codec/g1.py` -> `codec/base16c.py`; `G1Codec` ->
