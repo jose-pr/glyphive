@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "glyphive-ocrmodel-dejavu"
+name = "glyphive-ocrmodel-libmono"
 version = "0.1.0"
-description = "Opt-in glyphive OCR model fine-tuned for DejaVu Sans Mono (base16c channel)."
+description = "Opt-in glyphive OCR model fine-tuned for Liberation Mono (base16c channel)."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "Apache-2.0"
-keywords = ["glyphive", "ocr", "tesseract", "traineddata", "dejavu"]
+keywords = ["glyphive", "ocr", "tesseract", "traineddata", "libmono"]
 dependencies = [
     # Registers against the core provider registry; needs the OCR extra at runtime.
     "glyphive",
@@ -18,12 +18,12 @@ dependencies = [
 
 # The provider self-registers when glyphive discovers installed plugins.
 [project.entry-points."glyphive.ocr_providers"]
-tesseract-glyphive-dejavu = "glyphive_ocrmodel_dejavu.provider:DejaVuGlyphiveProvider"
+tesseract-glyphive-libmono = "glyphive_ocrmodel_libmono.provider:LibmonoGlyphiveProvider"
 
 [tool.hatch.build.targets.sdist]
-include = ["src/glyphive_ocrmodel_dejavu"]
+include = ["src/glyphive_ocrmodel_libmono"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/glyphive_ocrmodel_dejavu"]
+packages = ["src/glyphive_ocrmodel_libmono"]
 # The trained model ships as package data (added by the release build).
-artifacts = ["src/glyphive_ocrmodel_dejavu/glyphivedejavu.traineddata"]
+artifacts = ["src/glyphive_ocrmodel_libmono/glyphivelibmono.traineddata"]
