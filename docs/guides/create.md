@@ -50,12 +50,14 @@ PDF output accepts the built-in FPDF families `courier`, `helvetica`, `times`,
 accepts an installed Word font name (bundled fonts are embedded only in PDF;
 DOCX references them by name, so a reader without the font installed sees a
 substitute). `dejavu-sans-mono` is bundled under the permissive DejaVu Fonts
-License; it was one of only two fonts (with Courier) that held up under the
-`tesseract-glyphive` profile in real scan/restore testing, so it is offered as
-a strong alternative option — though a byte-for-byte restore gate is still
-pending before it is *recommended* over Courier (see the font ledger).
+License and is the **shipped default** PDF font: it was one of only two fonts
+(with Courier) that held up under the `tesseract-glyphive` profile in real
+scan/restore testing and passed its byte-for-byte restore gate, so it is
+preferred for recovery robustness even though Courier measures denser per page.
+Pass `--font courier` for a zero-embedding, higher-density alternative (see the
+font ledger for the full comparison and the default-font decision).
 OCR-B is bundled under the SIL Open Font License 1.1. It is not the shipped
-default (Courier 8pt is), but `--font ocr-b --font-size 6` is a measured
+default, but `--font ocr-b --font-size 6` is a measured
 `dense` preset: 5,050 usable bytes/page versus Courier 8pt's 4,125, and it
 measured safe (0% character error, 0% line-insertion) on both Tesseract and
 PaddleOCR with the project's `base16c-crc16-rs` alphabet — see
