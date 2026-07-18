@@ -11,7 +11,7 @@ from .base16c import Base16GCodec
 # base64) and standard textbook-alphabet codecs (base16, base32, base32c).
 # base16g stays the recommended stock-safe default.
 from .radix import (
-    Base8Codec,
+    Base8GCodec,
     Base16Codec,
     Base32Codec,
     Base32CCodec,
@@ -25,7 +25,7 @@ from .radix import (
 __all__ = [
     "Codec",
     "Base16GCodec",
-    "Base8Codec",
+    "Base8GCodec",
     "Base16Codec",
     "Base32Codec",
     "Base32CCodec",
