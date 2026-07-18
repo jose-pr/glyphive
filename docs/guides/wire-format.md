@@ -65,6 +65,39 @@ Data and parity lines use one grammar:
 - `<check4>` stores the full CRC-16/CCITT (`0x1021`, initial `0xFFFF`) over the
   printed index token and payload. Four safe characters hold exactly 16 bits.
 
+## Denser codec family (`base8` / `base32g` / `base64`)
+
+`base16c-crc16-rs` is the recommended default: 16 characters is the measured
+stock-OCR-safe ceiling — no larger alphabet reads back reliably on an untrained
+engine. For callers who accept a trade-off, glyphive registers a family of
+radix-parameterized codecs sharing the same frame/RS pipeline, differing only in
+alphabet and bits per character:
+
+| codec | bits/char | density vs base16c | stock OCR | trained model |
+|-------|-----------|--------------------|-----------|---------------|
+| `base8-crc16-rs`    | 3 | 0.75x | safe | safe |
+| `base16c-crc16-rs`  | 4 | 1x (default) | **safe** | safe |
+| `base32g-crc16-rs`  | 5 | 1.25x | ~14.8% CER (unsafe) | **0.0% CER** |
+| `base64-crc16-rs`   | 6 | 1.5x | unsafe | model-dependent |
+
+`base32g` (**32 glyphive**, not RFC-4648 base32) uses a measured 32-character
+alphabet — the base16c 16 plus distinct letters/digits and the OCR-safe
+punctuation `? @ ! & + =`:
+
+```text
+ABCDHKLMPRTVXY34EFGNUW2567?@!&+=
+```
+
+These denser codecs are **never gated** — `create --codec base32g-crc16-rs` just
+maps bytes to characters and never needs OCR. But their *restore* is only
+reliable with a matching per-font fine-tuned OCR model (published as opt-in
+`glyphive-ocrmodel-*` packages); stock OCR shreds a 32-glyph alphabet. `create`
+logs an advisory when a non-`base16c` codec is selected. The index/check widths
+adjust per radix (e.g. base64 uses a 3-character check field). Because the L/P
+payload alphabet differs from the base16c-encoded `H` header, restore reads the
+selected codec name from the protected header first, then parses payload frames
+with that codec's alphabet.
+
 The protected byte stream begins with an eight-byte `base16c-crc16-rs` header:
 
 ```text
