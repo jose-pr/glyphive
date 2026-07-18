@@ -94,6 +94,56 @@ def _normalize_blur(blur: "_ty.Union[float, _ty.Sequence[float]]") -> _ty.List[f
     return seen
 
 
+#: The single extra blur radius the auto-retry adds to a failed sharp pass.
+AUTO_DESCAN_RETRY_RADII: _ty.Final[_ty.List[float]] = [0.0, 0.6]
+
+
+def resolve_descan(value: str) -> "_ty.Tuple[_ty.List[float], bool]":
+    """Parse a ``--descan`` value into ``(radii, auto_retry)``.
+
+    ``"auto"`` (the default) → ``([0.0], True)``: one sharp pass, then retry
+    once with an added 0.6 blur on a decode failure for image/PDF input.
+    ``"0"`` → ``([0.0], False)``: a single no-blur pass, no retry. Any explicit
+    numeric list → that sweep with no auto-retry (the user chose the radii).
+    """
+    if value == "auto":
+        return [0.0], True
+    try:
+        radii = [float(part) for part in value.split(",") if part.strip()]
+    except ValueError:
+        raise ValueError(
+            f"--descan must be 'auto', '0', or a comma-separated list of "
+            f"numbers, got {value!r}"
+        ) from None
+    if not radii:
+        radii = [0.0]
+    if any(r < 0 for r in radii):
+        raise ValueError("--descan blur radii must be zero or greater")
+    return radii, False
+
+
+def input_is_image_or_pdf(source: "_ty.Union[str, Path]") -> bool:
+    """True if every input file is an image or PDF (blur can help these).
+
+    Text transcripts and DOCX are never blurred, so an auto-retry with blur is
+    pointless for them — only retry when the whole input is image/PDF.
+    """
+    image_suffixes = {
+        ".bmp", ".gif", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp",
+    }
+    document_suffixes = {".docx", ".pdf"}
+    try:
+        files = _input_files(source)
+    except (OSError, ValueError):
+        return False
+    if not files:
+        return False
+    for path in files:
+        if _input_kind(path, image_suffixes, document_suffixes) not in ("image", "pdf"):
+            return False
+    return True
+
+
 def _merge_ocr_lines(
     line_lists: _ty.Iterable[_ty.Sequence[str]],
 ) -> _ty.List[str]:
