@@ -183,6 +183,25 @@ that recovery guaranteed up to K lost pages regardless of the per-line budget.
 Metadata restoration is best-effort because filesystems and operating systems
 do not all expose the same permissions or time resolution.
 
+## Header line
+
+Page 1 begins with a compact, human-readable summary:
+
+```text
+#!glyphive v1 base16c-crc16-rs,zstd files=25 bytes=211233 pages=61
+```
+
+This line is **display-only** — restore reads every authoritative value from the
+CRC-protected `H` frames, never from this prose (see the
+[wire format](wire-format.md)). It deliberately omits the SHA-256 and metadata
+profile, and any line starting with `#!` is treated as a comment on the read
+path. Pass `--no-header` to omit the line entirely for the tightest possible
+page; the document still restores identically because nothing depends on it:
+
+```bash
+glyphive create -f tight.txt --no-header -C project .
+```
+
 ## Ignore behavior
 
 Glyphive reads `.gitignore` and `.ignore` only at the archived root. Matching

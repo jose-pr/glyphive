@@ -23,6 +23,10 @@ line, page, and whole-document integrity checks pass.
   millisecond modification time.
 - `pathlib_next>=0.8.1` is required. That release restores clean Python 3.9
   imports and correct local path walking on the supported Python range.
+- The `#!glyphive` header line is display-only and minimal — `#!glyphive v<N>
+  <codec>[,<comp>] files=.. bytes=.. pages=..`, with `sha256`/`meta` carried only
+  in the protected `H` frames. Any `#!` line is a comment; `create --no-header`
+  omits the line and restores identically. Restore never trusts this prose.
 - The format and CLI remain alpha and may change before 1.0.
 
 ### Performance and density
