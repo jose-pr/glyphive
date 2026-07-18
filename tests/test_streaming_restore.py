@@ -68,6 +68,99 @@ def test_missing_page_is_recovered_by_document_rs_when_budget_allows(tmp_path):
     assert compression.get("none").decompress(restored) == raw
 
 
+def _pages_with_parity(raw, *, k, lines_per_page=14, parity_ratio=0.12):
+    c = codec.get("base16c-crc16-rs")
+    encoded = c.encode(compression.get("none").compress(raw), parity_ratio=parity_ratio)
+    meta = {
+        "v": 1, "codec": "base16c-crc16-rs", "comp": "none", "meta": "none",
+        "files": 1, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
+    }
+    pages = layout.paginate(
+        encoded, dict(meta), lines_per_page=lines_per_page, parity_pages=k
+    )
+    return c, pages
+
+
+def _drop_pages(pages, victim_numbers):
+    victims = {n for n in victim_numbers}
+    victim_lines = {
+        line
+        for page in pages
+        if page.number in victims
+        for line in page.text_lines
+    }
+    return [
+        line
+        for page in pages
+        for line in page.text_lines
+        if line not in victim_lines
+    ]
+
+
+def test_page_parity_restores_byte_for_byte_with_interior_page_deleted():
+    """K=2, delete 2 interior data pages: restores byte-for-byte via parity."""
+    raw = b"page parity interior deletion payload " * 60
+    c, pages = _pages_with_parity(raw, k=2)
+    data_pages = [p for p in pages if p.number <= len(pages) - 2]
+    assert len(data_pages) >= 4  # need real interior pages to delete
+
+    surviving = _drop_pages(pages, [2, 3])
+
+    header_meta, encoded_lines = layout.read_pages(surviving)
+    assert header_meta["_reconstructed_pages"] == [2, 3]
+    restored = c.decode(encoded_lines)
+    assert compression.get("none").decompress(restored) == raw
+
+
+def test_page_parity_restores_byte_for_byte_with_last_page_deleted():
+    """K=2, delete the LAST data page: must not truncate stream shape.
+
+    Phase 0 testing found a missing *last* page breaks RS-parameter recovery
+    if its lines aren't re-injected at the correct spool position -- this is
+    the explicit regression case for that bug class.
+    """
+    raw = b"page parity last-page deletion payload " * 60
+    c, pages = _pages_with_parity(raw, k=2)
+    data_total = len(pages) - 2
+    assert data_total >= 2
+
+    surviving = _drop_pages(pages, [data_total])
+
+    header_meta, encoded_lines = layout.read_pages(surviving)
+    assert header_meta["_reconstructed_pages"] == [data_total]
+    restored = c.decode(encoded_lines)
+    assert compression.get("none").decompress(restored) == raw
+
+
+def test_page_parity_exceeding_k_fails_to_restore():
+    """K=2, delete 3 whole data pages (>K): page-parity cannot help.
+
+    ``missing_count (3) > K (2)`` so :func:`read_pages` does not attempt
+    page-level reconstruction (``_reconstructed_pages`` stays empty) and falls
+    back to Phase-0 behavior: record the gap and let the codec's own
+    document-wide Reed-Solomon try. With this much missing, the codec's RS
+    correction budget is also exceeded, so decode raises its own named
+    ``CodecError`` rather than silently returning wrong bytes -- this is the
+    documented fallback, not a raw ``MissingPageError`` from the layout layer
+    (that only fires when literally zero data lines survive at all).
+    """
+    raw = b"page parity budget exceeded payload " * 80
+    c, pages = _pages_with_parity(raw, k=2, lines_per_page=14)
+    data_total = len(pages) - 2
+    assert data_total >= 4  # need 3 non-header data pages to delete
+
+    surviving = _drop_pages(pages, [2, 3, 4])
+
+    header_meta, encoded_lines = layout.read_pages(surviving)
+    assert header_meta["_reconstructed_pages"] == []
+    assert set(header_meta["_missing_pages"]) == {2, 3, 4}
+
+    from glyphive.codec.base16c import CodecError
+
+    with pytest.raises(CodecError):
+        c.decode(encoded_lines)
+
+
 def test_traversal_is_staged_privately_and_destination_is_unchanged(tmp_path):
     raw = _raw_tree(tmp_path).replace(b"aa/evil", b"../evil")
     destination = tmp_path / "destination"
