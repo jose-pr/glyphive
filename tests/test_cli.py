@@ -323,6 +323,55 @@ def test_create_rejects_too_small_line_width(tmp_path):
         )
 
 
+@pytest.mark.parametrize("spelling", ["auto", "max"])
+def test_create_line_width_auto_and_max_on_pdf(tmp_path, spelling):
+    """`--line-width auto|max` are accepted on PDF; max fits >= auto's width."""
+    pytest.importorskip("fpdf")
+    src = _make_srcdir(tmp_path)
+    out = tmp_path / f"{spelling}.pdf"
+    rc = cli.run(
+        [
+            "create", "-f", str(out), "--format", "pdf",
+            "--font", "ocr-b", "--font-size", "6",
+            "--line-width", spelling, "-C", str(src), ".",
+        ]
+    )
+    assert rc == 0
+    assert out.exists()
+
+
+def test_create_line_width_max_on_text_errors(tmp_path):
+    src = _make_srcdir(tmp_path)
+    with pytest.raises(SystemExit, match="max needs a format with physical font"):
+        cli.run(
+            ["create", "-f", str(tmp_path / "t.txt"), "--format", "text",
+             "--line-width", "max", "-C", str(src), "."]
+        )
+
+
+def test_create_line_width_above_safe_cap_needs_force(tmp_path):
+    pytest.importorskip("fpdf")
+    src = _make_srcdir(tmp_path)
+
+    def run(*extra):
+        return cli.run(
+            [
+                "create", "-f", str(tmp_path / "w.pdf"), "--format", "pdf",
+                "--font", "ocr-b", "--font-size", "6",
+                *extra, "-C", str(src), ".",
+            ]
+        )
+
+    # 80 > safe cap 60 for ocr-b 6pt -> rejected without --force.
+    with pytest.raises(SystemExit, match="exceeds the OCR-measured-safe"):
+        run("--line-width", "80")
+    # With --force it is accepted (80 <= geometric fit ~90).
+    assert run("--line-width", "80", "--force") == 0
+    # Above the geometric fit it is rejected even with --force.
+    with pytest.raises(SystemExit, match="exceeds even the geometric fit"):
+        run("--line-width", "999", "--force")
+
+
 def test_generic_codec_and_compression_selectors_roundtrip(tmp_path):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "custom.txt"
