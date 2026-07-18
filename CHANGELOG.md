@@ -63,6 +63,14 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Added
 
+- **Bundled `dejavu-sans-mono` PDF font**: DejaVu Sans Mono 2.37 (permissive
+  DejaVu Fonts License) is now a selectable bundled font
+  (`--font dejavu-sans-mono`), embedded in PDF output. It was one of only two
+  fonts (with Courier) that held up under the `tesseract-glyphive` profile in
+  real scan/restore testing — offered as a strong option; a byte-for-byte
+  restore gate is pending before it is recommended over Courier. Adds ~335 KB
+  to the wheel. (Also fixes a latent bug where a second bundled font would have
+  collided on the hardcoded `"OCR-B"` FPDF family name.)
 - **`glyphive inspect` — recovery-headroom report**: a read-only subcommand
   that reports how much damage a document can survive without fully decoding or
   verifying it (so it works on a partially damaged scan a restore would reject,
