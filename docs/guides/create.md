@@ -24,7 +24,7 @@ when reproducibility across installations matters:
 glyphive create \
   -f backup.txt \
   --format text \
-  --codec base16c-crc16-rs \
+  --codec base16g-crc16-rs \
   --compression gzip \
   --metadata none \
   -C project .
@@ -60,7 +60,7 @@ OCR-B is bundled under the SIL Open Font License 1.1. It is not the shipped
 default, but `--font ocr-b --font-size 6` is a measured
 `dense` preset: 5,050 usable bytes/page versus Courier 8pt's 4,125, and it
 measured safe (0% character error, 0% line-insertion) on both Tesseract and
-PaddleOCR with the project's `base16c-crc16-rs` alphabet — see
+PaddleOCR with the project's `base16g-crc16-rs` alphabet — see
 [`benchmarks/results/FONT_CANDIDATES.md`](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/FONT_CANDIDATES.md)
 for the full matrix. Any other font must still be measured with the intended
 OCR model before relying on it: a smaller font fits more characters on a
@@ -188,7 +188,7 @@ do not all expose the same permissions or time resolution.
 Page 1 begins with a compact, human-readable summary:
 
 ```text
-#!glyphive v1 base16c-crc16-rs,zstd files=25 bytes=211233 pages=61
+#!glyphive v1 base16g-crc16-rs,zstd files=25 bytes=211233 pages=61
 ```
 
 This line is **display-only** — restore reads every authoritative value from the

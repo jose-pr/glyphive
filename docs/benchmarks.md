@@ -47,10 +47,10 @@ commit `69dcb0f` with five repeats after one warm-up call:
 
 | Workload | Min | Median | Max |
 | --- | ---: | ---: | ---: |
-| `base16c-crc16-rs` encode, 1 KiB | 21.58 ms | 21.65 ms | 22.75 ms |
-| `base16c-crc16-rs` decode, 1 KiB | 49.04 ms | 49.45 ms | 50.87 ms |
-| `base16c-crc16-rs` encode, 16 KiB | 293.54 ms | 299.07 ms | 306.92 ms |
-| `base16c-crc16-rs` decode, 16 KiB | 727.13 ms | 734.10 ms | 740.08 ms |
+| `base16g-crc16-rs` encode, 1 KiB | 21.58 ms | 21.65 ms | 22.75 ms |
+| `base16g-crc16-rs` decode, 1 KiB | 49.04 ms | 49.45 ms | 50.87 ms |
+| `base16g-crc16-rs` encode, 16 KiB | 293.54 ms | 299.07 ms | 306.92 ms |
+| `base16g-crc16-rs` decode, 16 KiB | 727.13 ms | 734.10 ms | 740.08 ms |
 | paginate pre-encoded 16 KiB | 0.74 ms | 0.77 ms | 0.78 ms |
 
 This is a local VM sanity result, not release-grade performance evidence. A

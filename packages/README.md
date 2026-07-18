@@ -12,7 +12,7 @@ Each ships a `.traineddata` fine-tuned for one font and registers a
 point. Users install only the model(s) they want; absence falls back to the
 core stock engine.
 
-The fine-tuned models read the base16c channel at 0.000% CER (measured; see
+The fine-tuned models read the base16g channel at 0.000% CER (measured; see
 the core repo's `benchmarks/results/ocr-training-sweep-20260718.json`), across
 OCR-B, Liberation Mono, DejaVu Sans Mono, and Courier (via Nimbus Mono PS). The
 LSTM model format is engine-version independent (Tesseract 4.x/5.x).
@@ -26,7 +26,7 @@ Copy `ocrmodel-dejavu/` to `ocrmodel-<font>/` and change, in this order:
 4. the entry-point line `tesseract-glyphive-<font> = ...`,
 5. the README provenance (base-model version/SHA, font license).
 
-The provider is otherwise identical — same base16c whitelist and PSM, only the
+The provider is otherwise identical — same base16g whitelist and PSM, only the
 bundled model and its language name differ.
 
 ### Model file
