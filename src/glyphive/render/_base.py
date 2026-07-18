@@ -10,7 +10,7 @@ from glyphive.layout import Page
 
 DEFAULT_MONO_FONT = "Consolas"
 DEFAULT_DOCX_FONT = DEFAULT_MONO_FONT
-DEFAULT_PDF_FONT = "Courier"
+DEFAULT_PDF_FONT = "dejavu-sans-mono"
 DEFAULT_PAGE_MARGIN_PT = 36.0
 MINIMAL_PAGE_MARGIN_PT = 12.0
 HORIZONTAL_ALIGNMENTS = frozenset({"left", "center", "justify"})
