@@ -112,10 +112,11 @@ glyphive extract -f photos/ --from-images -C restored   # auto-retries with blur
 
 With the default `--descan auto`, `extract` and `list` first try a single sharp
 (no-blur) pass; if that fails to decode an image/PDF input, they automatically
-retry once with a light `0.6` blur (the measured sweet spot on real scans).
-There is no extra cost when the first pass already works. The cross-pass CRC
-merge means the blurred retry can only *add* recoverable lines, never corrupt a
-transcript that would already decode.
+retry once over a light blur ladder (`0.6` then `0.8`). `0.6` is the sweet spot
+for most real scans, but wider glyphs (e.g. Courier 12pt) can need `~0.8`, so
+the ladder covers both. There is no extra cost when the first pass already
+works. The cross-pass CRC merge means the blurred retry can only *add*
+recoverable lines, never corrupt a transcript that would already decode.
 
 - `--descan 0` disables the auto-retry (a single no-blur pass).
 - `--descan 0.6` — or a list like `--descan 0,0.6,1.0` — is an explicit sweep:
