@@ -56,6 +56,7 @@ Create a text archive from one directory, inspect it, and restore it:
 ```bash
 glyphive create -f backup.txt --compression gzip -C project .
 glyphive list -f backup.txt
+glyphive inspect -f backup.txt          # recovery-headroom report (read-only)
 glyphive extract -f backup.txt -C restored
 ```
 

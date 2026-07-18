@@ -55,6 +55,14 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Added
 
+- **`glyphive inspect` — recovery-headroom report**: a read-only subcommand
+  that reports how much damage a document can survive without fully decoding or
+  verifying it (so it works on a partially damaged scan a restore would reject,
+  and writes nothing). Shows data/parity page counts (whole-page recovery
+  budget), the realized per-line Reed-Solomon `nsym` (scattered-damage budget),
+  and which pages are present/missing/reconstructable. `--json` for machine
+  output; `--strict` exits non-zero on an already-unrecoverable document. Backed
+  by a new pure `codec.base16c.describe_line_stream` shape oracle.
 - **`--line-width auto|max|<int>` spellings** on `create`: `auto` (default) is
   the OCR-measured-safe capacity (≤60); `max` fills the largest row that
   physically fits the font/size/margins (may exceed 60, not OCR-verified, and

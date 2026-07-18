@@ -17,6 +17,26 @@ does not trust editable `#!glyphive` header prose.
 
 Short command alias: `glyphive t`.
 
+### Recovery headroom (`glyphive inspect`)
+
+`glyphive inspect` reports how much damage a document can survive **without**
+fully decoding or verifying it — so it works on a partially damaged scan that a
+real restore would reject, and it never writes a file:
+
+```bash
+glyphive inspect -f backup.txt
+glyphive inspect -f scans/ --json
+```
+
+It reads only the protected header and page footers, then reports the data and
+parity page counts (whole-page recovery headroom, i.e. how many wholly lost
+pages it can rebuild), the realized per-line Reed-Solomon budget (`nsym`
+erasures per block, for scattered OCR damage), and which pages are present,
+missing, or reconstructable. `--json` emits a machine-readable object.
+`--strict` exits non-zero when the document is already unrecoverable (more data
+pages missing than page-parity can rebuild); plain `inspect` always exits 0 on
+a readable header. It is read-only and creates no files.
+
 ## Restore a transcript
 
 ```bash

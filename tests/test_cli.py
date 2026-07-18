@@ -703,3 +703,54 @@ def test_multiple_paths_rejected(tmp_path):
                 "b.txt",
             ]
         )
+
+
+def test_inspect_reports_recovery_headroom_and_strict_exit(tmp_path, capsys):
+    """`inspect` reports D/K/nsym read-only; --strict flags an unrecoverable doc."""
+    from glyphive.render.formats.text import FORM_FEED
+
+    src = _make_srcdir(tmp_path)
+    (src / "d.txt").write_text("delta " * 400, encoding="utf-8")
+    archive = tmp_path / "doc.txt"
+    assert cli.run(
+        ["create", "-f", str(archive), "-C", str(src),
+         "--compression", "none", "--parity-pages", "1", ".",]
+    ) == 0
+
+    # Intact: readable, exit 0, reports data/parity pages and the nsym budget.
+    capsys.readouterr()
+    assert cli.run(["inspect", "-f", str(archive)]) == 0
+    out = capsys.readouterr().out
+    assert "data +" in out and "parity" in out
+    assert "Reed-Solomon budget" in out
+
+    # No file is written by inspect.
+    before = sorted(p.name for p in tmp_path.iterdir())
+    cli.run(["inspect", "-f", str(archive)])
+    assert sorted(p.name for p in tmp_path.iterdir()) == before
+
+    # Drop 2 whole data pages (> K=1) -> unrecoverable; --strict exits non-zero,
+    # plain inspect still exits 0.
+    blocks = archive.read_text(encoding="utf-8").split(FORM_FEED)
+    assert len(blocks) >= 4
+    surviving = [b for i, b in enumerate(blocks) if i not in (1, 2)]
+    archive.write_text(FORM_FEED.join(surviving), encoding="utf-8")
+
+    assert cli.run(["inspect", "-f", str(archive)]) == 0
+    assert cli.run(["inspect", "-f", str(archive), "--strict"]) != 0
+
+
+def test_inspect_json_is_machine_readable(tmp_path, capsys):
+    import json
+
+    src = _make_srcdir(tmp_path)
+    archive = tmp_path / "j.txt"
+    assert cli.run(
+        ["create", "-f", str(archive), "-C", str(src), "--compression", "none", "."]
+    ) == 0
+    capsys.readouterr()
+    assert cli.run(["inspect", "-f", str(archive), "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["readable"] is True
+    assert payload["codec"] == "base16c-crc16-rs"
+    assert "line_rs_nsym" in payload
