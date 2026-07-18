@@ -303,6 +303,39 @@ def test_pdf_accepts_explicit_font_file(tmp_path):
     assert output.read_bytes().startswith(b"%PDF")
 
 
+def test_pdf_resolves_font_name_from_system_store(tmp_path, monkeypatch):
+    """A bare family name is resolved against the OS font stores by file stem."""
+    from glyphive.render.formats import pdf as pdf_mod
+    from pathlib_next import Path
+
+    # Fake system font dir holding a file named after the requested family.
+    fake_store = tmp_path / "fake-fonts"
+    fake_store.mkdir()
+    src = resources.files("glyphive.assets.fonts.ocr_b").joinpath("OCR-B.ttf")
+    (fake_store / "Fake Mono.ttf").write_bytes(src.read_bytes())
+    monkeypatch.setattr(pdf_mod, "_system_font_dirs", lambda: [Path(str(fake_store))])
+
+    _data, pages = _make_pages(nbytes=80)
+    output = tmp_path / "by-name.pdf"
+    # Not core, not bundled, not a path -> must be found in the fake store.
+    render(pages, output, "pdf", font="Fake Mono", font_size=8)
+    assert output.read_bytes().startswith(b"%PDF")
+
+
+def test_pdf_unknown_font_reports_system_store_search(tmp_path, monkeypatch):
+    """When the name is nowhere (incl. an empty system store), the error says so."""
+    from glyphive.render.formats import pdf as pdf_mod
+    from glyphive.render.formats.pdf import PdfRenderFormat
+    from glyphive.layout import Page
+
+    monkeypatch.setattr(pdf_mod, "_system_font_dirs", lambda: [])  # no stores
+    renderer = PdfRenderFormat()
+    page = [Page(number=1, total=1, text_lines=["#!glyphive"], encoded_lines=[])]
+    with pytest.raises(ValueError, match="OS font stores") as excinfo:
+        renderer.render(page, str(tmp_path / "x.pdf"), font="no-such-font")
+    assert "dejavu-sans-mono" in str(excinfo.value)
+
+
 def test_all_backends_present():
     # Guard-test: on this machine the optional backends ARE installed, so
     # importing the renderer submodules must succeed (0 skips expected here).
