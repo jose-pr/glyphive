@@ -12,6 +12,14 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Changed
 
+- **Default PDF font is now `dejavu-sans-mono`** (was Courier). DejaVu was one of
+  only two fonts that held up on real photographed scans under `tesseract-glyphive`
+  and passes the byte-for-byte restore gate, so it is preferred for recovery
+  robustness. Trade-offs, accepted deliberately: it renders ~26% fewer usable
+  bytes/page than Courier at 8 pt+ (more pages per document) and embeds ~340 KB per
+  PDF (Courier is a zero-embedding core font). Pass `--font courier` for the denser,
+  zero-embed alternative. The synthetic density comparison and the override rationale
+  are in `benchmarks/results/FONT_CANDIDATES.md`.
 - **Footer-hash mismatches are now advisory, not warnings**: an OCR restore
   almost always produces a footer-hash mismatch (OCR inserts interior spaces
   that change the page text hash while the `L`/`P` lines still decode via
