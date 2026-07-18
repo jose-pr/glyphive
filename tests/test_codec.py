@@ -409,3 +409,30 @@ def test_excluded_confusable_in_framed_line_repairs_via_rs():
     corrupted[idx] = f"{label} {noisy_payload} {check}"
 
     assert base16c.decode(corrupted) == data
+
+
+def test_describe_line_stream_reports_realized_rs_shape():
+    """describe_line_stream reports the encoder's realized nsym without decoding."""
+    from glyphive.codec.base16c import describe_line_stream
+
+    rng = random.Random(3)
+    data = bytes(rng.randrange(256) for _ in range(50 * 1024))
+    lines = base16c.encode(data)
+    shape = describe_line_stream(lines)
+    assert shape.nsym == 27  # verified for 0.12 ratio at 50 KB
+    assert shape.nblocks is not None and shape.nblocks > 0
+    assert shape.data_lines == sum(1 for l in lines if l.startswith("L"))
+    assert shape.parity_lines == sum(1 for l in lines if l.startswith("P"))
+
+
+def test_describe_line_stream_ambiguous_shape_reports_none():
+    """A line-count-inconsistent stream yields nsym=None, never a guess."""
+    from glyphive.codec.base16c import describe_line_stream
+
+    data = bytes(range(256))
+    lines = base16c.encode(data)
+    # Drop all parity lines: data/parity counts no longer match any single nsym.
+    only_data = [l for l in lines if not l.startswith("P")]
+    shape = describe_line_stream(only_data)
+    assert shape.parity_lines == 0
+    assert shape.nsym is None
