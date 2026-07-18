@@ -318,6 +318,16 @@ class Create(LoggingArgs):
     def __call__(self) -> int:
         codec_name = self.codec
         codec = _select_codec(codec_name)
+        if codec_name != "base16c-crc16-rs":
+            # Denser codecs pack more bits/char but are not stock-OCR-safe: the
+            # measured stock-safe ceiling is base16c's 16 characters. Not a gate
+            # (creation never needs OCR) — an informed-choice advisory.
+            self._logger_.warning(
+                "codec %r is not the OCR-recommended default (base16c-crc16-rs); "
+                "denser alphabets need the matching trained OCR model for reliable "
+                "scan restore — pick base16c unless you rely on such a model",
+                codec_name,
+            )
         compression_name, compression = self._compression_selection()
         format_name = _output_format(self.file, self.format)
         renderer = _select_renderer(format_name)
