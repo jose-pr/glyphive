@@ -14,3 +14,19 @@ Glyphive bundles an unmodified `OCR-B.ttf` from
 The font remains under the SIL Open Font License rather than Glyphive's MIT
 license. Its complete license is distributed beside the font at
 `glyphive/assets/fonts/ocr_b/LICENSE.md`.
+
+## DejaVu Sans Mono font
+
+Glyphive bundles an unmodified `DejaVuSansMono.ttf` from the
+[`dejavu-fonts/dejavu-fonts`](https://github.com/dejavu-fonts/dejavu-fonts)
+`version_2_37` release
+(`dejavu-fonts-ttf-2.37.zip`, `ttf/DejaVuSansMono.ttf`).
+
+- License: DejaVu Fonts License (Bitstream Vera Fonts Copyright + Arev Fonts
+  Copyright; permissive, allows embedding, bundling, and redistribution).
+- SHA-256: `b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582`.
+- Size: 340,712 bytes.
+
+The font remains under the DejaVu Fonts License rather than Glyphive's MIT
+license. Its complete license is distributed verbatim beside the font at
+`glyphive/assets/fonts/dejavu_sans_mono/LICENSE`.

@@ -20,7 +20,13 @@ from glyphive.render._base import (
 _CORE_FONTS = frozenset(
     {"courier", "helvetica", "times", "symbol", "zapfdingbats", "arial"}
 )
-_BUNDLED_FONTS = {"ocr-b": ("glyphive.assets.fonts.ocr_b", "OCR-B.ttf")}
+_BUNDLED_FONTS = {
+    "ocr-b": ("glyphive.assets.fonts.ocr_b", "OCR-B.ttf"),
+    "dejavu-sans-mono": (
+        "glyphive.assets.fonts.dejavu_sans_mono",
+        "DejaVuSansMono.ttf",
+    ),
+}
 _FRAME_KINDS = "HLPQT"
 _SAFE_ALPHABET = "ABCDHKLMPRTVXY34"
 
@@ -49,7 +55,9 @@ def registered_pdf_font(pdf: _ty.Any, font: _ty.Optional[str]):
     if lowered in _BUNDLED_FONTS:
         package, filename = _BUNDLED_FONTS[lowered]
         resource = resources.files(package).joinpath(filename)
-        family = "OCR-B"
+        # Distinct FPDF family per bundled font (was hardcoded "OCR-B", which
+        # would collide once a second bundled font was added).
+        family = lowered
         with resources.as_file(resource) as font_path:
             pdf.add_font(family, "", str(font_path))
             yield family

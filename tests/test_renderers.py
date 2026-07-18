@@ -271,6 +271,30 @@ def test_bundled_ocr_b_font_is_pinned_and_renders_pdf(tmp_path):
     assert output.read_bytes().startswith(b"%PDF")
 
 
+def test_bundled_dejavu_sans_mono_is_pinned_and_renders_pdf(tmp_path):
+    font = resources.files("glyphive.assets.fonts.dejavu_sans_mono").joinpath(
+        "DejaVuSansMono.ttf"
+    )
+    assert hashlib.sha256(font.read_bytes()).hexdigest() == (
+        "b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582"
+    )
+    _data, pages = _make_pages(nbytes=80)
+    output = tmp_path / "dejavu.pdf"
+    render(pages, output, "pdf", font="dejavu-sans-mono", font_size=8)
+    assert output.read_bytes().startswith(b"%PDF")
+
+
+def test_unsupported_pdf_font_error_lists_bundled_fonts():
+    from glyphive.render.formats.pdf import PdfRenderFormat
+    from glyphive.layout import Page
+
+    renderer = PdfRenderFormat()
+    page = [Page(number=1, total=1, text_lines=["#!glyphive"], encoded_lines=[])]
+    with pytest.raises(ValueError, match="dejavu-sans-mono") as excinfo:
+        renderer.render(page, "/tmp/x.pdf", font="no-such-font")
+    assert "ocr-b" in str(excinfo.value)
+
+
 def test_pdf_accepts_explicit_font_file(tmp_path):
     font = resources.files("glyphive.assets.fonts.ocr_b").joinpath("OCR-B.ttf")
     _data, pages = _make_pages(nbytes=80)

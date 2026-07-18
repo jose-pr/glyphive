@@ -45,8 +45,15 @@ glyphive create -f backup.docx --font Consolas --font-size 10 -C project .
 ```
 
 PDF output accepts the built-in FPDF families `courier`, `helvetica`, `times`,
-`symbol`, `zapfdingbats`, and `arial`, the bundled `ocr-b` option, or an
-existing `.ttf`/`.otf` path. Word output accepts an installed Word font name.
+`symbol`, `zapfdingbats`, and `arial`, the bundled `ocr-b` and
+`dejavu-sans-mono` options, or an existing `.ttf`/`.otf` path. Word output
+accepts an installed Word font name (bundled fonts are embedded only in PDF;
+DOCX references them by name, so a reader without the font installed sees a
+substitute). `dejavu-sans-mono` is bundled under the permissive DejaVu Fonts
+License; it was one of only two fonts (with Courier) that held up under the
+`tesseract-glyphive` profile in real scan/restore testing, so it is offered as
+a strong alternative option — though a byte-for-byte restore gate is still
+pending before it is *recommended* over Courier (see the font ledger).
 OCR-B is bundled under the SIL Open Font License 1.1. It is not the shipped
 default (Courier 8pt is), but `--font ocr-b --font-size 6` is a measured
 `dense` preset: 5,050 usable bytes/page versus Courier 8pt's 4,125, and it
