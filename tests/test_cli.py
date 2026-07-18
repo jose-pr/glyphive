@@ -71,6 +71,63 @@ def test_create_extract_list_roundtrip(tmp_path, capsys):
     assert "meta=none" in captured.out
 
 
+def test_create_with_parity_pages_survives_deleted_page_blocks(tmp_path):
+    """``--parity-pages 2``: delete 2 whole page blocks, extract restores exactly."""
+    from glyphive.render.formats.text import FORM_FEED
+
+    src = _make_srcdir(tmp_path)
+    # Enough incompressible content that pagination yields several data pages
+    # even after (zstd/gzip) compression.
+    (src / "d.bin").write_bytes(os.urandom(20000))
+    archive_file = tmp_path / "a.txt"
+    outdir = tmp_path / "out"
+
+    rc = cli.run(
+        [
+            "create",
+            "-f", str(archive_file),
+            "-C", str(src),
+            "--parity-pages", "2",
+            "--compression", "none",
+            ".",
+        ]
+    )
+    assert rc == 0
+
+    text = archive_file.read_text(encoding="utf-8")
+    blocks = text.split(FORM_FEED)
+    header_line = blocks[0].splitlines()[0]
+    assert "pgpar=2" in header_line
+
+    # Delete 2 whole page blocks (not page 1, which carries the header) --
+    # this exercises the same whole-page-loss recovery path as the layout
+    # tests, but through the full CLI create -> extract flow.
+    assert len(blocks) >= 5  # at least: header page + >=2 data + >=2 parity
+    victims = {1, 2}  # blocks[0] is page 1; drop pages 2 and 3
+    surviving_blocks = [b for i, b in enumerate(blocks) if i not in victims]
+    archive_file.write_text(FORM_FEED.join(surviving_blocks), encoding="utf-8")
+
+    rc = cli.run(["extract", "-f", str(archive_file), "-C", str(outdir)])
+    assert rc == 0
+    _compare_dirs(src, outdir)
+
+
+def test_create_rejects_parity_pages_exceeding_the_255_page_cap(tmp_path):
+    src = _make_srcdir(tmp_path)
+    archive_file = tmp_path / "a.txt"
+
+    with pytest.raises(SystemExit, match="255"):
+        cli.run(
+            [
+                "create",
+                "-f", str(archive_file),
+                "-C", str(src),
+                "--parity-pages", "255",
+                ".",
+            ]
+        )
+
+
 def test_tar_style_mode_flags_roundtrip(tmp_path, capsys):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "tar-style.txt"

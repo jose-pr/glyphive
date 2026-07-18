@@ -89,6 +89,21 @@ a diagnostic DOCX re-render, but it is not a Word-layout compatibility test.
 `--from-images` remains available as an explicit override when every supplied
 file is an image. See [OCR](ocr.md).
 
+## Whole-page recovery (parity pages)
+
+If the document was created with `--parity-pages K` (see the create guide),
+`extract`/`list` reconstruct up to `K` wholly missing/unscannable data pages
+from the document's dedicated parity pages before ordinary decode runs —
+independent of whether the per-line Reed-Solomon budget on the surviving
+pages would also have been enough. Reconstructed page numbers are reported
+alongside the usual restore diagnostics. If more than `K` data pages are
+missing, or too few parity pages survive, this layer cannot help and restore
+falls back to the pre-parity-pages path: the codec's own document-wide RS
+gets a chance to recover the gap from the surviving pages, and only fails
+(naming the exceeded budget) if that is also insufficient. Parity pages
+themselves carry no user data and are never reconstructed if lost — only
+missing *data* pages are rebuilt.
+
 ## What failures mean
 
 - **Missing page:** page footers show that the transcript is incomplete. The
