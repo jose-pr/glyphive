@@ -51,6 +51,12 @@ __all__ = [
 #: Literal prefix that identifies the single-line document header.
 HEADER_PREFIX: _ty.Final[str] = "#!glyphive"
 
+#: Any line beginning with this marker is a display-only COMMENT and is skipped
+#: wholesale on the read path (the ``#!glyphive`` summary is one such line; a
+#: document may also carry additional ``#!`` notes). Restore trusts only the
+#: CRC-protected H frames, so comments never carry authoritative data.
+COMMENT_PREFIX: _ty.Final[str] = "#!"
+
 #: Literal marker that identifies a per-page footer line.
 _PAGE_MARKER: _ty.Final[str] = "PAGE"
 
@@ -81,7 +87,9 @@ _INT_KEYS: _ty.Final[_ty.FrozenSet[str]] = frozenset(
     {"v", "files", "bytes", "pages", "pgpar"}
 )
 
-#: Header keys that MUST be present for a valid header.
+#: Keys that MUST be recoverable from the compact display-only header line.
+#: ``sha256`` and ``meta`` are intentionally NOT here — they live only in the
+#: CRC-protected H frames now, not in the human summary.
 _REQUIRED_KEYS: _ty.Final[_ty.Tuple[str, ...]] = (
     "v",
     "codec",
@@ -89,23 +97,8 @@ _REQUIRED_KEYS: _ty.Final[_ty.Tuple[str, ...]] = (
     "files",
     "bytes",
     "pages",
-    "sha256",
 )
 
-#: Order the header tokens are emitted in (stable, human-scannable).
-#: ``pgpar`` = parity_pages (K); when 0 the token is omitted for a clean
-#: header on the common no-page-parity case.
-_HEADER_ORDER: _ty.Final[_ty.Tuple[str, ...]] = (
-    "v",
-    "codec",
-    "comp",
-    "meta",
-    "files",
-    "bytes",
-    "pages",
-    "pgpar",
-    "sha256",
-)
 
 class LayoutError(ValueError):
     """Raised on a malformed header/footer or an unrecoverable page structure."""
@@ -132,47 +125,57 @@ class MissingPageError(LayoutError):
 
 
 def format_header(meta: _ty.Mapping[str, _ty.Any]) -> str:
-    """Render the single-line document header from ``meta``.
+    """Render the compact single-line, display-only document header from ``meta``.
 
-    ``meta`` must supply every key in ``_REQUIRED_KEYS``: ``v`` (defaulted to
-    :data:`LAYOUT_VERSION` if absent), ``codec``, ``comp``, ``files``, ``bytes``,
-    ``pages``, ``sha256``. Values are stringified; no value may contain a space
-    (that would break the ``k=v`` grammar). The inverse is :func:`parse_header`.
+    The line is *display-only* — restore reads authoritative metadata from the
+    CRC-protected H frames, never from this summary — so it is kept minimal to
+    waste as few OCR characters as possible:
+
+        ``#!glyphive v<N> <codec>[,<comp>] files=<f> bytes=<b> pages=<p>[ pgpar=<k>]``
+
+    ``v`` is a bare positional token (``v1``); codec and compression collapse to
+    one positional ``codec[,comp]`` token (``,comp`` omitted when compression is
+    ``none``/absent). ``sha256`` and ``meta`` are deliberately NOT emitted here
+    (they live in the protected header). ``pgpar`` is emitted only when non-zero.
+    ``meta`` must supply ``codec``, ``files``, ``bytes``, ``pages`` (and ``v``,
+    defaulted to :data:`LAYOUT_VERSION`). No value may contain whitespace. The
+    inverse is :func:`parse_header`.
     """
-    tokens: _ty.List[str] = [HEADER_PREFIX]
-    for key in _HEADER_ORDER:
-        if key == "v":
-            value = meta.get("v", LAYOUT_VERSION)
-        elif key == "meta" and key not in meta:
-            # ``meta`` was added after the v1 header. Keep it optional so old
-            # transcripts remain readable while new documents can identify
-            # their archive policy explicitly.
-            continue
-        elif key == "pgpar" and int(meta.get("pgpar", 0)) == 0:
-            # No page-parity is the common case; omit the token entirely so a
-            # plain document's header stays clean. Absence == pgpar=0.
-            continue
-        else:
-            if key not in meta:
-                raise LayoutError(f"header meta is missing required key {key!r}")
-            value = meta[key]
-        text = str(value)
-        if any(ch.isspace() for ch in text):
-            raise LayoutError(
-                f"header value for {key!r} may not contain whitespace: {text!r}"
-            )
-        tokens.append(f"{key}={text}")
+    version = meta.get("v", LAYOUT_VERSION)
+    for key in ("codec", "files", "bytes", "pages"):
+        if key not in meta:
+            raise LayoutError(f"header meta is missing required key {key!r}")
+
+    comp = str(meta.get("comp", "none"))
+    codec_token = str(meta["codec"])
+    if comp and comp != "none":
+        codec_token = f"{codec_token},{comp}"
+
+    tokens: _ty.List[str] = [HEADER_PREFIX, f"v{version}", codec_token]
+    tokens.append(f"files={meta['files']}")
+    tokens.append(f"bytes={meta['bytes']}")
+    tokens.append(f"pages={meta['pages']}")
+    if int(meta.get("pgpar", 0)) != 0:
+        tokens.append(f"pgpar={meta['pgpar']}")
+
+    for token in tokens[1:]:
+        if any(ch.isspace() for ch in token):
+            raise LayoutError(f"header token may not contain whitespace: {token!r}")
     return " ".join(tokens)
 
 
 def parse_header(line: str) -> _ty.Dict[str, _ty.Any]:
-    """Parse the display-only header line (inverse of :func:`format_header`).
+    """Parse the compact display-only header line (inverse of :func:`format_header`).
 
-    Tolerates *extra* unknown ``k=v`` tokens (forward-compat) — they are returned
-    as-is (string values). Integer-typed keys are coerced to ``int``. Raises
-    :class:`LayoutError` if the ``#!glyphive`` prefix or any required key is
-    missing, or if an integer key is non-numeric. Restore never trusts this
-    unrestricted ASCII summary; :func:`read_pages` uses only protected H frames.
+    Grammar: ``#!glyphive v<N> <codec>[,<comp>] files=<f> bytes=<b> pages=<p>``.
+    The first two non-prefix tokens are positional: a bare ``v<N>`` version and a
+    ``codec[,comp]`` token (``comp`` defaults to ``none`` when absent). Remaining
+    tokens are ``k=v``; integer keys (``files``/``bytes``/``pages``/``pgpar``) are
+    coerced to ``int``. Tolerates *extra* unknown ``k=v`` tokens (forward-compat),
+    returned as strings. Raises :class:`LayoutError` if the ``#!glyphive`` prefix,
+    the positional version/codec tokens, or a required ``k=v`` key is missing, or
+    if an integer key is non-numeric. Restore never trusts this summary;
+    :func:`read_pages` uses only the protected H frames.
     """
     stripped = line.strip()
     tokens = stripped.split()
@@ -181,8 +184,30 @@ def parse_header(line: str) -> _ty.Dict[str, _ty.Any]:
             f"not a glyphive header: line must start with {HEADER_PREFIX!r}"
         )
 
+    body = tokens[1:]
+    if len(body) < 2 or "=" in body[0] or "=" in body[1]:
+        raise LayoutError(
+            "glyphive header must begin with positional v<N> and codec[,comp] tokens"
+        )
     meta: _ty.Dict[str, _ty.Any] = {}
-    for token in tokens[1:]:
+
+    version_token = body[0]
+    if not version_token.startswith("v"):
+        raise LayoutError(
+            f"header version token must look like 'v1', got {version_token!r}"
+        )
+    try:
+        meta["v"] = int(version_token[1:])
+    except ValueError:
+        raise LayoutError(
+            f"header version token must look like 'v1', got {version_token!r}"
+        ) from None
+
+    codec_name, _, comp_name = body[1].partition(",")
+    meta["codec"] = codec_name
+    meta["comp"] = comp_name or "none"
+
+    for token in body[2:]:
         if "=" not in token:
             # Bare token (no '='): ignore for forward-compat rather than crash.
             continue
@@ -692,6 +717,7 @@ def paginate(
     *,
     lines_per_page: int,
     parity_pages: int = 0,
+    emit_human_header: bool = True,
 ) -> _ty.List[Page]:
     """Group ``encoded_lines`` into :class:`Page` objects with header/footer.
 
@@ -720,6 +746,7 @@ def paginate(
             meta,
             lines_per_page=lines_per_page,
             parity_pages=parity_pages,
+            emit_human_header=emit_human_header,
         )
     )
 
@@ -731,6 +758,7 @@ def iter_paginate(
     *,
     lines_per_page: int,
     parity_pages: int = 0,
+    emit_human_header: bool = True,
 ) -> _ty.Iterator[Page]:
     """Yield pages without retaining the full encoded line or page lists.
 
@@ -758,7 +786,11 @@ def iter_paginate(
     meta["pgpar"] = parity_pages
     meta["page_block_bytes"] = 0
     provisional_machine_header = _format_machine_header(meta)
-    first_page_overhead = 1 + len(provisional_machine_header) + 1
+    # Page-1 overhead: (optional human header line) + protected machine header
+    # frames + footer. When ``emit_human_header`` is False the ``#!glyphive``
+    # line is omitted, so page 1 gains one data-line slot.
+    human_header_lines = 1 if emit_human_header else 0
+    first_page_overhead = human_header_lines + len(provisional_machine_header) + 1
     data_total = _page_count(
         n_encoded,
         lines_per_page,
@@ -826,7 +858,8 @@ def iter_paginate(
 
         text_lines: _ty.List[str] = []
         if page_no == 1:
-            text_lines.append(header_line)
+            if emit_human_header:
+                text_lines.append(header_line)
             text_lines.extend(machine_header)
         text_lines.extend(chunk)
         text_lines.append(format_page_footer(page_no, grand_total, chunk))
@@ -1031,8 +1064,8 @@ def read_pages_to_spool(
             block_hash = hashlib.sha256()
             block_count = 0
             continue
-        if stripped.startswith(HEADER_PREFIX):
-            continue  # the document header is not a data line
+        if stripped.startswith(COMMENT_PREFIX):
+            continue  # any '#!' line is a display-only comment, not a data line
         if _parse_machine_frame(line, _MACHINE_HEADER_KIND) is not None:
             continue  # protected machine header is not a payload line
         if _looks_like_encoded(line):
