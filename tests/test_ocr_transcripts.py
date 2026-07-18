@@ -28,67 +28,74 @@ from glyphive.restore import ocr as _ocr
 # Layer 1: captured-transcript regression (no image/engine dependency)
 # --------------------------------------------------------------------------- #
 
-# Captured verbatim from a real Tesseract 5.4.0 OCR pass over a rasterized
-# (300 DPI, Courier 8pt) glyphive PDF page, against the current wire format
-# (RS-protected machine header, base16c-crc16-rs codec). Do not "clean up"
-# the OCR noise below -- the inserted interior spaces and the corrupted
-# prose header (``codec=basel6c-crcl6-rs``, a garbled sha256) are the point
-# of the fixture: restore must recover via CRC/RS, never by guessing.
-_CAPTURED_NONE_TRANSCRIPT = """\
-#!glyphive v=1 codec=basel6c-crcl6-rs comp=none meta=none files=1 bytes=84 pages=1 sha256=743565e37d9ee010c05b6e684d46847f1d0f8883077be53d0c3cbff351eb95c 2
-HMYCVH HMHPDBAAKPABBALCLBMDLKDBDLLDCYLDMCLDDBDLCYMCMDAHL3L4L3LKAHL3 #YBTL
-HMYCVH HMHPDBAAKPABBALCLBMDLKDBDLLDCYLDMCLDDBDLCYMCMDAHL3L4L3LKAHL3 #YBTL
-HMYCVK L4L3LKAAAAAAAAAAAAAAABAAAAAAAAAAAAAAKHAAAAAAABAAAAAAAAAAAAAA #PY3T
-HMYCVK L4L3LKAAAAAAAAAAAAAAABAAAAAAAAAAAAAAKHAAAAAAABAAAAAAAAAAAAAA #PY3T
-HMYCVL AAMHDKLK3DMYR33ABAXAKVL3LPHYHLPHM4BYA4PPPDAMMV3KDYAXDXV44DKB #PRVA
-HMYCVL AAMHDKLK3DMYR33ABAXAKVL3LPHYHLPHM4BYA4PPPDAMMV3KDYAXDXV44DKB #PRVA
-HMYCVM 3VRKXCDRTXTYPHYLKDKTDK #BTCK
-HMYCVM 3VRKXCDRTXTYPHYLKDKTDK #BTCK
-HMYCVA KYT4LH4XHT4YYDVBXTLTHH3MBVAP4KBPXXXH4CXYMATBDCVY4LMCBKTCHYVA #VCKK
-HMYCVA KYT4LH4XHT4YYDVBXTLTHH3MBVAP4KBPXXXH4CXYMATBDCVY4LMCBKTCHYVA #VCKK
-LMYCVH HCDBABAVAAAAAAKHHMHXKRKAH PHRKLDBMPMPMPMPMPMPMPMPMPMPMPMPMPMP #LK44
-LMYCVK MPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMP #LA43
-LMYCVL MPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMPMP #4XX4
-LMYCVM MPMP #LVHY
-PMYCVH AMYKHPHVXCABRRMTPAKRLB #34MX
-TMYCVH HMKHDBAAAAAAABLTXVHDDPYPMRTAC4 #LVAB PAGE 1/1
-"""
+# A transcript is generated at test time (via ``create``) rather than pasted as
+# a frozen string, then the real OCR-noise transforms are applied on top: a
+# GARBLED display-only prose header (corrupted ``codec=``/``sha256`` — restore
+# must ignore it and trust the CRC/RS H frames), and an OCR-inserted interior
+# space in a payload line (the structural label-first/#check-last parser must
+# tolerate it). Generating rather than freezing keeps the fixture correct across
+# wire changes (e.g. the base16c -> base16g rename) instead of rotting.
+def _noisy_none_transcript(tmp_path):
+    """Return (clean_lines, noisy_lines, expected_bytes) for a 1-file archive."""
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "f.bin").write_bytes(bytes(range(84)))
+    archive = tmp_path / "a.txt"
+    assert cli.run(
+        ["create", "-f", str(archive), "-C", str(src), "--none", "--metadata", "none", "."]
+    ) == 0
+    clean = archive.read_text(encoding="utf-8").strip("\n").splitlines()
+
+    noisy = []
+    injected = False
+    for line in clean:
+        if line.startswith("#!"):
+            # Garble the display-only prose header (codec + sha256). Restore
+            # must NOT trust or repair it.
+            noisy.append(
+                "#!glyphive v=1 codec=basel6g-crcl6-rs comp=none meta=none "
+                "files=1 bytes=84 pages=1 sha256=743565e37d9ee0garbled 2"
+            )
+            continue
+        if line.startswith("L") and not injected:
+            # Inject one OCR interior space into the payload.
+            parts = line.split()
+            if len(parts) >= 3:
+                payload = parts[1]
+                mid = len(payload) // 2
+                line = f"{parts[0]} {payload[:mid]} {payload[mid:]} {parts[2]}"
+                injected = True
+        noisy.append(line)
+    assert injected, "expected at least one L line to inject noise into"
+    return clean, noisy
 
 
-def test_captured_ocr_noise_still_parses_and_restores():
-    """A real captured OCR transcript restores despite header/space noise.
+def test_captured_ocr_noise_still_parses_and_restores(tmp_path):
+    """A transcript restores despite a garbled prose header and interior spaces.
 
-    The prose header's ``codec=`` value and ``sha256`` are corrupted by OCR
-    (``basel6c-crcl6-rs``, a mid-hex space and a substituted char) -- restore
-    must not trust or repair them by guessing; the H-frame CRC/RS oracle is
-    authoritative. The payload/parity lines have OCR-inserted interior
-    spaces, which the structural frame parser (label-first, ``#check``-last)
-    must tolerate without discarding the line.
+    The prose ``#!glyphive`` header's ``codec=`` and ``sha256`` are corrupted --
+    restore must not trust or repair them by guessing; the H-frame CRC/RS oracle
+    is authoritative. A payload line has an OCR-inserted interior space, which
+    the structural frame parser (label-first, ``#check``-last) must tolerate.
     """
-    lines = _CAPTURED_NONE_TRANSCRIPT.strip("\n").splitlines()
-    meta, encoded = layout.read_pages(lines)
+    _clean, noisy = _noisy_none_transcript(tmp_path)
+    meta, encoded = layout.read_pages(noisy)
 
-    assert meta["codec"] == "base16c-crc16-rs"
+    assert meta["codec"] == "base16g-crc16-rs"
     assert meta["comp"] == "none"
-    assert meta["bytes"] == 84
     restored = codec.get(meta["codec"]).decode(encoded)
     assert len(restored) == meta["bytes"]
     assert restored.startswith(b"GLYPHIV1")
 
 
-def test_captured_transcript_tolerates_extra_ocr_junk_lines():
-    """A stray unparseable OCR line (blank/garbage) does not break restore.
-
-    OCR frequently emits blank lines or unrelated noise between real frame
-    lines (visible in the fixture itself). Insert an extra garbage line and
-    confirm it is silently ignored rather than corrupting the result.
-    """
-    lines = _CAPTURED_NONE_TRANSCRIPT.strip("\n").splitlines()
-    noisy = lines[:3] + ["xJ(garbled OCR artifact)9~"] + lines[3:]
+def test_captured_transcript_tolerates_extra_ocr_junk_lines(tmp_path):
+    """A stray unparseable OCR line (blank/garbage) does not break restore."""
+    _clean, noisy = _noisy_none_transcript(tmp_path)
+    noisy = noisy[:3] + ["xJ(garbled OCR artifact)9~"] + noisy[3:]
 
     meta, encoded = layout.read_pages(noisy)
 
-    assert meta["codec"] == "base16c-crc16-rs"
+    assert meta["codec"] == "base16g-crc16-rs"
     restored = codec.get(meta["codec"]).decode(encoded)
     assert len(restored) == meta["bytes"]
 

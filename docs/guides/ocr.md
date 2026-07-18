@@ -149,6 +149,6 @@ python tools/ocr_font_report.py \
 The report distinguishes nominal bytes per page from **erasure-adjusted usable
 bytes per page**. A length-mismatched OCR line is an erasure and contributes no
 usable payload; ranking by raw glyph count or nominal radix would overstate
-capacity. Do not change `base16c-crc16-rs` from a sweep result alone: promote a
+capacity. Do not change `base16g-crc16-rs` from a sweep result alone: promote a
 candidate only after repeat measurements and an end-to-end create,
 print/rasterize, OCR, and byte-for-byte restore gate.

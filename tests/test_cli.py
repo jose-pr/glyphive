@@ -48,7 +48,7 @@ def test_create_extract_list_roundtrip(tmp_path, capsys):
     assert archive_file.exists()
     header_line = archive_file.read_text(encoding="utf-8").splitlines()[0]
     # Compact display-only header: '#!glyphive v1 <codec>[,<comp>] files=.. bytes=.. pages=..'
-    assert header_line.startswith("#!glyphive v1 base16c-crc16-rs")
+    assert header_line.startswith("#!glyphive v1 base16g-crc16-rs")
     assert "files=" in header_line and "pages=" in header_line
     # sha256/meta are NOT in the human line anymore (they live in the H frames).
     assert "sha256=" not in header_line and "meta=" not in header_line
@@ -61,7 +61,7 @@ def test_create_extract_list_roundtrip(tmp_path, capsys):
     # print the authoritative protected metadata, not the damaged summary.
     text = archive_file.read_text(encoding="utf-8")
     archive_file.write_text(
-        text.replace("base16c-crc16-rs", "base16c-crl", 1), encoding="utf-8"
+        text.replace("base16g-crc16-rs", "base16c-crl", 1), encoding="utf-8"
     )
 
     # list returns 0 and prints verified protected metadata.
@@ -70,7 +70,7 @@ def test_create_extract_list_roundtrip(tmp_path, capsys):
     assert rc == 0
     captured = capsys.readouterr()
     assert "glyphive" in captured.out
-    assert "codec=base16c-crc16-rs" in captured.out
+    assert "codec=base16g-crc16-rs" in captured.out
     assert "files=" in captured.out
     assert "meta=none" in captured.out
 
@@ -143,7 +143,7 @@ def test_tar_style_mode_flags_roundtrip(tmp_path, capsys):
 
     capsys.readouterr()
     assert cli.run(["-t", "-f", str(archive_file)]) == 0
-    assert "codec=base16c-crc16-rs" in capsys.readouterr().out
+    assert "codec=base16g-crc16-rs" in capsys.readouterr().out
 
 
 def test_create_and_extract_log_progressive_stage_events(tmp_path, caplog):
@@ -211,10 +211,10 @@ def test_plugins_flag_discovers_before_selector_validation(tmp_path, monkeypatch
         name = "plugin_codec"
 
         def encode(self, data, **options):
-            return codec.Base16CCodec().encode(data, **options)
+            return codec.Base16GCodec().encode(data, **options)
 
         def decode(self, lines, **options):
-            return codec.Base16CCodec().decode(lines, **options)
+            return codec.Base16GCodec().decode(lines, **options)
 
     codec.Codec._discard_implementation(PluginCodec)
     report = plugins.DiscoveryReport(
@@ -431,10 +431,10 @@ def test_generic_codec_and_compression_selectors_roundtrip(tmp_path):
         name = "test_codec"
 
         def encode(self, data, **options):
-            return codec.Base16CCodec().encode(data, **options)
+            return codec.Base16GCodec().encode(data, **options)
 
         def decode(self, lines, **options):
-            return codec.Base16CCodec().decode(lines, **options)
+            return codec.Base16GCodec().decode(lines, **options)
 
     class TestCompression(compression.CompressionMethod):
         name = "test_compression"
@@ -800,7 +800,7 @@ def test_inspect_json_is_machine_readable(tmp_path, capsys):
     assert cli.run(["inspect", "-f", str(archive), "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["readable"] is True
-    assert payload["codec"] == "base16c-crc16-rs"
+    assert payload["codec"] == "base16g-crc16-rs"
     assert "line_rs_nsym" in payload
 
 
@@ -902,7 +902,8 @@ def test_footer_hash_advisory_logs_at_info_not_warning(caplog):
 
 
 @pytest.mark.parametrize("codec_name", [
-    "base8-crc16-rs", "base16c-crc16-rs", "base32g-crc16-rs", "base64-crc16-rs",
+    "base8-crc16-rs", "base16-crc16-rs", "base16g-crc16-rs", "base32-crc16-rs",
+    "base32c-crc16-rs", "base32g-crc16-rs", "base64-crc16-rs",
 ])
 def test_denser_codecs_full_cli_roundtrip(tmp_path, codec_name):
     """create --codec <radix> then extract must restore byte-identical.

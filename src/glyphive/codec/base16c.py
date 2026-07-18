@@ -1,4 +1,4 @@
-"""glyphive codec ``base16c-crc16-rs`` — byte stream ↔ OCR-safe printable text lines.
+"""glyphive codec ``base16g-crc16-rs`` — byte stream ↔ OCR-safe printable text lines.
 
 This module is the core of the format. The alphabet is the **measured-safe**
 16-character set below, every line carries its own CRC check, and Reed-Solomon
@@ -101,7 +101,7 @@ from ._base import Codec
 __all__ = [
     "ALPHABET",
     "CodecError",
-    "Base16CCodec",
+    "Base16GCodec",
     "nibble_encode",
     "nibble_decode",
     "encoded_line_count",
@@ -206,8 +206,8 @@ class _RadixSpec:
 
 #: The shipped base16c spec. Its constants reproduce the historical values
 #: exactly, so every base16c-bound wrapper below is byte-for-byte unchanged.
-BASE16C: _ty.Final["_RadixSpec"] = _RadixSpec(
-    name="base16c-crc16-rs",
+BASE16G: _ty.Final["_RadixSpec"] = _RadixSpec(
+    name="base16g-crc16-rs",
     alphabet=ALPHABET,
     bits=4,
     check_width=4,
@@ -224,7 +224,7 @@ class CodecError(ValueError):
     """
 
 
-def radix_encode(data: bytes, spec: "_RadixSpec" = BASE16C) -> str:
+def radix_encode(data: bytes, spec: "_RadixSpec" = BASE16G) -> str:
     """Encode raw bytes to an alphabet string, ``spec.bits`` bits per char.
 
     MSB-first; the final group is zero-padded. This is *not* self-delimiting:
@@ -250,7 +250,7 @@ def radix_encode(data: bytes, spec: "_RadixSpec" = BASE16C) -> str:
     return "".join(out)
 
 
-def radix_decode(text: str, byte_len: int, spec: "_RadixSpec" = BASE16C) -> bytes:
+def radix_decode(text: str, byte_len: int, spec: "_RadixSpec" = BASE16G) -> bytes:
     """Decode an alphabet string back to exactly ``byte_len`` bytes.
 
     Case-insensitive. No confusable aliases are applied (see the comment above
@@ -287,12 +287,12 @@ def radix_decode(text: str, byte_len: int, spec: "_RadixSpec" = BASE16C) -> byte
 # Base16c-bound public aliases (layout.py + tests import these names).
 def nibble_encode(data: bytes) -> str:
     """base16c-bound :func:`radix_encode` (4 bits/char). Public API."""
-    return radix_encode(data, BASE16C)
+    return radix_encode(data, BASE16G)
 
 
 def nibble_decode(text: str, byte_len: int) -> bytes:
     """base16c-bound :func:`radix_decode` (4 bits/char). Public API."""
-    return radix_decode(text, byte_len, BASE16C)
+    return radix_decode(text, byte_len, BASE16G)
 
 
 # ---------------------------------------------------------------------------
@@ -328,7 +328,7 @@ def _crc16_ccitt(data: bytes) -> int:
 CHECK_WIDTH: _ty.Final[int] = 4
 
 
-def _check_chars(idx_token: str, payload: str, spec: "_RadixSpec" = BASE16C) -> str:
+def _check_chars(idx_token: str, payload: str, spec: "_RadixSpec" = BASE16G) -> str:
     """Compute the check field (``spec.check_width`` chars) for a framed line.
 
     The CRC covers exactly what is *printed* -- the index token and the payload
@@ -420,15 +420,15 @@ def encode_index(idx: int) -> str:
 
     ``0`` -> ``MYCVH``, ``1`` -> ``MYCVK``, ``1048575`` -> ``PCYHV``.
     """
-    return _encode_index(idx, BASE16C)
+    return _encode_index(idx, BASE16G)
 
 
 def decode_index(token: str) -> _ty.Optional[int]:
     """base16c-bound :func:`_decode_index`. Public API."""
-    return _decode_index(token, BASE16C)
+    return _decode_index(token, BASE16G)
 
 
-def _frame(kind: str, idx: int, payload: str, spec: "_RadixSpec" = BASE16C) -> str:
+def _frame(kind: str, idx: int, payload: str, spec: "_RadixSpec" = BASE16G) -> str:
     token = _encode_index(idx, spec)
     return f"{kind}{token} {payload} #{_check_chars(token, payload, spec)}"
 
@@ -441,7 +441,7 @@ class _ParsedLine(_ty.NamedTuple):
 
 
 def split_frame(
-    line: str, *, allow_trailing: bool = False, spec: "_RadixSpec" = BASE16C
+    line: str, *, allow_trailing: bool = False, spec: "_RadixSpec" = BASE16G
 ) -> _ty.Optional[_ty.Tuple[str, str, str]]:
     """Structurally split a printed line into ``(label, payload, check)``.
 
@@ -501,7 +501,7 @@ def split_frame(
     return label, payload, check
 
 
-def _parse_line(line: str, spec: "_RadixSpec" = BASE16C) -> _ty.Optional[_ParsedLine]:
+def _parse_line(line: str, spec: "_RadixSpec" = BASE16G) -> _ty.Optional[_ParsedLine]:
     """Parse one framed line. Returns None for blank/foreign lines.
 
     ``ok`` reflects whether the printed check field matches a freshly computed
@@ -687,7 +687,7 @@ def _rs_decode(
 
 
 def _frame_bytes(
-    kind: str, data: bytes, line_width: int, spec: "_RadixSpec" = BASE16C
+    kind: str, data: bytes, line_width: int, spec: "_RadixSpec" = BASE16G
 ) -> _ty.List[str]:
     """Encode ``data`` with the alphabet and split into framed lines of ``line_width``.
 
@@ -718,7 +718,7 @@ def _frame_bytes(
 
 
 def _encoding_shape(
-    data_len: int, line_width: int, parity_ratio: float, spec: "_RadixSpec" = BASE16C
+    data_len: int, line_width: int, parity_ratio: float, spec: "_RadixSpec" = BASE16G
 ):
     if line_width < 1:
         raise ValueError("line_width must be >= 1")
@@ -741,7 +741,7 @@ def encoded_line_count(
 ) -> int:
     """Return the exact number of lines without reading or encoding payload data."""
     if data_len < 0 or data_len > 0xFFFFFFFF:
-        raise ValueError("data length must fit the base16c-crc16-rs unsigned 32-bit header")
+        raise ValueError("data length must fit the base16g-crc16-rs unsigned 32-bit header")
     return sum(_encoding_shape(data_len, line_width, parity_ratio)[-2:])
 
 
@@ -764,7 +764,7 @@ class StreamShape(_ty.NamedTuple):
 def describe_line_stream(lines: _ty.Iterable[str]) -> StreamShape:
     """Report the realized RS shape of an encoded line stream, read-only.
 
-    Mirrors :meth:`Base16CCodec.decode_spool`'s modal-width bookkeeping (widest
+    Mirrors :meth:`Base16GCodec.decode_spool`'s modal-width bookkeeping (widest
     payload among non-last lines sets ``bytes_per_line``) to compute the data
     and parity byte totals, then derives ``nsym``/``nblocks`` from
     :func:`_candidate_nsym`/:func:`_num_blocks`. It never corrects, decodes, or
@@ -823,7 +823,7 @@ def describe_line_stream(lines: _ty.Iterable[str]) -> StreamShape:
 
 
 def _frame_stream(kind: str, source, length: int, bytes_per_line: int,
-                  spec: "_RadixSpec" = BASE16C):
+                  spec: "_RadixSpec" = BASE16G):
     index = 0
     remaining = length
     while remaining:
@@ -839,7 +839,7 @@ def _frame_stream(kind: str, source, length: int, bytes_per_line: int,
         raise ValueError(f"{kind} spool has trailing bytes")
 
 
-def _read_spooled_line(source, offset: int, spec: "_RadixSpec" = BASE16C) -> _ParsedLine:
+def _read_spooled_line(source, offset: int, spec: "_RadixSpec" = BASE16G) -> _ParsedLine:
     source.seek(offset)
     parsed = _parse_line(source.readline().decode("utf-8").rstrip("\r\n"), spec)
     if parsed is None:
@@ -848,7 +848,7 @@ def _read_spooled_line(source, offset: int, spec: "_RadixSpec" = BASE16C) -> _Pa
 
 
 def _assemble_to_spool(source, index, sink, bytes_per_line: int,
-                       spec: "_RadixSpec" = BASE16C):
+                       spec: "_RadixSpec" = BASE16G):
     erasures = []
     if not index:
         return 0, erasures
@@ -939,7 +939,7 @@ def _assemble(
 
 
 def _payload_byte_len(
-    payload: str, bytes_per_line: int, is_last: bool, spec: "_RadixSpec" = BASE16C
+    payload: str, bytes_per_line: int, is_last: bool, spec: "_RadixSpec" = BASE16G
 ) -> int:
     """Bytes carried by a payload: full lines carry ``bytes_per_line``; the last
     line carries what its (possibly shorter) width encodes."""
@@ -964,19 +964,19 @@ def _first_failed_label(
     return "L00000"
 
 
-class Base16CCodec(Codec):
-    """The ``base16c-crc16-rs`` codec: 16-char OCR-safe alphabet / CRC-16-CCITT / Reed-Solomon.
+class Base16GCodec(Codec):
+    """The ``base16g-crc16-rs`` codec: 16-char OCR-safe alphabet / CRC-16-CCITT / Reed-Solomon.
 
     This is also the shared base for the denser radix codecs (``base8``/``base32g``/
     ``base64``): they subclass it, overriding only ``name`` and ``_spec``. All the
     RS/header/spool machinery is radix-agnostic and driven by ``self._spec``.
     """
 
-    name = "base16c-crc16-rs"
+    name = "base16g-crc16-rs"
 
     #: The radix parameters this codec frames with. Subclasses override this
     #: (and ``name``) to get a denser alphabet; everything else is inherited.
-    _spec: _ty.ClassVar["_RadixSpec"] = BASE16C
+    _spec: _ty.ClassVar["_RadixSpec"] = BASE16G
 
     def encode(
         self,
@@ -1020,7 +1020,7 @@ class Base16CCodec(Codec):
         at most 255 bytes in Python memory.
         """
         if data_len < 0 or data_len > 0xFFFFFFFF:
-            raise ValueError("data length must fit the base16c-crc16-rs unsigned 32-bit header")
+            raise ValueError("data length must fit the base16g-crc16-rs unsigned 32-bit header")
         (
             bytes_per_line,
             protected_len,

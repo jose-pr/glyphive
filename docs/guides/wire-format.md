@@ -7,12 +7,12 @@ lets each layer validate the kind of damage it understands.
 file tree
   -> archive record stream (GLYPHIV1, version 2)
   -> whole-stream compression (none, gzip, or zstd)
-  -> base16c-crc16-rs data/parity frames
+  -> base16g-crc16-rs data/parity frames
   -> protected header/footer frames and physical pages
 ```
 
 The printable layout version and codec identifier are `1` and
-`base16c-crc16-rs` respectively, but they are separate versioning points.
+`base16g-crc16-rs` respectively, but they are separate versioning points.
 
 ## Archive record stream
 
@@ -40,7 +40,7 @@ Compression covers the entire archive stream, never each file separately. The
 selected registry name (`none`, `gzip`, or `zstd`) is carried by the protected
 machine header, so restore chooses the inverse deterministically.
 
-## `base16c-crc16-rs` payload frames
+## `base16g-crc16-rs` payload frames
 
 The exact safe alphabet is:
 
@@ -65,40 +65,57 @@ Data and parity lines use one grammar:
 - `<check4>` stores the full CRC-16/CCITT (`0x1021`, initial `0xFFFF`) over the
   printed index token and payload. Four safe characters hold exactly 16 bits.
 
-## Denser codec family (`base8` / `base32g` / `base64`)
+## Codec family
 
-`base16c-crc16-rs` is the recommended default: 16 characters is the measured
+`base16g-crc16-rs` is the recommended default: 16 characters is the measured
 stock-OCR-safe ceiling — no larger alphabet reads back reliably on an untrained
-engine. For callers who accept a trade-off, glyphive registers a family of
-radix-parameterized codecs sharing the same frame/RS pipeline, differing only in
-alphabet and bits per character:
+engine. glyphive registers a family of radix-parameterized codecs sharing the
+same frame/RS pipeline, differing only in alphabet and bits per character, in
+**two groups**:
 
-| codec | bits/char | density vs base16c | stock OCR | trained model |
-|-------|-----------|--------------------|-----------|---------------|
-| `base8-crc16-rs`    | 3 | 0.75x | safe | safe |
-| `base16c-crc16-rs`  | 4 | 1x (default) | **safe** | safe |
-| `base32g-crc16-rs`  | 5 | 1.25x | ~14.8% CER (unsafe) | **0.0% CER** |
-| `base64-crc16-rs`   | 6 | 1.5x | unsafe | model-dependent |
+**glyphive-tuned (OCR-safe / OCR-optimized)** — the `g` suffix marks a
+glyphive-modified alphabet chosen from OCR measurement:
 
-`base32g` (**32 glyphive**, not RFC-4648 base32) uses a measured 32-character
-alphabet — the base16c 16 plus distinct letters/digits and the OCR-safe
-punctuation `? @ ! & + =`:
+| codec | bits/char | stock OCR | trained model |
+|-------|-----------|-----------|---------------|
+| `base8-crc16-rs`    | 3 | safe | safe |
+| `base16g-crc16-rs`  | 4 | **safe (default)** | safe |
+| `base32g-crc16-rs`  | 5 | ~14.8% CER | **0.0% CER** |
+
+**standard (textbook alphabets)** — plain, well-known encodings for interop,
+NOT OCR-tuned:
+
+| codec | bits/char | alphabet |
+|-------|-----------|----------|
+| `base16-crc16-rs`   | 4 | hex `0-9A-F` |
+| `base32-crc16-rs`   | 5 | RFC 4648 `A-Z2-7` |
+| `base32c-crc16-rs`  | 5 | Crockford (`0-9A-Z` minus `ILOU`) |
+| `base64-crc16-rs`   | 6 | RFC 4648 `A-Za-z0-9+/` |
+
+`base32g` (**32 glyphive**, not RFC-4648 base32) is the base16g 16 plus distinct
+letters/digits and OCR-safe punctuation `? @ ! & + =`:
 
 ```text
 ABCDHKLMPRTVXY34EFGNUW2567?@!&+=
 ```
 
-These denser codecs are **never gated** — `create --codec base32g-crc16-rs` just
-maps bytes to characters and never needs OCR. But their *restore* is only
-reliable with a matching per-font fine-tuned OCR model (published as opt-in
-`glyphive-ocrmodel-*` packages); stock OCR shreds a 32-glyph alphabet. `create`
-logs an advisory when a non-`base16c` codec is selected. The index/check widths
-adjust per radix (e.g. base64 uses a 3-character check field). Because the L/P
-payload alphabet differs from the base16c-encoded `H` header, restore reads the
-selected codec name from the protected header first, then parses payload frames
-with that codec's alphabet.
+**Naming rule:** a `g`-suffixed codec (`base16g`, `base32g`, …) is a
+glyphive-modified, OCR-measured alphabet; an un-suffixed one (`base16`, `base32`,
+`base32c`, `base64`) is the standard textbook alphabet.
 
-The protected byte stream begins with an eight-byte `base16c-crc16-rs` header:
+Codecs are **never gated** — `create --codec <name>` just maps bytes to
+characters and never needs OCR, whether or not a matching model is installed.
+But *reliable restore* of a wide alphabet (base32g/base64 and the standard 32/64
+sets) needs a matching per-font fine-tuned OCR model (published as opt-in
+`glyphive-ocrmodel-*` packages); stock OCR distinguishes only ~16 glyphs
+reliably (measured ~43 per font for a curated maximal set, but only ~27 across
+all fonts). `create` logs an advisory when a non-`base16g` codec is selected.
+The index/check widths adjust per radix (e.g. base64 uses a 3-character check
+field). Because the L/P payload alphabet differs from the base16g-encoded `H`
+header, restore reads the selected codec name from the protected header first,
+then parses payload frames with that codec's alphabet.
+
+The protected byte stream begins with an eight-byte `base16g-crc16-rs` header:
 
 ```text
 "B1" | version:u8 | parity_symbols:u8 | original_length:u32-big-endian
@@ -136,7 +153,7 @@ Each document also prints a compact, human-readable summary by default (omit it
 with `create --no-header`):
 
 ```text
-#!glyphive v1 base16c-crc16-rs,gzip files=25 bytes=211233 pages=61
+#!glyphive v1 base16g-crc16-rs,gzip files=25 bytes=211233 pages=61
 ```
 
 The version is a bare `v<N>` token; codec and compression collapse to one
@@ -186,4 +203,4 @@ their own CRC/RS protection independently of the footer's advisory hash).
 Treat the exact codec name, compression name, frame kinds, and alphabet as wire
 data. A new alphabet or framing rule needs a new codec identifier and must be
 validated with print/OCR/restore measurements; silently changing
-`base16c-crc16-rs` would make existing pages undecodable.
+`base16g-crc16-rs` would make existing pages undecodable.

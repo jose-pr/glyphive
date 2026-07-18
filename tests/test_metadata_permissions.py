@@ -129,10 +129,10 @@ def test_decode_resolves_profile_and_checks_header_profile(tmp_path):
     src.mkdir()
     (src / "file.txt").write_bytes(b"payload")
     raw = archive.archive_tree(src, use_ignore=False, metadata="none")
-    encoded = codec.get("base16c-crc16-rs").encode(compression.get("none").compress(raw))
+    encoded = codec.get("base16g-crc16-rs").encode(compression.get("none").compress(raw))
     meta = {
         "v": 1,
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "files": 1,
         "bytes": len(raw),

@@ -170,7 +170,7 @@ def decode_document_to_spool(
         selected_codec = _resolve_codec(str(meta["codec"]))
         meta["codec"] = selected_codec.name
         encoded_spool.seek(0)
-        if hasattr(selected_codec, "decode_spool") and selected_codec.name == "base16c-crc16-rs":
+        if hasattr(selected_codec, "decode_spool") and selected_codec.name == "base16g-crc16-rs":
             selected_codec.decode_spool(
                 encoded_spool, compressed_spool, temp_dir=temp_dir
             )

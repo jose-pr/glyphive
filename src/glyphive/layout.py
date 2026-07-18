@@ -936,9 +936,9 @@ def _looks_like_encoded(line: str, spec=None) -> bool:
     apart again, while still ignoring headers/footers/noise (e.g. the
     ``PAGE 1/1 sha256=...`` footer has no ``#check`` field and is rejected).
     """
-    from .codec.base16c import BASE16C, _decode_index, split_frame
+    from .codec.base16c import BASE16G, _decode_index, split_frame
 
-    spec = spec or BASE16C
+    spec = spec or BASE16G
     split = split_frame(line, spec=spec)
     if split is None:
         return False
@@ -957,9 +957,9 @@ def _is_frame_shaped_but_unreadable(line: str, spec=None) -> bool:
     it. Such a line is NOT noise -- it is a real, addressable data/parity line
     the reader should be told about, not silently dropped.
     """
-    from .codec.base16c import BASE16C, _decode_index, split_frame
+    from .codec.base16c import BASE16G, _decode_index, split_frame
 
-    spec = spec or BASE16C
+    spec = spec or BASE16G
     split = split_frame(line, spec=spec)
     if split is None:
         return False
@@ -1017,16 +1017,16 @@ def _resolve_payload_spec(header_frames):
     to the base16c spec if the header is not yet decodable or the codec is not a
     built-in radix codec (e.g. a plugin codec that reuses the base16c frame shape).
     """
-    from .codec.base16c import BASE16C
+    from .codec.base16c import BASE16G
 
     try:
         meta = _decode_machine_header(header_frames)
         from .codec import get as _get_codec
 
         codec = _get_codec(str(meta["codec"]))
-        return getattr(codec, "_spec", BASE16C)
+        return getattr(codec, "_spec", BASE16G)
     except Exception:
-        return BASE16C
+        return BASE16G
 
 
 def read_pages_to_spool(
@@ -1038,7 +1038,7 @@ def read_pages_to_spool(
     # The unrestricted ``#!glyphive ...`` line is retained for humans and old
     # tooling, but the restore path never trusts it.  In particular, there is no
     # OCR-repair guessing of a garbled codec name (e.g. a misread character in
-    # ``base16c-crc16-rs``): codec selection comes from CRC-checked H frames
+    # ``base16g-crc16-rs``): codec selection comes from CRC-checked H frames
     # encoded entirely in the measured-safe bootstrap alphabet.
     header_frames: _ty.List[_ParsedMachineFrame] = []
     warnings: _ty.List[str] = []
