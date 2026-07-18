@@ -98,6 +98,33 @@ def test_pdf_long_lines_fit_available_width_without_wrapping():
     ) == 6.0
 
 
+def test_pdf_overflowing_frame_line_fails_loud_but_header_may_shrink(tmp_path):
+    """A frame that would overflow the width fails; the human header may shrink.
+
+    Real-world scan finding (2026-07-17): silently shrinking a machine/data
+    frame (H/L/P/T) to fit distorts glyphs (hurting OCR) and hides a
+    misconfigured font/size/margin/width -- so the PDF renderer now fails loud
+    on an overflowing frame. The display-only ``#!glyphive`` header is exempt
+    (restore never trusts it) and is still scaled to fit.
+    """
+    from glyphive.layout import Page
+
+    renderer = PdfRenderFormat()
+
+    # A full-width L frame at a very large size cannot fit US-Letter width.
+    long_frame = "L" + "A" * 90 + " " + "B" * 60 + " #ABCD"
+    frame_page = [Page(number=1, total=1, text_lines=[long_frame], encoded_lines=[long_frame])]
+    with pytest.raises(ValueError, match="protected frame line overflows"):
+        renderer.render(frame_page, tmp_path / "frame.pdf", font_size=40)
+
+    # The same-length line as a human ``#!glyphive`` header must NOT raise --
+    # it is display-only and allowed to shrink to fit.
+    header = "#!glyphive " + "x" * 200
+    header_page = [Page(number=1, total=1, text_lines=[header], encoded_lines=[])]
+    renderer.render(header_page, tmp_path / "header.pdf", font_size=40)
+    assert (tmp_path / "header.pdf").exists()
+
+
 def test_pdf_geometric_capacity_tracks_font_size_margins_and_spacing():
     """The underlying (uncapped) glyph-width measurement scales as expected."""
     renderer = PdfRenderFormat()
