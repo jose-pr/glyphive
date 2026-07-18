@@ -171,9 +171,18 @@ class Create(LoggingArgs):
     "Extra space between characters in points for pdf/docx output."
     ("--character-spacing",)
 
-    line_width: "_ty.Optional[int]" = None
-    "Codec payload characters per row (default: largest measured PDF fit)."
+    line_width: "_ty.Optional[str]" = None
+    "Codec payload characters per row: 'auto' (OCR-measured-safe cap, ≤ the "
+    "60-char safe width; the default), 'max' (largest row that physically fits "
+    "the font/size/margins — may exceed 60 and is NOT OCR-verified), or an "
+    "explicit integer ≥ 2. An integer above the safe cap needs --force."
     ("--line-width",)
+
+    force: bool = False
+    "Allow an explicit --line-width above the OCR-measured-safe cap (up to the "
+    "geometric fit). Ignored unless --line-width is an integer past the safe "
+    "width. 'max' selects the geometric fit directly and needs no --force."
+    ("--force",)
 
     parity_ratio: float = 0.12
     "Reed-Solomon parity as a fraction of protected bytes (default 0.12 = "
@@ -243,6 +252,63 @@ class Create(LoggingArgs):
             raise SystemExit("error: --parity-ratio must be in (0, 1)")
         return self.parity_ratio
 
+    def _resolve_line_width(
+        self, renderer, measured_capacity, page_margin_pt
+    ) -> int:
+        """Resolve --line-width auto|max|<int> to a concrete payload width.
+
+        ``auto`` (or omitted) = the OCR-measured-safe capacity (≤60). ``max`` =
+        the renderer's uncapped geometric fit (may exceed 60, unmeasured), or a
+        hard error on a format with no geometric metrics. An integer above the
+        safe cap needs ``--force`` and must still fit the geometric width.
+        """
+        raw = self.line_width
+        if raw is None or raw == "auto":
+            return measured_capacity or 60
+        if raw == "max":
+            geometric = renderer.geometric_payload_capacity(
+                font=self.font,
+                font_size=self.font_size,
+                page_margin_pt=page_margin_pt,
+                character_spacing_pt=self.character_spacing,
+            )
+            if geometric is None:
+                raise SystemExit(
+                    "error: --line-width max needs a format with physical font "
+                    "metrics (PDF); use 'auto' or an explicit integer for "
+                    "text/docx/qr output"
+                )
+            return geometric
+        try:
+            width = int(raw)
+        except ValueError:
+            raise SystemExit(
+                "error: --line-width must be 'auto', 'max', or an integer, "
+                "got %r" % raw
+            ) from None
+        if width < 2:
+            raise SystemExit("error: --line-width must be at least 2")
+        safe_cap = measured_capacity  # None on non-PDF (no cap enforced)
+        if safe_cap is not None and width > safe_cap:
+            if not self.force:
+                raise SystemExit(
+                    "error: --line-width %d exceeds the OCR-measured-safe "
+                    "capacity %d; pass --force to use an unmeasured width up to "
+                    "the geometric fit, or --line-width max" % (width, safe_cap)
+                )
+            geometric = renderer.geometric_payload_capacity(
+                font=self.font,
+                font_size=self.font_size,
+                page_margin_pt=page_margin_pt,
+                character_spacing_pt=self.character_spacing,
+            )
+            if geometric is not None and width > geometric:
+                raise SystemExit(
+                    "error: --line-width %d exceeds even the geometric fit %d "
+                    "(it would overflow the page)" % (width, geometric)
+                )
+        return width
+
     def __call__(self) -> int:
         codec_name = self.codec
         codec = _select_codec(codec_name)
@@ -282,17 +348,9 @@ class Create(LoggingArgs):
                 "at least 60 are required for protected header/footer frames"
                 % measured_capacity
             )
-        if self.line_width is not None:
-            if self.line_width < 2:
-                raise SystemExit("error: --line-width must be at least 2")
-            if measured_capacity is not None and self.line_width > measured_capacity:
-                raise SystemExit(
-                    "error: --line-width %d exceeds the measured PDF capacity %d"
-                    % (self.line_width, measured_capacity)
-                )
-            line_width = self.line_width
-        else:
-            line_width = measured_capacity or 60
+        line_width = self._resolve_line_width(
+            renderer, measured_capacity, page_margin_pt
+        )
         out = Path(self.file)
         report = progress_logger(self._logger_)
         with _tempfile.TemporaryFile(dir=self.temp_dir) as raw_spool:

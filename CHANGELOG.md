@@ -55,6 +55,13 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Added
 
+- **`--line-width auto|max|<int>` spellings** on `create`: `auto` (default) is
+  the OCR-measured-safe capacity (≤60); `max` fills the largest row that
+  physically fits the font/size/margins (may exceed 60, not OCR-verified, and
+  an error on formats without font metrics); an integer above the safe cap now
+  requires `--force`. The renderer interface gains a public
+  `geometric_payload_capacity` hook (uncapped fit) alongside the safety-capped
+  `payload_capacity`.
 - **De-scan blur for photographed input (`--descan`)**: `extract`/`list` can
   apply a Gaussian blur to image and rasterized-PDF input before OCR (default
   0 = off; ~0.6 measured best on real phone photos, which otherwise fail decode
