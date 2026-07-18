@@ -105,6 +105,8 @@ __all__ = [
     "nibble_encode",
     "nibble_decode",
     "encoded_line_count",
+    "describe_line_stream",
+    "StreamShape",
 ]
 
 # ---------------------------------------------------------------------------
@@ -615,6 +617,83 @@ def encoded_line_count(
     if data_len < 0 or data_len > 0xFFFFFFFF:
         raise ValueError("data length must fit the base16c-crc16-rs unsigned 32-bit header")
     return sum(_encoding_shape(data_len, line_width, parity_ratio)[-2:])
+
+
+class StreamShape(_ty.NamedTuple):
+    """Realized Reed-Solomon shape of an encoded ``L``/``P`` line stream.
+
+    ``nsym``/``nblocks`` are ``None`` when the stream shape is ambiguous
+    (``_candidate_nsym`` returned other than exactly one candidate) -- never
+    guessed. ``nsym`` is the per-interleaved-block erasure budget.
+    """
+
+    data_lines: int
+    parity_lines: int
+    nsym: _ty.Optional[int]
+    nblocks: _ty.Optional[int]
+    data_bytes: int
+    parity_bytes: int
+
+
+def describe_line_stream(lines: _ty.Iterable[str]) -> StreamShape:
+    """Report the realized RS shape of an encoded line stream, read-only.
+
+    Mirrors :meth:`Base16CCodec.decode_spool`'s modal-width bookkeeping (widest
+    payload among non-last lines sets ``bytes_per_line``) to compute the data
+    and parity byte totals, then derives ``nsym``/``nblocks`` from
+    :func:`_candidate_nsym`/:func:`_num_blocks`. It never corrects, decodes, or
+    writes anything -- it exists so callers (e.g. ``glyphive inspect``) can
+    report a document's per-line redundancy without a full decode. If the
+    stream cannot be interpreted (no data lines, or an ambiguous nsym), the
+    RS fields are ``None`` rather than a guess.
+    """
+    data: _ty.Dict[int, "_ParsedLine"] = {}
+    parity: _ty.Dict[int, "_ParsedLine"] = {}
+    for raw in lines:
+        parsed = _parse_line(raw)
+        if parsed is None:
+            continue
+        (data if parsed.kind == "L" else parity)[parsed.idx] = parsed
+
+    def _totals(index: _ty.Dict[int, "_ParsedLine"]) -> int:
+        if not index:
+            return 0
+        max_idx = max(index)
+        # Modal payload width among non-last lines sets the per-line byte span,
+        # exactly as decode does; the last line may legitimately be shorter.
+        widths = _collections.Counter(
+            len(index[i].payload) for i in index if i != max_idx
+        )
+        modal = widths.most_common(1)[0][0] if widths else (
+            len(index[max_idx].payload)
+        )
+        bytes_per_line = (modal * 4) // 8
+        total = 0
+        for i in range(max_idx + 1):
+            entry = index.get(i)
+            if entry is None:
+                total += bytes_per_line
+                continue
+            total += _payload_byte_len(entry.payload, bytes_per_line, i == max_idx)
+        return total
+
+    data_bytes = _totals(data)
+    parity_bytes = _totals(parity)
+    nsym: _ty.Optional[int] = None
+    nblocks: _ty.Optional[int] = None
+    if data:
+        candidates = _candidate_nsym(data_bytes, parity_bytes)
+        if len(candidates) == 1:
+            nsym = candidates[0]
+            nblocks = _num_blocks(data_bytes, nsym)
+    return StreamShape(
+        data_lines=len(data),
+        parity_lines=len(parity),
+        nsym=nsym,
+        nblocks=nblocks,
+        data_bytes=data_bytes,
+        parity_bytes=parity_bytes,
+    )
 
 
 def _frame_stream(kind: str, source, length: int, bytes_per_line: int):
