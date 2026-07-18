@@ -140,6 +140,50 @@ def test_parity_pages_positive_paginates_to_data_plus_parity_and_round_trips():
     assert restored_meta["page_block_bytes"] > 0
 
 
+def test_parity_row_payload_never_wider_than_data_or_safe_cap():
+    """Q parity payloads must be <= the widest data payload and <= 60 (F1).
+
+    Regression for a units bug: parity row width was measured from the full
+    framed-line length (~73) and passed as the *payload* width, so Q rows
+    printed ~72-char payloads -- wider than the 60-char OCR-safe cap, on the
+    very redundancy data meant to recover a lost page.
+    """
+    from glyphive.codec.base16c import split_frame
+
+    data = b"parity width invariant payload " * 40
+    encoded = codec.get("base16c-crc16-rs").encode(data)
+    meta = {
+        "codec": "base16c-crc16-rs",
+        "comp": "none",
+        "meta": "none",
+        "files": 1,
+        "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    pages = layout.paginate(encoded, dict(meta), lines_per_page=14, parity_pages=2)
+
+    def payload_len(line):
+        split = split_frame(line)
+        return len(split[1]) if split is not None else len(line)
+
+    data_payloads = [
+        payload_len(line)
+        for page in pages
+        for line in page.encoded_lines
+        if line[:1] in ("L", "P")
+    ]
+    q_payloads = [
+        payload_len(line)
+        for page in pages
+        for line in page.encoded_lines
+        if line[:1] == "Q"
+    ]
+    assert q_payloads  # the fixture must actually produce parity lines
+    max_data = max(data_payloads)
+    assert max(q_payloads) <= max_data
+    assert max(q_payloads) <= 60
+
+
 def test_real_ocr_damage_to_human_metadata_is_display_only():
     data, lines = _document()
     lines[0] = (
