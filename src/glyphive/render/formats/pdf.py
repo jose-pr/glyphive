@@ -21,7 +21,7 @@ _CORE_FONTS = frozenset(
     {"courier", "helvetica", "times", "symbol", "zapfdingbats", "arial"}
 )
 _BUNDLED_FONTS = {"ocr-b": ("glyphive.assets.fonts.ocr_b", "OCR-B.ttf")}
-_FRAME_KINDS = "HLPT"
+_FRAME_KINDS = "HLPQT"
 _SAFE_ALPHABET = "ABCDHKLMPRTVXY34"
 
 #: Every published OCR-safety measurement in this project (see Known Facts in
