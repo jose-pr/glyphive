@@ -128,7 +128,12 @@ class Extract(LoggingArgs):
             retry_lines = load_fn(AUTO_DESCAN_RETRY_RADII)
             try:
                 return self._restore(_unarchive, dest, retry_lines)
-            except retryable:
+            except retryable as retry_error:
+                self._logger_.debug(
+                    "de-scan blur retry did not recover the document (%s); "
+                    "re-raising the original sharp-pass error",
+                    type(retry_error).__name__,
+                )
                 raise first_error
 
     def _restore(self, _unarchive, dest, lines):
