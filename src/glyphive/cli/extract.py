@@ -45,6 +45,17 @@ class Extract(LoggingArgs):
     "OCR registry provider for image input (default: automatic preference)."
     ("--ocr-engine",)
 
+    descan: str = "0"
+    "Gaussian blur radii to try on image/scan input before OCR, comma-separated "
+    "(default '0' = off). Raw phone photos are often too sharp/noisy and fail "
+    "decode without a light blur; ~0.6 measured best on real photographed scans. "
+    "Give several (e.g. '0,0.6,1.0') to OCR each image at every radius and merge "
+    "the CRC-valid lines across all passes -- different blurs recover different "
+    "lines, and the per-line CRC makes combining them safe, so a document that "
+    "no single blur can fully read may still restore from the union. Applies to "
+    "--from-images and PDF/image auto-input; ignored for text transcripts."
+    ("--descan",)
+
     overwrite: bool = False
     "Overwrite existing files that differ (default: refuse and stop)."
     ("--overwrite",)
@@ -68,12 +79,22 @@ class Extract(LoggingArgs):
         src = Path(self.file)
         if self.from_images and self.from_qr:
             raise ValueError("--from-images and --from-qr are mutually exclusive")
+        try:
+            blur_radii = [float(part) for part in self.descan.split(",") if part.strip()]
+        except ValueError:
+            raise ValueError(
+                f"--descan must be a comma-separated list of numbers, got {self.descan!r}"
+            ) from None
+        if not blur_radii:
+            blur_radii = [0.0]
+        if any(r < 0 for r in blur_radii):
+            raise ValueError("--descan blur radii must be zero or greater")
         if self.from_qr:
             lines = load_qr_lines(src)
         elif self.from_images:
-            lines = load_image_lines(src, engine=self.ocr_engine)
+            lines = load_image_lines(src, engine=self.ocr_engine, blur=blur_radii)
         else:
-            lines = load_input_lines(src, engine=self.ocr_engine)
+            lines = load_input_lines(src, engine=self.ocr_engine, blur=blur_radii)
 
         meta, written = _unarchive.restore_document_spooled(
             lines,
