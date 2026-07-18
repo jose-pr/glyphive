@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-18
+
 The first public release provides an end-to-end path from a file tree to
 OCR-friendly printable pages and back to a verified tree.
 
@@ -244,4 +246,5 @@ OCR-friendly printable pages and back to a verified tree.
   Reed-Solomon-corrected.
 - QR-code output is not implemented.
 
-[Unreleased]: https://github.com/jose-pr/glyphive/commits/master
+[Unreleased]: https://github.com/jose-pr/glyphive/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/jose-pr/glyphive/releases/tag/v0.1.0
