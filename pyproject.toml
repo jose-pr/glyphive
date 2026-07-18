@@ -76,7 +76,7 @@ Issues = "https://github.com/jose-pr/glyphive/issues"
 Repository = "https://github.com/jose-pr/glyphive"
 
 [tool.hatch.build.targets.sdist]
-exclude = ["/.*", "/benchmarks"]
+exclude = ["/.*", "/benchmarks", "/packages"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/glyphive"]
