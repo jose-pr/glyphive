@@ -827,3 +827,25 @@ def test_descan_explicit_value_does_not_auto_retry(tmp_path):
     assert resolve_descan("auto") == ([0.0], True)
     assert resolve_descan("0") == ([0.0], False)
     assert resolve_descan("0,0.6") == ([0.0, 0.6], False)
+
+
+def test_footer_hash_advisory_logs_at_info_not_warning(caplog):
+    """warn_page_integrity logs footer-hash advisories at INFO, warnings at WARNING."""
+    import logging
+    from glyphive.cli._common import warn_page_integrity
+
+    logger = logging.getLogger("glyphive.test.footer")
+    meta = {
+        "_page_warnings": ["page 2/3: missing"],
+        "_footer_hash_notes": ["page 1/3: footer hash X != Y"],
+    }
+    with caplog.at_level(logging.INFO, logger="glyphive.test.footer"):
+        warn_page_integrity(logger, meta)
+
+    records = {r.levelno: r.getMessage() for r in caplog.records}
+    # The real warning is WARNING; the footer-hash advisory is INFO (not WARNING).
+    warning_msgs = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    info_msgs = [r.getMessage() for r in caplog.records if r.levelno == logging.INFO]
+    assert any("missing" in m for m in warning_msgs)
+    assert not any("footer hash" in m for m in warning_msgs)
+    assert any("footer hash" in m for m in info_msgs)

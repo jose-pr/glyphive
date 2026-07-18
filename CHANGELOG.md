@@ -12,6 +12,14 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Changed
 
+- **Footer-hash mismatches are now advisory, not warnings**: an OCR restore
+  almost always produces a footer-hash mismatch (OCR inserts interior spaces
+  that change the page text hash while the `L`/`P` lines still decode via
+  CRC/RS), so logging it at WARNING cried wolf on every clean restore. These are
+  now collected separately (`meta["_footer_hash_notes"]`) and logged at INFO
+  (shown with `-v`); genuine page-integrity issues (missing/reconstructed pages)
+  stay at WARNING. `glyphive inspect` reports the advisory count. Correctness is
+  unchanged — it never rested on the page footer hash.
 - **Faster decode on clean input**: decode now skips Reed-Solomon entirely on
   erasure-free blocks (the common case — text transcripts and good scans are
   mostly clean), since a line whose per-line CRC matched is already trusted and
