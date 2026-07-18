@@ -20,14 +20,15 @@
   "results": [
     {"font": "OCR-B",            "stock_clean_CER": 1.655, "trained_clean_CER": 0.0, "stock_blur_CER": 0.833, "trained_blur_CER": 0.0},
     {"font": "Liberation Mono",  "stock_clean_CER": 4.635, "trained_clean_CER": 0.0, "stock_blur_CER": 3.258, "trained_blur_CER": 0.0},
-    {"font": "DejaVu Sans Mono", "stock_clean_CER": 4.613, "trained_clean_CER": 0.0, "stock_blur_CER": 1.235, "trained_blur_CER": 0.0}
+    {"font": "DejaVu Sans Mono", "stock_clean_CER": 4.613, "trained_clean_CER": 0.0, "stock_blur_CER": 1.235, "trained_blur_CER": 0.0},
+    {"font": "Courier",          "via": "Nimbus Mono PS (URW; the metric clone FPDF core Courier uses)", "stock_clean_CER": 4.013, "trained_clean_CER": 0.0, "stock_blur_CER": 1.963, "trained_blur_CER": 0.0}
   ],
   "verdict": "ACCEPT (measured), unanimous. Held-out-gated fine-tuning drives CER to 0.000% on every font tested, on BOTH clean and blurred held-out sets, while stock eng ranges 0.8-4.6%. The 2026-07-18 corrected recipe generalizes across fonts and survives real-scan-style blur. Phase 3 (stock measurement) and Phase 4 (train-beats-stock gate) are closed on data.",
   "caveats": [
-    "3 fonts × 1 alphabet (base16c); a base64/ascii alphabet sweep was not run (base16c is the shipped channel).",
+    "4 fonts × 1 alphabet (base16c); a base64/ascii alphabet sweep was not run here (base16c is the shipped channel). Courier added 2026-07-18 via Nimbus Mono PS.",
     "Blur (sigma 0.8) is a synthetic scanner proxy, not a genuine print/scan; end-to-end real-scan restore is guarded separately by the physical_scan_regression_gate draft.",
     "40 held-out lines per cell — a strong but small eval set.",
     "VM diagnostics only; any shipped accuracy claim must come from CI.",
-    "These trained models are NOT cleared for distribution — that is a Phase 5 licensing decision (OFL Reserved-Font-Name + model-data), independent of accuracy."
+    "Distribution: models are NOT bundled in the core wheel; the 2026-07-18 decision is to ship them (if at all) as opt-in per-model sub-packages (see .agents/plans/denser_codec_and_font_resolution.md, Track B.2). Each such wheel must record its base-model (tessdata_best/eng, Apache-2.0) version + hash before publish."
   ]
 }
