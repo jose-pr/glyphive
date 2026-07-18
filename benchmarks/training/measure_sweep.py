@@ -26,7 +26,9 @@ ENV = {**os.environ,
        "PATH": "/usr/local/bin:" + os.environ.get("PATH", ""),
        "TESSDATA_PREFIX": str(BEST)}
 CHARS = "ABCDHKLMPRTVXY34"          # shipped base16c channel
-FONTS = {"OCR-B": "ocrb", "Liberation Mono": "libmono", "DejaVu Sans Mono": "dejavu"}
+FONTS = {"OCR-B": "ocrb", "Liberation Mono": "libmono", "DejaVu Sans Mono": "dejavu",
+         # FPDF core "Courier" renders as URW Nimbus Mono PS; train on that clone.
+         "Nimbus Mono PS": "courier"}
 N_TRAIN, N_EVAL = 200, 40
 PT, DPI, ITERS, BLUR = 8, 300, 6000, 0.8
 
