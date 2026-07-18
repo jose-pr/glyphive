@@ -26,6 +26,12 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Fixed
 
+- **PDF frames no longer silently shrink to fit**: a machine/data frame
+  (`H`/`L`/`P`/`T`) that overflows the printable width now raises a clear error
+  naming the overflow instead of quietly reducing its font size to fit.
+  Silent shrinking distorted glyphs (hurting OCR) and hid a misconfigured
+  font/size/margin/line-width. The display-only `#!glyphive` human header is
+  exempt and still scales to fit (restore never trusts it).
 - **Overwrite publication now rolls back on partial failure**: restoring onto
   an existing destination with `--overwrite` moves each existing final file
   aside into a private backup before replacing it. If any staged move fails
