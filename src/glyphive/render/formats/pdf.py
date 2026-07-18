@@ -227,6 +227,22 @@ class PdfRenderFormat(RenderFormat):
                         text_width=raw_width,
                         available_width=available_width,
                     )
+                    # Machine/data frames (H/L/P/T) must render at the exact
+                    # requested size: silently shrinking a frame to fit distorts
+                    # its glyphs (hurting OCR) and hides a misconfigured
+                    # font/size/margin/line-width combination. Fail loud instead.
+                    # Only the display-only ``#!glyphive`` human header is
+                    # allowed to overflow-shrink (restore never trusts it).
+                    is_frame = line[:1] in _FRAME_KINDS
+                    tracked = raw_width + spacing * max(0, len(line) - 1)
+                    if is_frame and tracked > available_width + 1e-6:
+                        raise ValueError(
+                            "a protected frame line overflows the printable width "
+                            f"at {font_size}pt (line width {tracked:.1f}pt > "
+                            f"{available_width:.1f}pt available). Reduce --font-size, "
+                            "widen the page/margins, or lower --line-width; the "
+                            "renderer will not silently shrink a frame to fit."
+                        )
                     line_size = _fitted_font_size(
                         font_size,
                         raw_width,
