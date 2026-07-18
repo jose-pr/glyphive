@@ -30,8 +30,8 @@ class List(LoggingArgs):
 
     descan: str = "auto"
     "De-scan blur for image/PDF input (see `extract --descan`): 'auto' retries "
-    "once with a light 0.6 blur if the sharp pass fails to decode; '0' disables "
-    "it; an explicit list is an OCR sweep merged across radii."
+    "once over a light blur ladder (0.6, 0.8) if the sharp pass fails to decode; "
+    "'0' disables it; an explicit list is an OCR sweep merged across radii."
     ("--descan",)
 
     from_qr: bool = False
@@ -93,8 +93,9 @@ class List(LoggingArgs):
             if not (auto_retry and not self.from_qr and input_is_image_or_pdf(source)):
                 raise
             self._logger_.warning(
-                "list failed on the sharp pass (%s); retrying with a light 0.6 "
-                "de-scan blur", type(first_error).__name__
+                "list failed on the sharp pass (%s); retrying over the light "
+                "de-scan blur ladder %s", type(first_error).__name__,
+                AUTO_DESCAN_RETRY_RADII,
             )
             try:
                 _list(_load(AUTO_DESCAN_RETRY_RADII))

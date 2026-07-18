@@ -757,7 +757,7 @@ def test_inspect_json_is_machine_readable(tmp_path, capsys):
 
 
 def test_descan_auto_retries_with_blur_on_image_decode_failure(tmp_path, monkeypatch):
-    """descan=auto retries a failed sharp image pass with a 0.6 blur (Phase 1)."""
+    """descan=auto retries a failed sharp image pass over the blur ladder."""
     from glyphive import layout
     from glyphive.cli import _common
 
@@ -787,9 +787,11 @@ def test_descan_auto_retries_with_blur_on_image_decode_failure(tmp_path, monkeyp
 
     rc = cli.run(["extract", "-f", str(image), "--from-images", "-C", str(tmp_path / "o")])
     assert rc == 0
-    # Two loads: the sharp [0.0], then the retry [0.0, 0.6].
+    # Two loads: the sharp [0.0], then the retry over the full blur ladder
+    # (which includes 0.8 -- a real Courier-12 archive decoded only at 0.8).
     assert calls[0] == [0.0]
-    assert calls[1] == [0.0, 0.6]
+    assert calls[1] == _common.AUTO_DESCAN_RETRY_RADII
+    assert 0.8 in calls[1]
 
 
 def test_descan_auto_does_not_retry_text_input(tmp_path, monkeypatch):

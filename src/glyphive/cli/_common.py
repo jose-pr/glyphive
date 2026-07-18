@@ -94,15 +94,21 @@ def _normalize_blur(blur: "_ty.Union[float, _ty.Sequence[float]]") -> _ty.List[f
     return seen
 
 
-#: The single extra blur radius the auto-retry adds to a failed sharp pass.
-AUTO_DESCAN_RETRY_RADII: _ty.Final[_ty.List[float]] = [0.0, 0.6]
+#: The blur ladder the auto-retry sweeps after a failed sharp pass. The sharp
+#: [0.0] pass runs first; on failure this whole ladder is OCR'd and its
+#: CRC-valid lines merged in one retry. 0.6 recovers most real phone scans, but
+#: wider glyphs (e.g. Courier 12pt) can need ~0.8 -- a real archive that decoded
+#: only at 0.8 motivated adding it (2026-07-17 scan recovery). The merge is
+#: per-line CRC-safe, so extra radii can only recover more lines, never corrupt.
+AUTO_DESCAN_RETRY_RADII: _ty.Final[_ty.List[float]] = [0.0, 0.6, 0.8]
 
 
 def resolve_descan(value: str) -> "_ty.Tuple[_ty.List[float], bool]":
     """Parse a ``--descan`` value into ``(radii, auto_retry)``.
 
-    ``"auto"`` (the default) → ``([0.0], True)``: one sharp pass, then retry
-    once with an added 0.6 blur on a decode failure for image/PDF input.
+    ``"auto"`` (the default) → ``([0.0], True)``: one sharp pass, then a single
+    retry over the ``AUTO_DESCAN_RETRY_RADII`` blur ladder on a decode failure
+    for image/PDF input.
     ``"0"`` → ``([0.0], False)``: a single no-blur pass, no retry. Any explicit
     numeric list → that sweep with no auto-retry (the user chose the radii).
     """
