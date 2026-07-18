@@ -1,7 +1,7 @@
 # glyphive-ocrmodel-dejavu
 
 An **opt-in** OCR model for [glyphive](https://github.com/jose-pr/glyphive),
-fine-tuned for **DejaVu Sans Mono** renderings of the base16c alphabet.
+fine-tuned for **DejaVu Sans Mono** renderings of the base16g alphabet.
 
 ```bash
 pip install glyphive-ocrmodel-dejavu
@@ -16,7 +16,7 @@ core engine — installing this package never breaks the stock path.
 ## Why
 
 On the held-out training sweep (`benchmarks/results/ocr-training-sweep-20260718.json`
-in the core repo) the fine-tuned model reads the base16c channel at **0.000% CER**
+in the core repo) the fine-tuned model reads the base16g channel at **0.000% CER**
 clean and blurred, versus ~4.6% for stock `eng`. The core document-wide
 Reed-Solomon + per-line CRC already make the stock path restore correctly, so
 this model is a robustness upgrade for marginal scans, not a requirement.
@@ -38,7 +38,7 @@ artifacts = ["src/glyphive_ocrmodel_dejavu/glyphivedejavu.traineddata"]
 - **Base model:** a fine-tune of Tesseract `tessdata_best/eng` (Apache-2.0,
   redistributable). Exact base used: version `4.00.00alpha:eng:synth20170629 (tessdata_best; trained with Tesseract 5.4.1)`,
   SHA-256 `8280aed0782fe27257a68ea10fe7ef324ca0f8d85bd2fd145d1c2b560bcb66ba`.
-- **Training corpus:** synthetic — randomly generated base16c-alphabet lines
+- **Training corpus:** synthetic — randomly generated base16g-alphabet lines
   rendered to images. DejaVu Sans Mono under the permissive DejaVu Fonts License (Bitstream Vera derivative). No reserved-font-name restriction on the synthetic training renders.
 - **Engine compatibility:** the LSTM `.traineddata` format is shared across the
   Tesseract 4.x/5.x line, so one model file serves both (verified).

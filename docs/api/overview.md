@@ -7,7 +7,7 @@ workflow orchestration.
 | Module | Purpose |
 | --- | --- |
 | [`glyphive.archive`](archive.md) | Serialize a tree, list selected paths, and parse archive records |
-| [`glyphive.codec`](codec.md) | Resolve named printable codecs and use `base16c-crc16-rs` |
+| [`glyphive.codec`](codec.md) | Resolve named printable codecs and use `base16g-crc16-rs` |
 | [`glyphive.compression`](compression.md) | Resolve whole-stream compression methods |
 | [`glyphive.layout`](layout.md) | Paginate encoded lines and validate protected pages |
 | [`glyphive.render`](render.md) | Resolve and invoke text, PDF, and Word renderers |
@@ -19,7 +19,7 @@ workflow orchestration.
 ```text
 archive.archive_tree(root)
   -> compression.get(name).compress(raw)
-  -> codec.get("base16c-crc16-rs").encode(payload)
+  -> codec.get("base16g-crc16-rs").encode(payload)
   -> layout.paginate(lines, metadata, lines_per_page=...)
   -> render.render(pages, output, format)
 

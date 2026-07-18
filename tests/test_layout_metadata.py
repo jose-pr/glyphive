@@ -10,7 +10,7 @@ from glyphive import codec, layout
 
 def _document(data=b"protected metadata"):
     meta = {
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "meta": "none",
         "files": 1,
@@ -18,7 +18,7 @@ def _document(data=b"protected metadata"):
         "sha256": hashlib.sha256(data).hexdigest(),
     }
     pages = layout.paginate(
-        codec.get("base16c-crc16-rs").encode(data), meta, lines_per_page=13
+        codec.get("base16g-crc16-rs").encode(data), meta, lines_per_page=13
     )
     return data, [line for page in pages for line in page.text_lines]
 
@@ -30,9 +30,9 @@ def _mutate_safe_payload(line):
 
 
 def test_iter_paginate_is_identical_and_checks_declared_count():
-    encoded = codec.get("base16c-crc16-rs").encode(b"streamed pagination" * 20)
+    encoded = codec.get("base16g-crc16-rs").encode(b"streamed pagination" * 20)
     base_meta = {
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "meta": "none",
         "files": 1,
@@ -63,9 +63,9 @@ def test_read_pages_to_spool_matches_compatibility_result():
 
 def test_parity_pages_zero_is_byte_identical_to_no_parity_pages():
     """K=0 must reproduce the exact pre-parity-pages output (golden check)."""
-    encoded = codec.get("base16c-crc16-rs").encode(b"golden regression check" * 10)
+    encoded = codec.get("base16g-crc16-rs").encode(b"golden regression check" * 10)
     meta = {
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "meta": "none",
         "files": 1,
@@ -95,15 +95,15 @@ def test_parity_pages_zero_is_byte_identical_to_no_parity_pages():
     assert restored_meta["pgpar"] == 0
     assert restored_meta["page_block_bytes"] == 0
     assert restored_meta["pages"] == len(default_pages)
-    restored = codec.get("base16c-crc16-rs").decode(encoded_lines)
+    restored = codec.get("base16g-crc16-rs").decode(encoded_lines)
     assert restored == b"golden regression check" * 10
 
 
 def test_parity_pages_positive_paginates_to_data_plus_parity_and_round_trips():
     data = b"page parity round trip content" * 30
-    encoded = codec.get("base16c-crc16-rs").encode(data)
+    encoded = codec.get("base16g-crc16-rs").encode(data)
     meta = {
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "meta": "none",
         "files": 1,
@@ -151,9 +151,9 @@ def test_parity_row_payload_never_wider_than_data_or_safe_cap():
     from glyphive.codec.base16c import split_frame
 
     data = b"parity width invariant payload " * 40
-    encoded = codec.get("base16c-crc16-rs").encode(data)
+    encoded = codec.get("base16g-crc16-rs").encode(data)
     meta = {
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "meta": "none",
         "files": 1,
@@ -197,7 +197,7 @@ def test_real_ocr_damage_to_human_metadata_is_display_only():
     meta, encoded = layout.read_pages(lines)
     restored = codec.get(meta["codec"]).decode(encoded)
 
-    assert meta["codec"] == "base16c-crc16-rs"
+    assert meta["codec"] == "base16g-crc16-rs"
     assert meta["bytes"] == len(data)
     assert restored == data
 
@@ -228,7 +228,7 @@ def test_corrupted_compact_machine_frame_is_rs_recovered():
         lines[index] = compact[:6] + replacement + compact[7:]
 
     meta, _encoded = layout.read_pages(lines)
-    assert meta["codec"] == "base16c-crc16-rs"
+    assert meta["codec"] == "base16g-crc16-rs"
 
 
 def test_machine_header_uses_fixed_width_safe_frames():
@@ -248,7 +248,7 @@ def test_one_machine_header_copy_can_be_corrupted_without_guessing():
     lines[index] = _mutate_safe_payload(lines[index])
 
     meta, _encoded = layout.read_pages(lines)
-    assert meta["codec"] == "base16c-crc16-rs"
+    assert meta["codec"] == "base16g-crc16-rs"
 
 
 def test_both_copies_of_one_chunk_corrupted_are_rs_recovered():
@@ -258,7 +258,7 @@ def test_both_copies_of_one_chunk_corrupted_are_rs_recovered():
     lines[indexes[1]] = _mutate_safe_payload(lines[indexes[1]])
 
     meta, _encoded = layout.read_pages(lines)
-    assert meta["codec"] == "base16c-crc16-rs"
+    assert meta["codec"] == "base16g-crc16-rs"
 
 
 def test_two_distinct_chunks_corrupted_exceed_the_rs_budget():
@@ -290,7 +290,7 @@ def test_one_missing_machine_header_copy_is_recovered():
     del lines[index]
 
     meta, _encoded = layout.read_pages(lines)
-    assert meta["codec"] == "base16c-crc16-rs"
+    assert meta["codec"] == "base16g-crc16-rs"
 
 
 def test_machine_footer_corruption_marks_page_missing_never_uses_page_hint():
@@ -340,7 +340,7 @@ def test_unreadable_index_token_is_surfaced_not_silently_dropped():
     """
     data = b"protected metadata for the unreadable-index test path"
     meta_in = {
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "meta": "none",
         "files": 1,
@@ -348,7 +348,7 @@ def test_unreadable_index_token_is_surfaced_not_silently_dropped():
         "sha256": hashlib.sha256(data).hexdigest(),
     }
     pages = layout.paginate(
-        codec.get("base16c-crc16-rs").encode(data), meta_in, lines_per_page=13
+        codec.get("base16g-crc16-rs").encode(data), meta_in, lines_per_page=13
     )
     lines = [line for page in pages for line in page.text_lines]
 
@@ -375,7 +375,7 @@ def test_conflicting_index_collision_fails_instead_of_silent_overwrite():
     from glyphive.codec.base16c import CodecError, _check_chars
 
     data = bytes(range(256)) * 4
-    c = codec.get("base16c-crc16-rs")
+    c = codec.get("base16g-crc16-rs")
     lines = c.encode(data)
 
     data_positions = [i for i, line in enumerate(lines) if line.startswith("L")]
@@ -396,7 +396,7 @@ def test_conflicting_index_collision_fails_instead_of_silent_overwrite():
 def test_benign_exact_duplicate_lines_do_not_trigger_collision():
     """An exact duplicate line (page OCR'd twice) is not a conflict."""
     data = bytes(range(256)) * 4
-    c = codec.get("base16c-crc16-rs")
+    c = codec.get("base16g-crc16-rs")
     lines = c.encode(data)
     doubled = []
     for line in lines:
@@ -415,9 +415,9 @@ def test_footer_hash_mismatch_is_advisory_not_a_page_warning():
     -- and NOT as a real page-integrity warning, and must not break decode.
     """
     data = b"footer hash advisory note check " * 30
-    encoded = codec.get("base16c-crc16-rs").encode(data)
+    encoded = codec.get("base16g-crc16-rs").encode(data)
     meta_in = {
-        "codec": "base16c-crc16-rs", "comp": "none", "meta": "none",
+        "codec": "base16g-crc16-rs", "comp": "none", "meta": "none",
         "files": 1, "bytes": len(data),
         "sha256": hashlib.sha256(data).hexdigest(),
     }
