@@ -182,6 +182,15 @@ class Create(LoggingArgs):
     "documented low-redundancy preset instead of hand-tuning this."
     ("--parity-ratio",)
 
+    parity_pages: int = 0
+    "Whole-page recovery: emit K extra pages carrying document-level "
+    "Reed-Solomon parity over the data pages (default 0 = off, matches prior "
+    "behavior exactly). Survives up to K wholly lost/unscannable data pages, "
+    "independent of --parity-ratio's per-line correction; costs K extra "
+    "printed pages. Data pages + K must not exceed 255 (a create-time error "
+    "names the cap if exceeded)."
+    ("--parity-pages",)
+
     simple: bool = False
     "Low-redundancy preset for small, disposable, or re-typeable documents: "
     "parity_ratio 0.04 instead of 0.12 (roughly a third of the default "
@@ -337,12 +346,22 @@ class Create(LoggingArgs):
                     materialized = codec.encode(compressed_spool.read(), **options)
                     encoded, n_encoded = iter(materialized), len(materialized)
                 report("encoded", lines=n_encoded, parity_ratio=parity_ratio)
-                pages = _layout.iter_paginate(
-                    encoded,
-                    n_encoded,
-                    meta,
-                    lines_per_page=lines_per_page,
-                )
+                if self.parity_pages < 0:
+                    raise SystemExit("error: --parity-pages must be >= 0")
+                try:
+                    pages = _layout.iter_paginate(
+                        encoded,
+                        n_encoded,
+                        meta,
+                        lines_per_page=lines_per_page,
+                        parity_pages=self.parity_pages,
+                    )
+                    if self.parity_pages:
+                        pages = list(pages)
+                except _layout.LayoutError as exc:
+                    if "Reed-Solomon limit" in str(exc):
+                        raise SystemExit(f"error: {exc}") from None
+                    raise
                 renderer.render(
                     pages,
                     out,
