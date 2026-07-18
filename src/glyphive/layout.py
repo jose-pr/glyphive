@@ -949,15 +949,21 @@ def read_pages(
     3. Collects the codec-framed ``L``/``P`` lines and returns them (in transcript
        order — codec.decode re-sorts by embedded index, so order does not matter).
 
-    Page-footer hash *mismatches* are collected as warnings in
-    ``meta["_page_warnings"]`` (a list of strings) and do NOT raise — the codec's
-    RS may still repair a lightly corrupted page. A missing header or a missing
-    whole page DO raise, because those are unrecoverable at this layer.
+    Page-footer hash *mismatches* are advisory and collected separately in
+    ``meta["_footer_hash_notes"]`` (they fire on essentially every OCR restore,
+    because OCR-inserted spaces change the page-text hash while the L/P lines
+    still decode via CRC/RS). They do NOT raise. Genuine page-integrity issues
+    (reconstructed/missing pages) go in ``meta["_page_warnings"]``. A missing
+    header raises, and a whole missing page raises only when it is unrecoverable
+    (beyond the page-parity budget and no surviving lines).
 
     The returned ``meta`` is the parsed header dict plus:
 
-    - ``meta["_page_warnings"]`` : list of per-page hash-mismatch warning strings.
-    - ``meta["_pages_seen"]``    : sorted list of page numbers found.
+    - ``meta["_page_warnings"]``     : real page-integrity warnings (missing/
+      reconstructed pages) — worth surfacing at WARNING.
+    - ``meta["_footer_hash_notes"]`` : advisory per-page footer-hash mismatches —
+      expected on OCR input, surfaced quietly.
+    - ``meta["_pages_seen"]``        : sorted list of page numbers found.
     """
     spool = io.BytesIO()
     header_meta, _count = read_pages_to_spool(all_text_lines, spool)
@@ -978,6 +984,12 @@ def read_pages_to_spool(
     # encoded entirely in the measured-safe bootstrap alphabet.
     header_frames: _ty.List[_ParsedMachineFrame] = []
     warnings: _ty.List[str] = []
+    # Footer-hash mismatches are ADVISORY and fire on essentially every OCR
+    # restore (OCR inserts interior spaces that change the page-text hash while
+    # the L/P lines still decode byte-for-byte via CRC/RS). They are kept
+    # separate from real page-integrity warnings so the CLI can log them quietly
+    # instead of crying wolf on a clean restore.
+    footer_hash_notes: _ty.List[str] = []
     pages_seen: _ty.Dict[int, int] = {}
     block_hash = hashlib.sha256()
     block_count = 0
@@ -1005,7 +1017,7 @@ def read_pages_to_spool(
         if footer is not None:
             expected = block_hash.hexdigest()[:PAGE_HASH_CHARS]
             if footer.digest.lower() != expected.lower():
-                warnings.append(
+                footer_hash_notes.append(
                     f"page {footer.n}/{footer.total}: footer hash "
                     f"{footer.digest!r} != computed {expected!r} "
                     f"(over {block_count} line(s))"
@@ -1166,6 +1178,7 @@ def read_pages_to_spool(
         )
 
     header_meta["_page_warnings"] = warnings
+    header_meta["_footer_hash_notes"] = footer_hash_notes
     header_meta["_pages_seen"] = sorted(pages_seen)
     header_meta["_unreadable_lines"] = unreadable_lines
     header_meta["_missing_pages"] = missing
