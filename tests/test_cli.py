@@ -47,7 +47,11 @@ def test_create_extract_list_roundtrip(tmp_path, capsys):
     assert rc == 0
     assert archive_file.exists()
     header_line = archive_file.read_text(encoding="utf-8").splitlines()[0]
-    assert "meta=none" in header_line
+    # Compact display-only header: '#!glyphive v1 <codec>[,<comp>] files=.. bytes=.. pages=..'
+    assert header_line.startswith("#!glyphive v1 base16c-crc16-rs")
+    assert "files=" in header_line and "pages=" in header_line
+    # sha256/meta are NOT in the human line anymore (they live in the H frames).
+    assert "sha256=" not in header_line and "meta=" not in header_line
 
     rc = cli.run(["extract", "-f", str(archive_file), "-C", str(outdir)])
     assert rc == 0
@@ -57,7 +61,7 @@ def test_create_extract_list_roundtrip(tmp_path, capsys):
     # print the authoritative protected metadata, not the damaged summary.
     text = archive_file.read_text(encoding="utf-8")
     archive_file.write_text(
-        text.replace("codec=base16c-crc16-rs", "codec=base16c-crl", 1), encoding="utf-8"
+        text.replace("base16c-crc16-rs", "base16c-crl", 1), encoding="utf-8"
     )
 
     # list returns 0 and prints verified protected metadata.
@@ -236,7 +240,8 @@ def test_plugins_flag_discovers_before_selector_validation(tmp_path, monkeypatch
                 ".",
             ]
         ) == 0
-        assert "codec=plugin_codec" in archive_file.read_text(encoding="utf-8")
+        # The compact human header names the codec positionally (v1 <codec>...).
+        assert "v1 plugin_codec" in archive_file.read_text(encoding="utf-8")
     finally:
         codec.Codec._reset_external()
 
@@ -255,17 +260,55 @@ def test_plugins_flag_surfaces_nonfatal_diagnostics(monkeypatch, capsys):
     assert "warning: plugin glyphive.codecs:bad from broken-dist" in capsys.readouterr().err
 
 
-def test_old_header_without_metadata_remains_readable(tmp_path):
+def test_compact_header_parses_without_sha_or_meta(tmp_path):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "a.txt"
 
     cli.run(["create", "-f", str(archive_file), "-C", str(src), "."])
-    lines = archive_file.read_text(encoding="utf-8").splitlines()
-    old_header = lines[0].replace(" meta=none", "")
+    header_line = archive_file.read_text(encoding="utf-8").splitlines()[0]
     from glyphive import layout
 
-    parsed = layout.parse_header(old_header)
-    assert "meta" not in parsed
+    parsed = layout.parse_header(header_line)
+    # The compact display-only line carries v/codec/comp/files/bytes/pages but
+    # NOT sha256 or meta (those live only in the protected H frames now).
+    assert parsed["v"] == layout.LAYOUT_VERSION
+    assert parsed["codec"] and parsed["comp"]
+    assert "sha256" not in parsed and "meta" not in parsed
+
+
+def test_no_header_omits_human_line_but_still_restores(tmp_path):
+    """--no-header: page 1 has no '#!glyphive' line, yet restore is byte-exact."""
+    src = _make_srcdir(tmp_path)
+    with_header = tmp_path / "with.txt"
+    without_header = tmp_path / "without.txt"
+
+    assert cli.run(["create", "-f", str(with_header), "-C", str(src), "."]) == 0
+    assert cli.run(
+        ["create", "-f", str(without_header), "-C", str(src), "--no-header", "."]
+    ) == 0
+
+    assert with_header.read_text(encoding="utf-8").splitlines()[0].startswith("#!glyphive")
+    without_lines = without_header.read_text(encoding="utf-8").splitlines()
+    assert not any(line.startswith("#!glyphive") for line in without_lines)
+
+    outdir = tmp_path / "out"
+    assert cli.run(["extract", "-f", str(without_header), "-C", str(outdir)]) == 0
+    _compare_dirs(src, outdir)
+
+
+def test_extra_comment_line_is_ignored_on_restore(tmp_path):
+    """Any '#!' line is a display-only comment: injecting one does not break restore."""
+    src = _make_srcdir(tmp_path)
+    archive_file = tmp_path / "a.txt"
+    assert cli.run(["create", "-f", str(archive_file), "-C", str(src), "."]) == 0
+
+    lines = archive_file.read_text(encoding="utf-8").splitlines()
+    lines.insert(1, "#! an arbitrary human note that restore must ignore")
+    archive_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    outdir = tmp_path / "out"
+    assert cli.run(["extract", "-f", str(archive_file), "-C", str(outdir)]) == 0
+    _compare_dirs(src, outdir)
 
 
 def test_metadata_basic_selector_is_recorded_and_restored(tmp_path):
@@ -287,7 +330,12 @@ def test_metadata_basic_selector_is_recorded_and_restored(tmp_path):
             ".",
         ]
     ) == 0
-    assert "meta=basic" in archive_file.read_text(encoding="utf-8").splitlines()[0]
+    # The 'basic' metadata profile is recorded in the protected H frames (not
+    # the display-only human line, which no longer carries meta=).
+    from glyphive import layout
+    doc_lines = archive_file.read_text(encoding="utf-8").splitlines()
+    restored_meta, _ = layout.read_pages(doc_lines)
+    assert restored_meta.get("meta") == "basic"
     assert cli.run(
         ["extract", "-f", str(archive_file), "-C", str(outdir)]
     ) == 0
@@ -413,8 +461,8 @@ def test_generic_codec_and_compression_selectors_roundtrip(tmp_path):
             ]
         ) == 0
         header = archive_file.read_text(encoding="utf-8").splitlines()[0]
-        assert "codec=test_codec" in header
-        assert "comp=test_compression" in header
+        # Compact header: codec and comp collapse to one positional token.
+        assert "test_codec,test_compression" in header
         assert cli.run(
             ["extract", "-f", str(archive_file), "-C", str(outdir)]
         ) == 0
