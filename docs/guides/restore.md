@@ -162,8 +162,14 @@ missing *data* pages are rebuilt.
   if Reed-Solomon parity can repair it within budget.
 - **RS budget exceeded:** too much protected data is missing or damaged. Rescan
   or manually correct the named line.
-- **Page hash mismatch:** the page's encoded data differs from its protected
-  footer.
+- **Page hash mismatch (advisory):** the page's `"\n"`-joined text hashes
+  differently from its footer digest. This is **normal on OCR-recovered pages**
+  — OCR routinely inserts interior spaces that change the page text hash while
+  the `L`/`P` lines still decode byte-for-byte via their own CRC/Reed-Solomon —
+  so it is logged quietly (INFO, shown with `-v`), not as a warning, and never
+  fails a restore. Correctness rests on the per-line CRC/RS and the
+  whole-document SHA-256 gate, not the page footer hash. `glyphive inspect`
+  reports how many pages carried the advisory.
 - **Document digest mismatch:** decoded/decompressed bytes do not match the
   authoritative SHA-256 in the machine header. Nothing is extracted.
 - **Existing target conflict:** restore stops before mutation unless
