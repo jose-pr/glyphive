@@ -507,7 +507,7 @@ def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch)
     monkeypatch.setattr(
         extract_command,
         "load_image_lines",
-        lambda source, engine=None: seen.update(source=source, engine=engine) or [],
+        lambda source, engine=None, blur=0.0: seen.update(source=source, engine=engine) or [],
     )
     monkeypatch.setattr(
         unarchive,

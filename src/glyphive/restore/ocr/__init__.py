@@ -13,7 +13,15 @@ from .providers import (
     TesseractProvider,
 )
 
-_ENGINE_PREFERENCE = ("paddle", "easyocr", "tesseract")
+# Auto-selection order. ``tesseract-glyphive`` (the constrained profile: safe
+# alphabet whitelist, dictionaries off) is preferred over plain ``tesseract``
+# for scan/image restore -- measured substantially higher restore success on
+# real photographed scans (2026-07-17 scan findings: 32 vs 10 of 45). Paddle
+# stays first where installed (most accurate on clean scans per the original
+# recovery postmortem), but it needs model downloads and is unusable in
+# offline/restricted contexts, so a Tesseract path must remain a strong
+# default.
+_ENGINE_PREFERENCE = ("paddle", "easyocr", "tesseract-glyphive", "tesseract")
 _INSTALL_HINT = (
     "no OCR engine available; install one, e.g. "
     "pip install glyphive[ocr] and paddleocr"
