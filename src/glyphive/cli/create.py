@@ -115,8 +115,8 @@ class Create(LoggingArgs):
     "Change to this directory before reading PATHS (tar -C)."
     ("-C", "--directory")
 
-    codec: str = "base16c-crc16-rs"
-    "Printable codec name (default: base16c-crc16-rs)."
+    codec: str = "base16g-crc16-rs"
+    "Printable codec name (default: base16g-crc16-rs)."
     ("--codec",)
 
     metadata: "_ty.Literal['none', 'basic']" = "none"
@@ -318,12 +318,12 @@ class Create(LoggingArgs):
     def __call__(self) -> int:
         codec_name = self.codec
         codec = _select_codec(codec_name)
-        if codec_name != "base16c-crc16-rs":
+        if codec_name != "base16g-crc16-rs":
             # Denser codecs pack more bits/char but are not stock-OCR-safe: the
             # measured stock-safe ceiling is base16c's 16 characters. Not a gate
             # (creation never needs OCR) — an informed-choice advisory.
             self._logger_.warning(
-                "codec %r is not the OCR-recommended default (base16c-crc16-rs); "
+                "codec %r is not the OCR-recommended default (base16g-crc16-rs); "
                 "denser alphabets need the matching trained OCR model for reliable "
                 "scan restore — pick base16c unless you rely on such a model",
                 codec_name,
@@ -400,7 +400,7 @@ class Create(LoggingArgs):
                 report("compressed", bytes=compressed_len, method=compression_name)
                 compressed_spool.seek(0)
                 parity_ratio = self._parity_ratio_selection()
-                if hasattr(codec, "iter_encode") and codec_name == "base16c-crc16-rs":
+                if hasattr(codec, "iter_encode") and codec_name == "base16g-crc16-rs":
                     encoded = codec.iter_encode(
                         compressed_spool,
                         compressed_len,
@@ -414,7 +414,7 @@ class Create(LoggingArgs):
                 else:
                     options = (
                         {"line_width": line_width, "parity_ratio": parity_ratio}
-                        if codec_name == "base16c-crc16-rs"
+                        if codec_name == "base16g-crc16-rs"
                         else {}
                     )
                     materialized = codec.encode(compressed_spool.read(), **options)

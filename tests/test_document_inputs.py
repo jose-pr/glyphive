@@ -23,7 +23,7 @@ def test_merge_ocr_lines_unions_valid_frames_across_passes():
     from glyphive import codec
     from glyphive.cli._common import _merge_ocr_lines
 
-    c = codec.get("base16c-crc16-rs")
+    c = codec.get("base16g-crc16-rs")
     good0 = _make_frame(c, "L", 0, b"\x01\x02")
     good1 = _make_frame(c, "L", 1, b"\x03\x04")
     good2 = _make_frame(c, "L", 2, b"\x05\x06")
@@ -144,7 +144,7 @@ def test_list_uses_auto_input_and_forwards_ocr_engine(tmp_path, monkeypatch):
         "decode_document_to_spool",
         lambda lines, sink, **options: {
                 "v": 1,
-                "codec": "base16c-crc16-rs",
+                "codec": "base16g-crc16-rs",
                 "comp": "none",
                 "files": 0,
                 "bytes": 0,

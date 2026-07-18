@@ -131,11 +131,11 @@ def test_full_library_roundtrip(tmp_path, comp):
     payload = compression.get(comp).compress(raw)
 
     # 3) codec-encode
-    encoded = codec.get("base16c-crc16-rs").encode(payload)
+    encoded = codec.get("base16g-crc16-rs").encode(payload)
 
     # 4) paginate (build the header meta the layout requires)
     meta = {
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": comp,
         "files": len(paths),
         "bytes": len(raw),
@@ -162,7 +162,7 @@ def test_full_library_roundtrip(tmp_path, comp):
 def test_restore_rejects_unknown_codec_before_decode(tmp_path):
     raw = archive.archive_tree(tmp_path)
     payload = compression.get("none").compress(raw)
-    encoded = codec.get("base16c-crc16-rs").encode(payload)
+    encoded = codec.get("base16g-crc16-rs").encode(payload)
     meta = {
         "codec": "missing",
         "comp": "none",
@@ -173,7 +173,7 @@ def test_restore_rejects_unknown_codec_before_decode(tmp_path):
     pages = layout.paginate(encoded, meta, lines_per_page=13)
     text_lines = [line for page in pages for line in page.text_lines]
 
-    with pytest.raises(ValueError, match=r"unknown codec 'missing'.*base16c-crc16-rs"):
+    with pytest.raises(ValueError, match=r"unknown codec 'missing'.*base16g-crc16-rs"):
         restore_decode.decode_document(text_lines)
 
 
@@ -184,9 +184,9 @@ def test_restore_accepts_ocr_confusable_header_and_footer_tokens(tmp_path):
 
     raw = archive.archive_tree(src, metadata="basic")
     payload = compression.get("none").compress(raw)
-    encoded = codec.get("base16c-crc16-rs").encode(payload)
+    encoded = codec.get("base16g-crc16-rs").encode(payload)
     meta = {
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "meta": "basic",
         "files": len(archive.list_paths(src)),
@@ -196,12 +196,12 @@ def test_restore_accepts_ocr_confusable_header_and_footer_tokens(tmp_path):
     pages = layout.paginate(encoded, meta, lines_per_page=13)
     text_lines = [line for page in pages for line in page.text_lines]
 
-    text_lines[0] = text_lines[0].replace("codec=base16c-crc16-rs", "codec=base16c-crl")
+    text_lines[0] = text_lines[0].replace("codec=base16g-crc16-rs", "codec=base16c-crl")
     footer_index = next(i for i, line in enumerate(text_lines) if " PAGE " in line)
     text_lines[footer_index] = text_lines[footer_index].replace("1/1", "l/l")
 
     decoded_meta, decoded_raw = restore_decode.decode_document(text_lines)
-    assert decoded_meta["codec"] == "base16c-crc16-rs"
+    assert decoded_meta["codec"] == "base16g-crc16-rs"
     assert decoded_meta["meta"] == "basic"
     assert decoded_raw == raw
 

@@ -24,15 +24,23 @@ from __future__ import annotations
 import typing as _ty
 
 from ._base import Codec
-from .base16c import BASE16C, Base16CCodec, _RadixSpec
+from .base16c import BASE16G, Base16GCodec, _RadixSpec
 
 __all__ = [
+    # glyphive-tuned (OCR-safe) codecs
     "Base8Codec",
     "Base32GCodec",
     "Base64Codec",
     "BASE8",
     "BASE32G",
     "BASE64",
+    # standard (textbook alphabet) codecs
+    "Base16Codec",
+    "Base32Codec",
+    "Base32CCodec",
+    "BASE16",
+    "BASE32",
+    "BASE32C",
 ]
 
 
@@ -80,15 +88,59 @@ BASE64: _ty.Final[_RadixSpec] = _RadixSpec(
     index_mask=(11, 46, 23, 58),
 )
 
+# ---------------------------------------------------------------------------
+# Standard (unmodified, textbook) alphabets. These are the plain encodings, NOT
+# OCR-tuned: use them when interop with a known base-N alphabet matters, not for
+# scan reliability (the OCR-safe choices are base16g / base32g). The '#' frame
+# delimiter is not a member of any of these standard sets, so they are safe to
+# frame; case handling follows the spec's case_fold (single-case sets fold).
+# ---------------------------------------------------------------------------
 
-class Base8Codec(Base16CCodec):
+# --- base16 (hex 0-9 A-F) --------------------------------------------------
+# 16 chars = 4 bits/char. Standard hexadecimal; same density as base16g but the
+# textbook alphabet (NOT the OCR-safe one). check_width 4; index_width 5.
+BASE16: _ty.Final[_RadixSpec] = _RadixSpec(
+    name="base16-crc16-rs",
+    alphabet="0123456789ABCDEF",
+    bits=4,
+    check_width=4,
+    index_width=5,
+    index_mask=(7, 13, 2, 11, 4),
+)
+
+# --- base32 (RFC 4648) -----------------------------------------------------
+# 32 chars = 5 bits/char. RFC-4648 base32 alphabet (A-Z 2-7). check_width 4;
+# index_width 4.
+BASE32: _ty.Final[_RadixSpec] = _RadixSpec(
+    name="base32-crc16-rs",
+    alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
+    bits=5,
+    check_width=4,
+    index_width=4,
+    index_mask=(7, 26, 13, 21),
+)
+
+# --- base32c (Crockford base32) --------------------------------------------
+# 32 chars = 5 bits/char. Crockford's base32 (0-9 A-Z excluding I L O U).
+# check_width 4; index_width 4.
+BASE32C: _ty.Final[_RadixSpec] = _RadixSpec(
+    name="base32c-crc16-rs",
+    alphabet="0123456789ABCDEFGHJKMNPQRSTVWXYZ",
+    bits=5,
+    check_width=4,
+    index_width=4,
+    index_mask=(7, 26, 13, 21),
+)
+
+
+class Base8Codec(Base16GCodec):
     """Sparse 8-char (3 bits/char) codec — most OCR-robust, least dense."""
 
     name = "base8-crc16-rs"
     _spec = BASE8
 
 
-class Base32GCodec(Base16CCodec):
+class Base32GCodec(Base16GCodec):
     """base32g: glyphive's 32-char (5 bits/char) codec — 25% denser than base16c.
 
     Reads at 0.0% CER with a per-font trained model; ~14.8% on stock OCR. Denser
@@ -99,8 +151,32 @@ class Base32GCodec(Base16CCodec):
     _spec = BASE32G
 
 
-class Base64Codec(Base16CCodec):
+class Base64Codec(Base16GCodec):
     """64-char (6 bits/char) codec — densest; needs a trained model to restore."""
 
     name = "base64-crc16-rs"
     _spec = BASE64
+
+
+# --- standard (textbook) codecs --------------------------------------------
+
+
+class Base16Codec(Base16GCodec):
+    """Standard hexadecimal (0-9 A-F), 4 bits/char. Not OCR-tuned (use base16g)."""
+
+    name = "base16-crc16-rs"
+    _spec = BASE16
+
+
+class Base32Codec(Base16GCodec):
+    """Standard RFC-4648 base32 (A-Z 2-7), 5 bits/char. Not OCR-tuned (use base32g)."""
+
+    name = "base32-crc16-rs"
+    _spec = BASE32
+
+
+class Base32CCodec(Base16GCodec):
+    """Crockford base32 (0-9 A-Z minus I L O U), 5 bits/char. Not OCR-tuned."""
+
+    name = "base32c-crc16-rs"
+    _spec = BASE32C

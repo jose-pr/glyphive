@@ -1,4 +1,4 @@
-"""Tests for :mod:`glyphive.codec` — the OCR-safe codec (base16c-crc16-rs).
+"""Tests for :mod:`glyphive.codec` — the OCR-safe codec (base16g-crc16-rs).
 
 Covers round-trip fidelity, single-char RS self-healing, over-budget failure
 naming the failing line, and rejection of out-of-alphabet characters (Design
@@ -23,7 +23,7 @@ from glyphive.codec.base16c import (
 )
 
 
-base16c = codec.get("base16c-crc16-rs")
+base16c = codec.get("base16g-crc16-rs")
 
 
 # --------------------------------------------------------------------------- #
@@ -241,7 +241,8 @@ def test_codec_error_is_valueerror():
 
 
 _BUILTIN_CODECS = [
-    "base16c-crc16-rs", "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
+    "base16-crc16-rs", "base16g-crc16-rs", "base32-crc16-rs", "base32c-crc16-rs",
+    "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
 ]
 
 
@@ -249,9 +250,9 @@ def test_codec_registry_exposes_g1_and_direct_api():
     # base16c is the default; base8/base32g/base64 are the denser family.
     assert codec.names() == _BUILTIN_CODECS
     assert codec.available() == _BUILTIN_CODECS
-    assert isinstance(codec.get("base16c-crc16-rs"), codec.Base16CCodec)
+    assert isinstance(codec.get("base16g-crc16-rs"), codec.Base16GCodec)
     payload = b"registry compatibility"
-    assert base16c.decode(codec.get("base16c-crc16-rs").encode(payload)) == payload
+    assert base16c.decode(codec.get("base16g-crc16-rs").encode(payload)) == payload
 
 
 # --------------------------------------------------------------------------- #
@@ -354,15 +355,15 @@ def test_encode_decode_index_roundtrip():
 
 
 def test_codec_registry_rejects_unknown_names():
-    with pytest.raises(ValueError, match=r"unknown codec 'missing'.*base16c-crc16-rs"):
+    with pytest.raises(ValueError, match=r"unknown codec 'missing'.*base16g-crc16-rs"):
         codec.get("missing")
 
 
 def test_codec_registry_rejects_duplicate_names():
     existing = dict(codec.Codec._registry)
     try:
-        with pytest.raises(ValueError, match="duplicate codec name 'base16c-crc16-rs'"):
-            type("DuplicateCodec", (codec.Codec,), {"name": "base16c-crc16-rs", "encode": lambda self, data, **options: [], "decode": lambda self, lines, **options: b""})
+        with pytest.raises(ValueError, match="duplicate codec name 'base16g-crc16-rs'"):
+            type("DuplicateCodec", (codec.Codec,), {"name": "base16g-crc16-rs", "encode": lambda self, data, **options: [], "decode": lambda self, lines, **options: b""})
     finally:
         codec.Codec._registry.clear()
         codec.Codec._registry.update(existing)
@@ -506,7 +507,7 @@ def test_crc_false_positive_is_caught_by_the_sha_gate(tmp_path):
     raw = bytes((i * 11) % 256 for i in range(2000))
     encoded = base16c.encode(compression.get("none").compress(raw))
     meta = {
-        "v": 1, "codec": "base16c-crc16-rs", "comp": "none", "meta": "none",
+        "v": 1, "codec": "base16g-crc16-rs", "comp": "none", "meta": "none",
         "files": 1, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
     }
     pages = layout.paginate(encoded, dict(meta), lines_per_page=30)
@@ -535,7 +536,8 @@ def test_crc_false_positive_is_caught_by_the_sha_gate(tmp_path):
 # --- radix codec family (base8/base32g/base64) -------------------------------
 
 _RADIX_CODECS = [
-    "base8-crc16-rs", "base16c-crc16-rs", "base32g-crc16-rs", "base64-crc16-rs",
+    "base16-crc16-rs", "base16g-crc16-rs", "base32-crc16-rs", "base32c-crc16-rs",
+    "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
 ]
 
 
@@ -555,16 +557,16 @@ def test_denser_codec_uses_fewer_lines():
         name: len(codec.get(name).encode(data, line_width=60))
         for name in _RADIX_CODECS
     }
-    assert counts["base8-crc16-rs"] > counts["base16c-crc16-rs"]
-    assert counts["base16c-crc16-rs"] > counts["base32g-crc16-rs"]
+    assert counts["base8-crc16-rs"] > counts["base16g-crc16-rs"]
+    assert counts["base16g-crc16-rs"] > counts["base32g-crc16-rs"]
     assert counts["base32g-crc16-rs"] > counts["base64-crc16-rs"]
 
 
 def test_base64_is_case_significant_but_base16c_is_not():
     """base64 must NOT case-fold (A=0, a=26 are distinct); base16c may."""
-    from glyphive.codec.base16c import BASE16C
+    from glyphive.codec.base16c import BASE16G
     from glyphive.codec.radix import BASE64
-    assert BASE16C.case_fold is True
+    assert BASE16G.case_fold is True
     assert BASE64.case_fold is False
     # A base64 payload round-trips through its own case-preserving path.
     c = codec.get("base64-crc16-rs")
@@ -574,9 +576,9 @@ def test_base64_is_case_significant_but_base16c_is_not():
 
 def test_no_uniform_run_index_per_radix():
     """The index token never prints as a run of identical glyphs, any radix."""
-    from glyphive.codec.base16c import _encode_index, _decode_index, BASE16C
+    from glyphive.codec.base16c import _encode_index, _decode_index, BASE16G
     from glyphive.codec.radix import BASE8, BASE32G, BASE64
-    for spec in (BASE8, BASE16C, BASE32G, BASE64):
+    for spec in (BASE8, BASE16G, BASE32G, BASE64):
         for i in range(0, 5001):
             tok = _encode_index(i, spec)
             assert len(set(tok)) > 1, (spec.name, i, tok)

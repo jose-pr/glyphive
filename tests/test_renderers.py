@@ -2,7 +2,7 @@
 
 All optional backends (fpdf2, python-docx) are installed via ``[all]`` on this
 machine, so NONE of these tests skip here. The text renderer's round-trip through
-``layout.read_pages`` + ``codec.get("base16c-crc16-rs").decode`` is the key correctness check.
+``layout.read_pages`` + ``codec.get("base16g-crc16-rs").decode`` is the key correctness check.
 """
 
 import hashlib
@@ -15,7 +15,7 @@ import pytest
 from glyphive import codec, layout
 
 
-base16c = codec.get("base16c-crc16-rs")
+base16c = codec.get("base16g-crc16-rs")
 from glyphive import render as render_mod
 from glyphive.render import lines_per_page_for, render
 from glyphive.render.formats.text import FORM_FEED
@@ -28,7 +28,7 @@ def _make_pages(nbytes=800, seed=5):
     data = bytes(rng.randrange(256) for _ in range(nbytes))
     encoded = base16c.encode(data)
     meta = {
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "files": 1,
         "bytes": nbytes,
@@ -136,7 +136,7 @@ def test_pdf_parity_document_renders_and_q_frame_overflow_fails_loud(tmp_path):
 
     data, _pages = _make_pages(nbytes=1600, seed=9)
     meta = {
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "files": 1,
         "bytes": len(data),

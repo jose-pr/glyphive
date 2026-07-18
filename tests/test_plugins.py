@@ -10,7 +10,8 @@ from glyphive.restore import ocr
 
 #: Built-in codecs (base16c default + the denser radix family), sorted.
 _BUILTIN_CODECS = [
-    "base16c-crc16-rs", "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
+    "base16-crc16-rs", "base16g-crc16-rs", "base32-crc16-rs", "base32c-crc16-rs",
+    "base32g-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
 ]
 
 
@@ -47,10 +48,10 @@ def _external_classes():
         name = "external_codec"
 
         def encode(self, data, **options):
-            return codec.Base16CCodec().encode(data, **options)
+            return codec.Base16GCodec().encode(data, **options)
 
         def decode(self, lines, **options):
-            return codec.Base16CCodec().decode(lines, **options)
+            return codec.Base16GCodec().decode(lines, **options)
 
     class TestCompression(compression.CompressionMethod):
         name = "external_compression"
@@ -126,7 +127,7 @@ def test_invalid_broken_and_colliding_candidates_are_isolated(monkeypatch):
     entries = FakeEntryPoints(
         [
             FakeEntryPoint("glyphive.codecs", "wrong", WrongName),
-            FakeEntryPoint("glyphive.codecs", "base16c-crc16-rs", codec.Base16CCodec),
+            FakeEntryPoint("glyphive.codecs", "base16g-crc16-rs", codec.Base16GCodec),
             FakeEntryPoint("glyphive.codecs", "broken", error=RuntimeError("boom")),
             FakeEntryPoint("glyphive.compression", "not-a-class", object()),
         ]

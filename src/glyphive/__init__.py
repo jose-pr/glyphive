@@ -4,7 +4,7 @@ Take a directory tree (or arbitrary bytes), serialize it, compress it, and encod
 it into an OCR-safe, human-re-typeable printable format laid out on pages (plain
 text, PDF, or Word), then restore the tree from a scan or a re-typed transcript.
 
-The default codec (``base16c-crc16-rs``) uses the measured-safe 16-character alphabet
+The default codec (``base16g-crc16-rs``) uses the measured-safe 16-character alphabet
 ``ABCDHKLMPRTVXY34``, a per-line CRC-16, and document-wide interleaved
 Reed-Solomon parity so scattered OCR errors self-heal instead of silently
 corrupting everything downstream.

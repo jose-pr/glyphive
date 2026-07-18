@@ -11,10 +11,10 @@ from glyphive.restore import decode, unarchive
 
 
 def _transcript(raw, *, digest=None, files=1):
-    encoded = codec.get("base16c-crc16-rs").encode(compression.get("none").compress(raw))
+    encoded = codec.get("base16g-crc16-rs").encode(compression.get("none").compress(raw))
     meta = {
         "v": 1,
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "meta": "none",
         "files": files,
@@ -43,10 +43,10 @@ def test_missing_page_is_recovered_by_document_rs_when_budget_allows(tmp_path):
     codec try, instead of raising MissingPageError up front.
     """
     raw = b"whole-page recovery exercise payload " * 40  # multi-page at lpp=12
-    c = codec.get("base16c-crc16-rs")
+    c = codec.get("base16g-crc16-rs")
     encoded = c.encode(compression.get("none").compress(raw), parity_ratio=0.35)
     meta = {
-        "v": 1, "codec": "base16c-crc16-rs", "comp": "none", "meta": "none",
+        "v": 1, "codec": "base16g-crc16-rs", "comp": "none", "meta": "none",
         "files": 1, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
     }
     pages = layout.paginate(encoded, dict(meta), lines_per_page=14)
@@ -69,10 +69,10 @@ def test_missing_page_is_recovered_by_document_rs_when_budget_allows(tmp_path):
 
 
 def _pages_with_parity(raw, *, k, lines_per_page=14, parity_ratio=0.12):
-    c = codec.get("base16c-crc16-rs")
+    c = codec.get("base16g-crc16-rs")
     encoded = c.encode(compression.get("none").compress(raw), parity_ratio=parity_ratio)
     meta = {
-        "v": 1, "codec": "base16c-crc16-rs", "comp": "none", "meta": "none",
+        "v": 1, "codec": "base16g-crc16-rs", "comp": "none", "meta": "none",
         "files": 1, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
     }
     pages = layout.paginate(

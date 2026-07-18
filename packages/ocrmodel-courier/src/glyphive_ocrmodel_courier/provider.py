@@ -2,7 +2,7 @@
 
 Mirrors the core ``tesseract-glyphive`` provider but points Tesseract at this
 package's bundled ``.traineddata`` via ``--tessdata-dir`` and selects it with
-``-l``. Reuses the same measured-safe base16c character whitelist and PSM.
+``-l``. Reuses the same measured-safe base16g character whitelist and PSM.
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ def _model_dir() -> "str | None":
 
 
 class CourierGlyphiveProvider(OcrProvider):
-    """Tesseract constrained to the base16c alphabet, using the courier model."""
+    """Tesseract constrained to the base16g alphabet, using the courier model."""
 
     name = "tesseract-glyphive-courier"
 
