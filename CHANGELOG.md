@@ -49,6 +49,16 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Added
 
+- **De-scan blur for photographed input (`--descan`)**: `extract`/`list` can
+  apply a Gaussian blur to image and rasterized-PDF input before OCR (default
+  0 = off; ~0.6 measured best on real phone photos, which otherwise fail decode
+  because they are too sharp/noisy for the frame CRC/RS). Accepts several radii
+  (`--descan 0,0.6,1.0`) to OCR each image at every radius and **merge the
+  CRC-valid lines across passes** — different blurs recover different lines and
+  the per-line CRC makes combining them safe, so a document no single blur can
+  fully read may still restore from the union. Automatic OCR-engine selection
+  now also prefers the constrained `tesseract-glyphive` profile over plain
+  `tesseract` (measured substantially higher scan-restore success).
 - **Whole-page recovery (`--parity-pages K`)**: `create` can emit K extra
   document-level Reed-Solomon parity pages over the data pages, so a document
   survives up to K wholly lost / unscannable / destroyed pages — not just the

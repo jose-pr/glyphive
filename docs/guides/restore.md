@@ -74,7 +74,29 @@ glyphive extract \
 Tesseract page segmentation mode 6, restricts recognition to the measured
 machine alphabet (`ABCDHKLMPRTVXY34#`), and disables its general-language
 dictionaries. Use plain `tesseract` for unrestricted text or diagnostic scans;
-its behavior is unchanged.
+its behavior is unchanged. On real photographed scans the constrained profile
+restored substantially more documents than plain `tesseract`, so automatic
+engine selection now prefers it over plain `tesseract` (Paddle, where
+installed, still ranks first but needs model downloads and is unusable offline).
+
+### De-scanning raw photos (`--descan`)
+
+Raw phone photos are frequently too sharp/noisy for the frame CRC/RS to
+recover — decode fails with `... failed CRC and exceeds RS correction budget`
+even on an otherwise-good scan. A light Gaussian blur softens the glyph edges
+enough for reliable OCR:
+
+```bash
+glyphive extract -f photos/ --from-images --descan 0.6 -C restored
+```
+
+`--descan` measured best around radius `0.6` on real scans. You can pass
+several radii to try — `--descan 0,0.6,1.0` — in which case each image is OCR'd
+at every radius and the CRC-valid lines are **merged across passes**: different
+blurs recover different lines, and the per-line CRC makes combining them safe,
+so a document no single blur can fully read may still restore from the union.
+`--descan 0` (the default) applies no blur. It affects `--from-images` and
+PDF/image auto-input only, never text transcripts.
 
 Both `extract` and `list` accept a transcript, image, PDF, DOCX, or a directory
 containing a mixture of those inputs. Direct child files are processed in
