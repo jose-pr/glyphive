@@ -42,6 +42,33 @@ must record the actual font outline, point size, rendered pixel dimensions,
 DPI, and measured stroke width. It should test both rounded/constant and
 squared/letterpress-style endings when suitable licensed files can be sourced.
 
+## Default-font comparison (2026-07-17, VM)
+
+Comparative sweep to decide the default PDF font, via `tools/ocr_font_report.py`
+on the VM (Rocky 9, Tesseract 4.1.1 + the `tesseract-glyphive` constrained
+profile), charset `ABCDHKLMPRTVXY34`, radix 16, 300 DPI, 150 rows, the tool's
+default page geometry. Raw JSON: `benchmarks/results/fontcmp-<font>_<engine>.json`.
+Values are **usable bytes/page** (`bytes_per_page × (1 − line_insert_rate)`) at
+the best configuration per cell; higher is better.
+
+| font × engine | 6 pt | 8 pt | 10 pt | 11 pt | 12 pt |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| courier × tesseract | 5366 | 4098 | 2622 | 2146 | 1825 |
+| courier × tesseract-glyphive | **5439** | **4125** | **2640** | **2160** | 1825 |
+| dejavu-sans-mono × tesseract | 5475 | 3004 | 1944 | 2090 | 1776 |
+| dejavu-sans-mono × tesseract-glyphive | 5475 | 3045 | 1944 | 2105 | 1825 |
+| ocr-b × tesseract | 3636 | 2024 | 1162 | 624 | 594 |
+| ocr-b × tesseract-glyphive | 5050 | 2138 | 1745 | 1317 | 1125 |
+
+**Decision: KEEP Courier as the default PDF font.** Applying the pre-set rule
+(switch only if a bundled font beats Courier by ≥10% usable bytes/page on BOTH
+engines *and* passes the restore gate): DejaVu's only edge is a ~0.7% margin at
+6 pt (noise-level), and it *loses* by ~26–35% at 8 pt and every larger size;
+OCR-B loses at every size. No bundled font clears the ≥10% bar. The embed-cost
+tie-breaker also favors Courier — a PDF core font (0 KB embedded) vs DejaVu's
+~340 KB per PDF. DejaVu and OCR-B remain measured, restore-verified **options**
+(`--font dejavu-sans-mono` / `--font ocr-b`); they are not promoted to default.
+
 ## Verified diagnostic measurements
 
 The cells below used 300 DPI randomized rows and Tesseract 4.1.1. The
