@@ -8,6 +8,11 @@ from glyphive import codec, compression, render
 from glyphive import plugins
 from glyphive.restore import ocr
 
+#: Built-in codecs (base16c default + the denser radix family), sorted.
+_BUILTIN_CODECS = [
+    "base16c-crc16-rs", "base32-crc16-rs", "base64-crc16-rs", "base8-crc16-rs",
+]
+
 
 class FakeEntryPoints(list):
     def select(self, *, group):
@@ -136,7 +141,7 @@ def test_invalid_broken_and_colliding_candidates_are_isolated(monkeypatch):
     assert "does not match" in messages
     assert "duplicate codec" in messages
     assert "not a CompressionMethod subclass" in messages
-    assert codec.names() == ["base16c-crc16-rs"]
+    assert codec.names() == _BUILTIN_CODECS
 
 
 def test_reset_removes_only_external_classes(monkeypatch):
@@ -161,5 +166,5 @@ def test_no_discovery_without_explicit_call(monkeypatch):
         "entry_points",
         lambda: pytest.fail("entry points were enumerated eagerly"),
     )
-    assert codec.names() == ["base16c-crc16-rs"]
+    assert codec.names() == _BUILTIN_CODECS
     assert "gzip" in compression.names()
