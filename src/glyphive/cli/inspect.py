@@ -114,6 +114,7 @@ class Inspect(LoggingArgs):
             "data_lines": shape.data_lines,
             "parity_lines": shape.parity_lines,
             "page_warnings": list(meta.get("_page_warnings", []) or []),
+            "footer_hash_notes": list(meta.get("_footer_hash_notes", []) or []),
         }
         self._emit(report)
 
@@ -153,3 +154,8 @@ class Inspect(LoggingArgs):
             print(f"  STILL MISSING (unrecoverable): {report['pages_still_missing']}")
         for warning in report["page_warnings"]:
             print(f"  warning: {warning}")
+        if report["footer_hash_notes"]:
+            print(
+                f"  footer-hash advisories: {len(report['footer_hash_notes'])} "
+                "page(s) (normal on OCR input; pages still decoded)"
+            )

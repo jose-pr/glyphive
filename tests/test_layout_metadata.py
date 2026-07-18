@@ -403,3 +403,34 @@ def test_benign_exact_duplicate_lines_do_not_trigger_collision():
         if line[:1] in ("L", "P"):
             doubled.append(line)  # identical duplicate, same index + payload
     assert c.decode(doubled) == data
+
+
+def test_footer_hash_mismatch_is_advisory_not_a_page_warning():
+    """An OCR-style footer-hash mismatch goes to _footer_hash_notes, not warnings.
+
+    A space inserted into a payload (OCR routinely does this) changes the page
+    text hash while the L/P line still decodes via CRC/RS. Such a mismatch must
+    be recorded as an advisory footer-hash note -- so the CLI can log it quietly
+    -- and NOT as a real page-integrity warning, and must not break decode.
+    """
+    data = b"footer hash advisory note check " * 30
+    encoded = codec.get("base16c-crc16-rs").encode(data)
+    meta_in = {
+        "codec": "base16c-crc16-rs", "comp": "none", "meta": "none",
+        "files": 1, "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    pages = layout.paginate(encoded, meta_in, lines_per_page=14)
+    lines = [line for page in pages for line in page.text_lines]
+    # OCR-style interior space in the first L line's payload (frame still parses).
+    for i, line in enumerate(lines):
+        if line.startswith("L"):
+            parts = line.split()
+            parts[1] = parts[1][:5] + " " + parts[1][5:]
+            lines[i] = " ".join(parts)
+            break
+
+    meta, encoded_lines = layout.read_pages(lines)
+    assert len(meta["_footer_hash_notes"]) >= 1
+    assert not meta["_page_warnings"]  # advisory, not a real warning
+    assert codec.get(meta["codec"]).decode(encoded_lines) == data
