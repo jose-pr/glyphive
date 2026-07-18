@@ -49,6 +49,17 @@ OCR-friendly printable pages and back to a verified tree.
 
 ### Added
 
+- **Whole-page recovery (`--parity-pages K`)**: `create` can emit K extra
+  document-level Reed-Solomon parity pages over the data pages, so a document
+  survives up to K wholly lost / unscannable / destroyed pages — not just the
+  scattered per-line OCR errors the per-line RS already fixes. Restore
+  reconstructs missing data pages from the parity pages and reports which it
+  rebuilt. Default 0 (off, byte-identical to before). Data pages + K must not
+  exceed 255. Independent of `--parity-ratio`. The header gains a `pgpar`
+  token (omitted when 0) and the protected machine envelope records K and the
+  page block size. Separately, a *missing* page no longer hard-fails up front
+  even with K=0: the codec's document-wide RS is given a chance to recover it
+  from the surviving pages when the per-line parity budget allows.
 - **Progress logging for `create`/`extract`**: both commands now log
   intermediate stage events (`archived`, `compressed`, `encoded`, `rendered`
   for `create`; `staged`, `published` for `extract`) instead of only a final

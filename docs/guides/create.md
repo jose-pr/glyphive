@@ -126,6 +126,30 @@ causes the command to stop before writing output.
 
 `-L`/`--level` forwards a compression level to the selected implementation.
 
+## Redundancy and whole-page recovery
+
+Two independent layers protect a printed document, tuned separately:
+
+- **Per-line Reed-Solomon** (`--parity-ratio FLOAT`, default `0.12`) heals
+  scattered OCR character errors on the pages you *do* recover. Lower values
+  shrink the page count but leave less correction budget. `--simple` is a
+  documented low-redundancy preset (`0.04`) for small, disposable, or easily
+  re-typeable documents.
+- **Whole-page parity** (`--parity-pages K`, default `0`) emits K extra pages
+  of document-level Reed-Solomon parity over the data pages, so the document
+  survives up to K *wholly lost* pages (physically destroyed, unscannable, or
+  dropped) — not just character noise. Costs K extra printed pages. Data pages
+  plus K must not exceed 255 (a create-time error names the cap).
+
+```bash
+glyphive create -f resilient.pdf --parity-pages 2 -C project .
+```
+
+Even with `--parity-pages 0`, a missing page is no longer an immediate failure:
+restore lets the per-line Reed-Solomon try to recover it from the surviving
+pages, and only fails if that budget is exceeded. Dedicated parity pages make
+that recovery guaranteed up to K lost pages regardless of the per-line budget.
+
 ## Metadata profiles
 
 - `--metadata none` is the default. It archives paths, file contents, and

@@ -23,6 +23,8 @@ the character errors that make ordinary base64-on-paper fragile.
 - **Localized integrity checks** on every encoded line and protected page
   metadata.
 - **Document-wide Reed-Solomon parity** for correcting scattered OCR errors.
+- **Optional whole-page recovery** (`--parity-pages K`, default off): survives
+  up to K wholly lost/unscannable pages, independent of the per-line parity.
 - **Binary-safe archives** for nested trees, empty directories, and arbitrary
   file contents.
 - **Deterministic restore** from text; optional OCR providers are loaded only
@@ -158,7 +160,11 @@ its page number and a truncated page hash. Human-facing `#!glyphive` and
 
 Small, scattered line errors become known erasures and can be repaired by the
 document-wide Reed-Solomon parity. A missing page is reported rather than
-guessed. Read the [wire-format guide](https://jose-pr.github.io/glyphive/guides/wire-format/)
+guessed, and the document-wide RS may still recover it from the surviving
+pages when the budget allows. `create --parity-pages K` (default 0, off)
+opts into a separate, guaranteed layer: K extra pages of document-level
+parity that survive up to K wholly lost pages regardless of the per-line
+budget. Read the [wire-format guide](https://jose-pr.github.io/glyphive/guides/wire-format/)
 for the complete layering and framing rules.
 
 ## Standalone zipapp
