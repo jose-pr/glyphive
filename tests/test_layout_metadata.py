@@ -61,6 +61,85 @@ def test_read_pages_to_spool_matches_compatibility_result():
     assert count == len(expected_lines)
 
 
+def test_parity_pages_zero_is_byte_identical_to_no_parity_pages():
+    """K=0 must reproduce the exact pre-parity-pages output (golden check)."""
+    encoded = codec.get("base16c-crc16-rs").encode(b"golden regression check" * 10)
+    meta = {
+        "codec": "base16c-crc16-rs",
+        "comp": "none",
+        "meta": "none",
+        "files": 1,
+        "bytes": 240,
+        "sha256": "0" * 64,
+    }
+    default_pages = layout.paginate(encoded, dict(meta), lines_per_page=13)
+    explicit_pages = layout.paginate(
+        encoded, dict(meta), lines_per_page=13, parity_pages=0
+    )
+    assert default_pages == explicit_pages
+
+    for page in default_pages:
+        for line in page.text_lines:
+            first_token = line.split(None, 1)[0]
+            assert not first_token.startswith("Q")
+
+    # The human header must round-trip pgpar=0 with no visible token, and the
+    # protected machine envelope must round-trip pgpar=0 / page_block_bytes=0.
+    header_line = default_pages[0].text_lines[0]
+    assert "pgpar=" not in header_line
+    header_meta = layout.parse_header(header_line)
+    assert "pgpar" not in header_meta
+
+    all_lines = [line for page in default_pages for line in page.text_lines]
+    restored_meta, encoded_lines = layout.read_pages(all_lines)
+    assert restored_meta["pgpar"] == 0
+    assert restored_meta["page_block_bytes"] == 0
+    assert restored_meta["pages"] == len(default_pages)
+    restored = codec.get("base16c-crc16-rs").decode(encoded_lines)
+    assert restored == b"golden regression check" * 10
+
+
+def test_parity_pages_positive_paginates_to_data_plus_parity_and_round_trips():
+    data = b"page parity round trip content" * 30
+    encoded = codec.get("base16c-crc16-rs").encode(data)
+    meta = {
+        "codec": "base16c-crc16-rs",
+        "comp": "none",
+        "meta": "none",
+        "files": 1,
+        "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    k = 2
+    pages = layout.paginate(encoded, dict(meta), lines_per_page=13, parity_pages=k)
+
+    # Data pages come first, parity pages last, by construction.
+    d = len(pages) - k
+    assert d >= 1
+    data_page_slice = pages[:d]
+    parity_page_slice = pages[d:]
+    assert len(parity_page_slice) == k
+
+    for page in data_page_slice:
+        for line in page.encoded_lines:
+            assert line.split(None, 1)[0][:1] in ("L", "P")
+    for page in parity_page_slice:
+        for line in page.encoded_lines:
+            assert line.split(None, 1)[0][:1] == "Q"
+
+    # Every page (data and parity) shares the same grand total, continuing
+    # page numbers past the data pages.
+    for i, page in enumerate(pages, start=1):
+        assert page.number == i
+        assert page.total == len(pages)
+
+    all_lines = [line for page in pages for line in page.text_lines]
+    restored_meta, _count = layout.read_pages(all_lines)
+    assert restored_meta["pages"] == d  # machine envelope pages == D, not D+K
+    assert restored_meta["pgpar"] == k
+    assert restored_meta["page_block_bytes"] > 0
+
+
 def test_real_ocr_damage_to_human_metadata_is_display_only():
     data, lines = _document()
     lines[0] = (
