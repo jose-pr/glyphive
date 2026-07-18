@@ -99,14 +99,19 @@ block's budget; one concentrated block can fail sooner.
 
 ## Page layout
 
-Each document also prints a human-readable summary:
+Each document also prints a compact, human-readable summary by default (omit it
+with `create --no-header`):
 
 ```text
-#!glyphive v=1 codec=base16c-crc16-rs comp=gzip meta=none files=25 bytes=211233 pages=61 sha256=<64 hex>
+#!glyphive v1 base16c-crc16-rs,gzip files=25 bytes=211233 pages=61
 ```
 
-This line is not authoritative. The same values are stored in one or more
-checked `H` frames using the safe alphabet:
+The version is a bare `v<N>` token; codec and compression collapse to one
+positional `codec[,comp]` token (the `,comp` part is dropped when compression is
+`none`). This line is display-only and **not authoritative** — it deliberately
+omits the SHA-256 and metadata profile, and any line beginning with `#!` is
+treated as a comment on the read path. The authoritative values are stored in
+one or more checked `H` frames using the safe alphabet:
 
 ```text
 H<index5> <up to 60 safe chars> #<check4>
