@@ -3,6 +3,50 @@ from __future__ import annotations
 import pytest
 
 
+def _make_frame(codec, kind, idx, payload):
+    """Build a single CRC-valid L/P frame line for the given index/payload."""
+    from glyphive.codec.base16c import _check_chars, encode_index, nibble_encode
+
+    token = encode_index(idx)
+    body = nibble_encode(payload)
+    return f"{kind}{token} {body} #{_check_chars(token, body)}"
+
+
+def test_merge_ocr_lines_unions_valid_frames_across_passes():
+    """Different blur passes contribute different CRC-valid lines; merge unions them.
+
+    Real-world scan finding (2026-07-17): different Gaussian blur radii recover
+    different lines, and the per-line CRC makes combining passes safe. The merge
+    keeps the first pass verbatim (line order drives page attribution) and only
+    appends CRC-valid frames later passes read that the first pass missed.
+    """
+    from glyphive import codec
+    from glyphive.cli._common import _merge_ocr_lines
+
+    c = codec.get("base16c-crc16-rs")
+    good0 = _make_frame(c, "L", 0, b"\x01\x02")
+    good1 = _make_frame(c, "L", 1, b"\x03\x04")
+    good2 = _make_frame(c, "L", 2, b"\x05\x06")
+    garbage = "L000ZZ notavalidframe"  # unparseable, must be ignored
+
+    # Pass A reads frames 0 and 1; pass B reads 0 (dup) and 2 (new).
+    merged = _merge_ocr_lines([[good0, good1, garbage], [good0, good2]])
+
+    # First pass preserved verbatim as the ordered spine.
+    assert merged[: 3] == [good0, good1, garbage]
+    # The new CRC-valid frame from pass B is appended; the duplicate is not.
+    assert good2 in merged
+    assert merged.count(good0) == 1
+    assert merged.count(good2) == 1
+
+
+def test_merge_ocr_lines_single_pass_is_verbatim():
+    from glyphive.cli._common import _merge_ocr_lines
+
+    lines = ["#!glyphive header", "LMYCVH payload #ABCD", "junk"]
+    assert _merge_ocr_lines([lines]) == lines
+
+
 def test_auto_input_renders_pdf_then_ocr(tmp_path, monkeypatch):
     from glyphive.cli import _common
     from glyphive.restore import ocr
@@ -11,7 +55,7 @@ def test_auto_input_renders_pdf_then_ocr(tmp_path, monkeypatch):
     source.write_bytes(b"pdf")
     seen = {}
 
-    def fake_render(path, destination):
+    def fake_render(path, destination, *, blur=0.0):
         seen["render"] = path.name
         return [destination / "scan-0001.png", destination / "scan-0002.png"]
 
@@ -69,7 +113,7 @@ def test_pdf_magic_wins_over_extension(tmp_path, monkeypatch):
     pdf.write_bytes(b"%PDF-1.7\n")
     monkeypatch.setattr(
         "glyphive.restore.document_images.render_document_images",
-        lambda path, destination: [destination / "page.png"],
+        lambda path, destination, *, blur=0.0: [destination / "page.png"],
     )
     monkeypatch.setattr(ocr, "ocr_pages", lambda paths, *, engine=None: [["pdf-page"]])
     assert _common.load_input_lines(pdf) == ["pdf-page"]
@@ -93,7 +137,7 @@ def test_list_uses_auto_input_and_forwards_ocr_engine(tmp_path, monkeypatch):
     monkeypatch.setattr(
         list_command,
         "load_input_lines",
-        lambda source, engine=None: seen.update(source=source, engine=engine) or [],
+        lambda source, engine=None, blur=0.0: seen.update(source=source, engine=engine) or [],
     )
     monkeypatch.setattr(
         decode,
