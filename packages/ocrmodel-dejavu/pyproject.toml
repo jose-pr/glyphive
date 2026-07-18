@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "glyphive-ocrmodel-dejavu"
+version = "0.1.0"
+description = "Opt-in glyphive OCR model fine-tuned for DejaVu Sans Mono (base16c channel)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+keywords = ["glyphive", "ocr", "tesseract", "traineddata", "dejavu"]
+dependencies = [
+    # Registers against the core provider registry; needs the OCR extra at runtime.
+    "glyphive",
+    "pytesseract",
+]
+
+# The provider self-registers when glyphive discovers installed plugins.
+[project.entry-points."glyphive.ocr_providers"]
+tesseract-glyphive-dejavu = "glyphive_ocrmodel_dejavu.provider:DejaVuGlyphiveProvider"
+
+[tool.hatch.build.targets.sdist]
+include = ["src/glyphive_ocrmodel_dejavu"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/glyphive_ocrmodel_dejavu"]
+# The trained model is added as package data at release-build time (it is a
+# large binary and a per-model publish decision — see README). When present:
+#   artifacts = ["src/glyphive_ocrmodel_dejavu/glyphivedejavu.traineddata"]
