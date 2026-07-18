@@ -81,6 +81,23 @@ class RenderFormat(ABC):
         """
         return None
 
+    def geometric_payload_capacity(
+        self,
+        *,
+        font: _ty.Optional[str] = None,
+        font_size: float = 11.0,
+        page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
+        character_spacing_pt: float = 0.0,
+    ) -> _ty.Optional[int]:
+        """Largest payload width that *physically* fits, ignoring the safety cap.
+
+        Unlike :meth:`payload_capacity` (clamped to the OCR-measured-safe row
+        width), this reports the uncapped geometric fit — used by
+        ``create --line-width max``. Formats without physical font metrics
+        (text/docx/qr) return ``None``, so ``max`` is rejected for them.
+        """
+        return None
+
     @classmethod
     def _register_external(cls, name: str, implementation: _ty.Type["RenderFormat"]) -> None:
         if name in RenderFormat._registry:
