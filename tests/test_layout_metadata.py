@@ -186,9 +186,10 @@ def test_parity_row_payload_never_wider_than_data_or_safe_cap():
 
 def test_real_ocr_damage_to_human_metadata_is_display_only():
     data, lines = _document()
+    # A badly OCR-mangled compact human header (garbled codec token, junk tail).
+    # Restore must ignore it entirely and trust the protected H frames.
     lines[0] = (
-        "#!glyphive v=1 codec=base16c-crl comp=none meta=none files=2 bytes=160 "
-        "pages=1 sha256=cad768eecfe095abd8ceff2c75a5c4df14Ff300b68 9:"
+        "#!glyphive v1 base16c-crl files=2 bytes=l60 pages=l garbage9:"
     )
     footer_index = next(i for i, line in enumerate(lines) if " PAGE " in line)
     lines[footer_index] = lines[footer_index].replace("PAGE 1/1", "PAGF l/l")
