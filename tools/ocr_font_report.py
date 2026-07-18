@@ -179,16 +179,21 @@ def _resolve_font(pdf, font_arg: str, size: float) -> str:
 
     Returns a display label for the font (basename for TTF, name for core).
     """
-    if font_arg.lower() == "ocr-b":
+    # Consult the renderer's bundled-font registry rather than hardcoding one
+    # font, so every font the PDF renderer bundles (ocr-b, dejavu-sans-mono, …)
+    # is measurable here without editing this tool for each new addition.
+    from glyphive.render.formats.pdf import _BUNDLED_FONTS
+
+    lowered = font_arg.lower()
+    if lowered in _BUNDLED_FONTS:
         from importlib import resources
 
-        resource = resources.files("glyphive.assets.fonts.ocr_b").joinpath(
-            "OCR-B.ttf"
-        )
+        package, filename = _BUNDLED_FONTS[lowered]
+        resource = resources.files(package).joinpath(filename)
         with resources.as_file(resource) as bundled:
-            pdf.add_font("OCR-B", "", str(bundled))
-        pdf.set_font("OCR-B", size=size)
-        return "OCR-B.ttf (bundled)"
+            pdf.add_font(lowered, "", str(bundled))
+        pdf.set_font(lowered, size=size)
+        return f"{filename} (bundled)"
 
     candidate = Path(font_arg)
     if candidate.is_file():
@@ -196,12 +201,12 @@ def _resolve_font(pdf, font_arg: str, size: float) -> str:
         pdf.add_font(family, "", str(candidate))
         pdf.set_font(family, size=size)
         return candidate.name
-    family = font_arg.lower()
+    family = lowered
     if family not in _CORE_FONTS:
         raise ValueError(
             f"unsupported font {font_arg!r}: not a PDF core font "
-            f"({', '.join(sorted(_CORE_FONTS))}), bundled 'ocr-b', and not an "
-            "existing file path"
+            f"({', '.join(sorted(_CORE_FONTS))}), a bundled font "
+            f"({', '.join(sorted(_BUNDLED_FONTS))}), or an existing file path"
         )
     pdf.set_font(family, size=size)
     return family
