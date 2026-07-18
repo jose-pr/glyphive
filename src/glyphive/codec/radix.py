@@ -1,20 +1,22 @@
-"""The radix codec family: base8 / base32 / base64.
+"""The radix codec family: base8 / base32g / base64.
 
 Each is the shipped ``base16c`` pipeline (``codec/base16c.py``) with a different
 :class:`~glyphive.codec.base16c._RadixSpec` — a wider alphabet packs more bits
 per printed character (denser pages), at the cost of stock-OCR reliability.
 
 Density vs. base16c (4 bits/char):
-  - ``base8``   : 3 bits/char (0.75x — sparser, most OCR-robust)
-  - ``base16c`` : 4 bits/char (the measured stock-safe default)
-  - ``base32``  : 5 bits/char (1.25x)
-  - ``base64``  : 6 bits/char (1.5x)
+  - ``base8``    : 3 bits/char (0.75x — sparser, most OCR-robust)
+  - ``base16c``  : 4 bits/char (the measured stock-safe default)
+  - ``base32g``  : 5 bits/char (1.25x — glyphive's measured 32-glyph set)
+  - ``base64``   : 6 bits/char (1.5x)
 
-The measured-safe stock-OCR alphabet is 16 characters (see the A1/size sweeps,
-2026-07-18): base32/base64 are NOT stock-OCR-safe and are intended for the
-trained-model restore path (opt-in per-font OCR model packages). They are never
-gated — creation only maps bytes to characters and never needs a model; choosing
-a denser codec is the user's informed decision. base16c stays the recommendation.
+The measured stock-OCR-safe ceiling is 16 characters (A1/size sweeps 2026-07-18);
+base32g/base64 are NOT stock-OCR-safe (~14.8% CER stock) but read at 0.0% CER with
+a per-font fine-tuned model (see ``.agents/plans/base32_punctuation_ocr_findings.md``).
+They are for the trained-model restore path (opt-in per-font OCR model packages).
+Codecs are never gated — creation only maps bytes to characters and never needs a
+model; choosing a denser codec is the user's informed decision. base16c stays the
+recommendation.
 """
 
 from __future__ import annotations
@@ -26,10 +28,10 @@ from .base16c import BASE16C, Base16CCodec, _RadixSpec
 
 __all__ = [
     "Base8Codec",
-    "Base32Codec",
+    "Base32GCodec",
     "Base64Codec",
     "BASE8",
-    "BASE32",
+    "BASE32G",
     "BASE64",
 ]
 
@@ -47,14 +49,18 @@ BASE8: _ty.Final[_RadixSpec] = _RadixSpec(
     index_mask=(1, 6, 3, 5, 2, 7, 4),
 )
 
-# --- base32 ----------------------------------------------------------------
-# 32 chars = 5 bits/char. Extends the base16c set with additional distinct
-# glyphs (NOT stock-OCR-safe; for the trained-model path). check_width =
-# ceil(16/5) = 4; index_width = 4 (32**4 = 1,048,576). index_mask: 4 distinct
-# values < 32.
-BASE32: _ty.Final[_RadixSpec] = _RadixSpec(
-    name="base32-crc16-rs",
-    alphabet="ABCDHKLMPRTVXY34EFGNSUWZ25679JQ8",
+# --- base32g ---------------------------------------------------------------
+# 32 chars = 5 bits/char = 25% denser than base16c. This is glyphive's own
+# measured alphabet ("32g" = 32 glyphive), NOT RFC-4648 base32: it is the
+# base16c-16 plus 10 measured-distinct letters/digits plus 6 measured-safe
+# punctuation glyphs (? @ ! & + =). It is NOT stock-OCR-safe (stock CER ~14.8%),
+# but a per-font fine-tuned model reads it at 0.0% CER clean and blurred
+# (2026-07-18 VM measurement; see .agents/plans/base32_punctuation_ocr_findings.md).
+# Excludes '#' (frame delimiter) and whitespace. check_width = ceil(16/5) = 4;
+# index_width = 4 (32**4 = 1,048,576). index_mask: 4 distinct values < 32.
+BASE32G: _ty.Final[_RadixSpec] = _RadixSpec(
+    name="base32g-crc16-rs",
+    alphabet="ABCDHKLMPRTVXY34EFGNUW2567?@!&+=",
     bits=5,
     check_width=4,
     index_width=4,
@@ -82,11 +88,15 @@ class Base8Codec(Base16CCodec):
     _spec = BASE8
 
 
-class Base32Codec(Base16CCodec):
-    """32-char (5 bits/char) codec — denser; needs a trained model to restore."""
+class Base32GCodec(Base16CCodec):
+    """base32g: glyphive's 32-char (5 bits/char) codec — 25% denser than base16c.
 
-    name = "base32-crc16-rs"
-    _spec = BASE32
+    Reads at 0.0% CER with a per-font trained model; ~14.8% on stock OCR. Denser
+    than base16c but needs the matching trained model for reliable scan restore.
+    """
+
+    name = "base32g-crc16-rs"
+    _spec = BASE32G
 
 
 class Base64Codec(Base16CCodec):

@@ -899,3 +899,26 @@ def test_footer_hash_advisory_logs_at_info_not_warning(caplog):
     assert any("missing" in m for m in warning_msgs)
     assert not any("footer hash" in m for m in warning_msgs)
     assert any("footer hash" in m for m in info_msgs)
+
+
+@pytest.mark.parametrize("codec_name", [
+    "base8-crc16-rs", "base16c-crc16-rs", "base32g-crc16-rs", "base64-crc16-rs",
+])
+def test_denser_codecs_full_cli_roundtrip(tmp_path, codec_name):
+    """create --codec <radix> then extract must restore byte-identical.
+
+    Guards the layout classification path: L/P frames use the SELECTED codec's
+    alphabet (base32g/base64 add symbols), which base16c's frame parser would
+    reject -- read_pages must resolve the payload spec from the header. Unit
+    codec tests call decode() directly and miss this; only the full CLI path
+    (create -> read_pages -> decode) exercises it.
+    """
+    src = _make_srcdir(tmp_path)
+    (src / "rand.bin").write_bytes(os.urandom(3000))
+    archive = tmp_path / "a.txt"
+    outdir = tmp_path / "out"
+    assert cli.run(
+        ["create", "-f", str(archive), "-C", str(src), "--codec", codec_name, "."]
+    ) == 0
+    assert cli.run(["extract", "-f", str(archive), "-C", str(outdir)]) == 0
+    _compare_dirs(src, outdir)
