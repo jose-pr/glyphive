@@ -28,6 +28,103 @@ _BUNDLED_FONTS = {
     ),
 }
 _FRAME_KINDS = "HLPQT"
+
+#: Font-file extensions we can hand to FPDF's ``add_font``.
+_SYSTEM_FONT_SUFFIXES = frozenset({".ttf", ".otf"})
+
+
+def _system_font_dirs() -> "_ty.List[Path]":
+    """OS font-store directories to search, most-specific (user) first.
+
+    Kept dependency-free on purpose (the project gates every optional import):
+    a filesystem scan matches a family name to a bundled/installed font file
+    without pulling in ``fonttools``/``matplotlib`` for a glob.
+    """
+    dirs: _ty.List[Path] = []
+
+    def add(raw: _ty.Optional[str], *parts: str) -> None:
+        if raw:
+            dirs.append(Path(raw, *parts))
+
+    if _os.name == "nt":
+        add(_os.environ.get("LOCALAPPDATA"), "Microsoft", "Windows", "Fonts")
+        add(_os.environ.get("WINDIR") or r"C:\Windows", "Fonts")
+    else:
+        home = _os.path.expanduser("~")
+        # User dirs first so a user override wins over a system copy.
+        add(home, ".fonts")
+        add(_os.environ.get("XDG_DATA_HOME") or _os.path.join(home, ".local", "share"), "fonts")
+        add(home, "Library", "Fonts")  # macOS user
+        for root in ("/Library/Fonts", "/System/Library/Fonts",
+                     "/usr/local/share/fonts", "/usr/share/fonts"):
+            add(root)
+    return dirs
+
+
+def _find_system_font(name: str) -> "_ty.Optional[Path]":
+    """Locate a ``.ttf``/``.otf`` in the OS font stores whose file stem matches
+    ``name`` case-insensitively (e.g. ``"DejaVu Sans Mono"`` or ``"Consolas"``).
+
+    Filename-stem matching, not true family-table resolution — good enough to
+    resolve the common case (the file is named after its family) without a font
+    library. Returns the first match, or ``None``.
+    """
+    target = name.strip().lower()
+    # Also try a spaceless variant: many font files drop spaces (DejaVuSansMono).
+    target_nospace = target.replace(" ", "")
+
+    def match_in(directory: "Path") -> "_ty.Optional[Path]":
+        try:
+            if not directory.is_dir():
+                return None
+            entries = sorted(directory.iterdir())
+        except OSError:
+            return None
+        subdirs: _ty.List[Path] = []
+        for entry in entries:
+            try:
+                if entry.is_dir():
+                    subdirs.append(entry)
+                    continue
+                if entry.suffix.lower() not in _SYSTEM_FONT_SUFFIXES:
+                    continue
+            except (OSError, ValueError):
+                continue
+            stem = entry.stem.lower()
+            if stem == target or stem.replace(" ", "") == target_nospace:
+                return entry
+        # One level of nesting (Linux groups fonts in per-family subdirs).
+        for sub in subdirs:
+            hit = _shallow_match(sub, target, target_nospace)
+            if hit is not None:
+                return hit
+        return None
+
+    for directory in _system_font_dirs():
+        hit = match_in(directory)
+        if hit is not None:
+            return hit
+    return None
+
+
+def _shallow_match(
+    directory: "Path", target: str, target_nospace: str
+) -> "_ty.Optional[Path]":
+    """Match font files directly inside ``directory`` (no further recursion)."""
+    try:
+        entries = sorted(directory.iterdir())
+    except OSError:
+        return None
+    for entry in entries:
+        try:
+            if entry.is_dir() or entry.suffix.lower() not in _SYSTEM_FONT_SUFFIXES:
+                continue
+        except (OSError, ValueError):
+            continue
+        stem = entry.stem.lower()
+        if stem == target or stem.replace(" ", "") == target_nospace:
+            return entry
+    return None
 _SAFE_ALPHABET = "ABCDHKLMPRTVXY34"
 
 #: Every published OCR-safety measurement in this project (see Known Facts in
@@ -64,15 +161,27 @@ def registered_pdf_font(pdf: _ty.Any, font: _ty.Optional[str]):
         return
 
     candidate = Path(requested)
-    if not candidate.is_file() or candidate.suffix.lower() not in {".otf", ".ttf"}:
-        supported = ", ".join(sorted(_CORE_FONTS | set(_BUNDLED_FONTS)))
-        raise ValueError(
-            f"unsupported PDF font {requested!r}; choose one of {supported}, "
-            "or pass an existing .ttf/.otf file"
-        )
-    family = candidate.stem
-    pdf.add_font(family, "", str(candidate))
-    yield family
+    if candidate.is_file() and candidate.suffix.lower() in _SYSTEM_FONT_SUFFIXES:
+        family = candidate.stem
+        pdf.add_font(family, "", str(candidate))
+        yield family
+        return
+
+    # Not core, not bundled, not an explicit file path: try to resolve the name
+    # against the OS font stores before giving up.
+    found = _find_system_font(requested)
+    if found is not None:
+        family = found.stem
+        pdf.add_font(family, "", str(found))
+        yield family
+        return
+
+    supported = ", ".join(sorted(_CORE_FONTS | set(_BUNDLED_FONTS)))
+    raise ValueError(
+        f"unsupported PDF font {requested!r}; choose one of {supported}, pass an "
+        "existing .ttf/.otf file, or install a system font of that name "
+        "(searched the OS font stores and found none)"
+    )
 
 
 def _fitted_font_size(
