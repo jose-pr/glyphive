@@ -6,10 +6,16 @@ import typing as _ty
 
 from ._base import Codec
 from .base16c import Base16CCodec
+# Importing registers the denser radix codecs (base8/base32/base64) via
+# Codec.__init_subclass__ — base16c stays the recommended stock-safe default.
+from .radix import Base8Codec, Base32Codec, Base64Codec
 
 __all__ = [
     "Codec",
     "Base16CCodec",
+    "Base8Codec",
+    "Base32Codec",
+    "Base64Codec",
     "available",
     "get",
     "names",
