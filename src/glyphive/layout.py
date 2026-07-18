@@ -767,6 +767,7 @@ def iter_paginate(
     grand_total = data_total + parity_pages
 
     from .codec import pagers as _pagers
+    from .codec.base16c import split_frame
 
     if parity_pages and data_total + parity_pages > _pagers.MAX_TOTAL_BLOCKS:
         raise LayoutError(
@@ -812,7 +813,7 @@ def iter_paginate(
     encoded = iter(()) if precomputed_chunks is not None else iter(encoded_lines)
     cursor = 0
     data_blocks: _ty.List[bytes] = []
-    line_width_chars = 0
+    data_payload_width = 0
     for page_no in range(1, data_total + 1):
         if precomputed_chunks is not None:
             chunk = precomputed_chunks[page_no - 1]
@@ -834,7 +835,9 @@ def iter_paginate(
             block = "\n".join(chunk).encode("utf-8")
             data_blocks.append(block)
             for line in chunk:
-                line_width_chars = max(line_width_chars, len(line))
+                split = split_frame(line)
+                payload = split[1] if split is not None else line
+                data_payload_width = max(data_payload_width, len(payload))
 
         yield Page(
             number=page_no,
@@ -856,11 +859,11 @@ def iter_paginate(
 
         padded_blocks = [b.ljust(block_bytes, b"\x00") for b in data_blocks]
         parity_blocks = _pagers.encode_page_parity(padded_blocks, parity_pages)
-        # A parity block's printed width matches the widest data line seen (or
-        # the payload capacity used elsewhere as a safe default if there were
-        # no data lines at all -- an edge case only reachable for an empty
-        # archive, which still yields exactly one data page/line budget).
-        q_line_width = line_width_chars or _MACHINE_PAYLOAD_CHARS
+        # A parity line's PAYLOAD width matches the widest data-line payload
+        # (not the full framed-line length -- that units bug printed Q rows
+        # wider than the 60-char OCR-safe cap). Falls back to the safe default
+        # width for an empty archive with no data lines.
+        q_line_width = data_payload_width or _MACHINE_PAYLOAD_CHARS
         for offset, parity_block in enumerate(parity_blocks):
             page_no = data_total + 1 + offset
             q_lines = _frame_bytes("Q", parity_block, q_line_width)

@@ -180,6 +180,35 @@ def test_wrong_length_line_does_not_poison_global_byte_width():
         assert base16c.decode(corrupted) == data
 
 
+def test_wrong_width_line_with_valid_crc_still_decodes(monkeypatch):
+    """A longer-than-modal line whose CRC coincidentally passes still decodes (F3).
+
+    The modal-width check forces such a line's stored index entry to ``ok=False``
+    (`_assemble_to_spool` now honors that stored flag, not just the re-parsed
+    CRC), so it becomes a known RS erasure instead of feeding shifted bytes to
+    RS as an uncorrected blind error. This exercises the honored-flag path: with
+    ``_assemble_to_spool`` consulting the stored flag, the wrong-width line is an
+    erasure and RS repairs the document.
+    """
+    from glyphive.codec.base16c import _check_chars
+
+    rng = random.Random(99)
+    data = bytes(rng.randrange(256) for _ in range(500))
+    lines = base16c.encode(data)
+
+    idx = _find_non_last_data_line(lines)
+    corrupted = list(lines)
+    label, payload, _check = corrupted[idx].split()
+    idx_token = label[1:]
+    wider = payload + ALPHABET[0] * 2  # 2 chars too wide, off the modal width
+    # Recompute the CRC so this wrong-width line PASSES its own check.
+    corrupted[idx] = f"{label} {wider} #{_check_chars(idx_token, wider)}"
+
+    # It decodes byte-for-byte: the wrong-width line is treated as an erasure
+    # (via the stored ok=False the modal-width check set) and RS repairs it.
+    assert base16c.decode(corrupted) == data
+
+
 # --------------------------------------------------------------------------- #
 # Corruption beyond the RS budget -> CodecError naming a line label
 # --------------------------------------------------------------------------- #
