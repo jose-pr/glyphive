@@ -169,15 +169,16 @@ def test_one_missing_machine_header_copy_is_recovered():
     assert meta["codec"] == "base16c-crc16-rs"
 
 
-def test_machine_footer_corruption_fails_instead_of_using_page_hint():
-    """A damaged T frame is treated as missing, never as its human PAGE hint.
+def test_machine_footer_corruption_marks_page_missing_never_uses_page_hint():
+    """A damaged T frame marks its page missing, never trusts the PAGE hint.
 
-    T frames carry no duplication or RS (unlike H, findings-driven fix
-    2026-07-17), so a CRC-damaged footer cannot be repaired -- but it must
-    still never fall back to trusting the unprotected ``PAGE n/total`` prose
-    that follows it on the same line. The correct, honest outcome is that the
-    page's identity is unconfirmed, which the existing missing-page detection
-    reports by number (not a generic parse error).
+    T frames carry no duplication or RS (unlike H), so a CRC-damaged footer
+    cannot be repaired -- and must never fall back to the unprotected
+    ``PAGE n/total`` prose on the same line. The page's identity is left
+    unconfirmed (recorded in ``_missing_pages``); read_pages does NOT hard-fail
+    here (2026-07-17: a missing page is an erasure the codec's RS may recover),
+    it hands the surviving lines to the codec. Its data line survived, so
+    decode is attempted rather than raising at the layout layer.
     """
     _data, lines = _document()
     index = next(i for i, line in enumerate(lines) if line.startswith("T"))
@@ -187,9 +188,9 @@ def test_machine_footer_corruption_fails_instead_of_using_page_hint():
         f"{label} {replacement + payload[1:]} {check} {suffix} {count}"
     )
 
-    with pytest.raises(layout.MissingPageError) as excinfo:
-        layout.read_pages(lines)
-    assert excinfo.value.missing == [1]
+    meta, _encoded = layout.read_pages(lines)
+    assert meta["_missing_pages"] == [1]
+    assert any("missing page" in w for w in meta["_page_warnings"])
 
 
 def test_page_footer_verifier_rejects_damaged_protected_footer():

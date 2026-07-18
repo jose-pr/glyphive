@@ -935,9 +935,23 @@ def read_pages_to_spool(
         )
     missing = [n for n in range(1, header_total + 1) if n not in pages_seen]
     if missing:
-        raise MissingPageError(missing, header_total)
+        # Do NOT hard-fail here: a wholly missing page is just a contiguous
+        # erasure burst in the encoded-line stream, and the codec's
+        # document-wide interleaved Reed-Solomon can recover it outright when
+        # the parity budget suffices (user decision 2026-07-17). Record the
+        # gap and let codec.decode try; if the budget is exceeded it raises its
+        # own named CodecError. Only when NO codec lines survived at all is the
+        # transcript genuinely unrecoverable at this layer.
+        joined = ", ".join(str(n) for n in missing)
+        warnings.append(
+            f"missing page(s) {joined} of {header_total}: relying on codec "
+            "Reed-Solomon to recover them from the surviving pages"
+        )
+        if encoded_count == 0:
+            raise MissingPageError(missing, header_total)
 
     header_meta["_page_warnings"] = warnings
     header_meta["_pages_seen"] = sorted(pages_seen)
     header_meta["_unreadable_lines"] = unreadable_lines
+    header_meta["_missing_pages"] = missing
     return header_meta, encoded_count
