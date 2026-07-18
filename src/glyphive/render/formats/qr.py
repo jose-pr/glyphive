@@ -31,10 +31,20 @@ def _transcript(pages: _ty.Iterable[Page]) -> _ty.Tuple[bytes, bytes]:
     if not materialized:
         raise ValueError("QR output requires at least one Glyphive page")
     text = "\f".join("\n".join(page.text_lines) + "\n" for page in materialized)
+    # Read the document digest from the CRC-protected H frames, never from the
+    # display-only ``#!glyphive`` summary (which is now minimal and no longer
+    # carries sha256, and may be absent entirely under ``--no-header``).
+    frames = [
+        frame
+        for page in materialized
+        for line in page.text_lines
+        if (frame := _layout._parse_machine_frame(
+            line, _layout._MACHINE_HEADER_KIND)) is not None
+    ]
     try:
-        meta = _layout.parse_header(materialized[0].text_lines[0])
+        meta = _layout._decode_machine_header(frames)
         digest = bytes.fromhex(str(meta["sha256"]))
-    except (IndexError, KeyError, TypeError, ValueError) as exc:
+    except (KeyError, TypeError, ValueError, _layout.LayoutError) as exc:
         raise ValueError("QR output could not read the document digest") from exc
     if len(digest) != 32:
         raise ValueError("QR output requires a 32-byte document digest")
