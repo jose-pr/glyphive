@@ -19,7 +19,9 @@ On the held-out training sweep (`benchmarks/results/ocr-training-sweep-20260718.
 in the core repo) the fine-tuned model reads the base16g channel at **0.000% CER**
 clean and blurred, versus ~4.6% for stock `eng`. The core document-wide
 Reed-Solomon + per-line CRC already make the stock path restore correctly, so
-this model is a robustness upgrade for marginal scans, not a requirement.
+this model is a robustness upgrade for marginal scans, not a requirement. 
+
+**Multi-size (v0.2.0):** trained across 3/4/5/8/10/12pt renders, so one model reads the whole range — human-legible 10-12pt down to ultra-dense small fonts. Measured (base16g): **0% CER at 4pt through 12pt, clean and blurred** — `--font-size 4` is ~4x denser than the 8pt default, and stock OCR is unusable at 4pt (~40% CER). 3pt (~7x) reads clean but blur degrades for this monospace font; prefer 4pt as the dense floor. See the create guide's small-font section.
 
 ## The model file (not in source control)
 
