@@ -1,0 +1,194 @@
+[
+  {
+    "pt": 8,
+    "line_width": 75,
+    "blur": 0.0,
+    "engine": "framed",
+    "model": "framed_f8_90",
+    "pages": 1,
+    "ocr_lines": 32,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 75,
+    "blur": 0.0,
+    "engine": "stock",
+    "model": null,
+    "pages": 1,
+    "ocr_lines": 32,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 75,
+    "blur": 0.6,
+    "engine": "framed",
+    "model": "framed_f8_90",
+    "pages": 1,
+    "ocr_lines": 32,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 75,
+    "blur": 0.6,
+    "engine": "stock",
+    "model": null,
+    "pages": 1,
+    "ocr_lines": 32,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 90,
+    "blur": 0.0,
+    "engine": "framed",
+    "model": "framed_f8_90",
+    "pages": 1,
+    "ocr_lines": 28,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 90,
+    "blur": 0.0,
+    "engine": "stock",
+    "model": null,
+    "pages": 1,
+    "ocr_lines": 28,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 90,
+    "blur": 0.6,
+    "engine": "framed",
+    "model": "framed_f8_90",
+    "pages": 1,
+    "ocr_lines": 28,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 90,
+    "blur": 0.6,
+    "engine": "stock",
+    "model": null,
+    "pages": 1,
+    "ocr_lines": 28,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 105,
+    "blur": 0.0,
+    "engine": "framed",
+    "model": "framed_f8_90",
+    "result": "create failed: error: --line-width 105 exceeds even the geometric fit 98 (it would overflow the page)\n"
+  },
+  {
+    "pt": 8,
+    "line_width": 105,
+    "blur": 0.0,
+    "engine": "stock",
+    "model": null,
+    "result": "create failed: error: --line-width 105 exceeds even the geometric fit 98 (it would overflow the page)\n"
+  },
+  {
+    "pt": 8,
+    "line_width": 105,
+    "blur": 0.6,
+    "engine": "framed",
+    "model": "framed_f8_90",
+    "result": "create failed: error: --line-width 105 exceeds even the geometric fit 98 (it would overflow the page)\n"
+  },
+  {
+    "pt": 8,
+    "line_width": 105,
+    "blur": 0.6,
+    "engine": "stock",
+    "model": null,
+    "result": "create failed: error: --line-width 105 exceeds even the geometric fit 98 (it would overflow the page)\n"
+  },
+  {
+    "pt": 5,
+    "line_width": 75,
+    "blur": 0.0,
+    "engine": "framed",
+    "model": "framed_f5_60",
+    "pages": 1,
+    "ocr_lines": 32,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 5,
+    "line_width": 75,
+    "blur": 0.0,
+    "engine": "stock",
+    "model": null,
+    "pages": 1,
+    "ocr_lines": 32,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 5,
+    "line_width": 75,
+    "blur": 0.6,
+    "engine": "framed",
+    "model": "framed_f5_60",
+    "pages": 1,
+    "ocr_lines": 32,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 5,
+    "line_width": 75,
+    "blur": 0.6,
+    "engine": "stock",
+    "model": null,
+    "pages": 1,
+    "ocr_lines": 32,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 5,
+    "line_width": 90,
+    "blur": 0.0,
+    "engine": "framed",
+    "model": "framed_f5_60",
+    "pages": 1,
+    "ocr_lines": 28,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 5,
+    "line_width": 90,
+    "blur": 0.0,
+    "engine": "stock",
+    "model": null,
+    "pages": 1,
+    "ocr_lines": 28,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 5,
+    "line_width": 90,
+    "blur": 0.6,
+    "engine": "framed",
+    "model": "framed_f5_60",
+    "pages": 1,
+    "ocr_lines": 28,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 5,
+    "line_width": 90,
+    "blur": 0.6,
+    "engine": "stock",
+    "model": null,
+    "pages": 1,
+    "ocr_lines": 28,
+    "result": "OK byte-identical"
+  }
+]
