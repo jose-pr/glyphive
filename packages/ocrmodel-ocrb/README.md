@@ -1,5 +1,8 @@
 # glyphive-ocrmodel-ocrb
 
+> **Status: experimental / do not rely on (2026-07-18).** This model was trained on unstructured character strings, not glyphive's real framed page layout, so it overfits and does NOT improve real restore — for the default `base16g` codec it is worse than plain Tesseract, which already restores real pages (validated to 4pt). Use `--ocr-engine tesseract-glyphive` (stock Tesseract + whitelist) instead. A corrected model, trained on framed data and gated on byte-for-byte restore, is future work.
+
+
 An **opt-in** OCR model for [glyphive](https://github.com/jose-pr/glyphive),
 fine-tuned for **OCR-B** renderings of the base16g alphabet.
 

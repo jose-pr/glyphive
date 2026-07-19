@@ -76,12 +76,19 @@ same frame/RS pipeline, differing only in alphabet and bits per character, in
 **glyphive-tuned (OCR-safe / OCR-optimized)** — the `g` suffix marks a
 glyphive-modified alphabet chosen from OCR measurement:
 
-| codec | bits/char | stock OCR | trained model |
-|-------|-----------|-----------|---------------|
-| `base8g-crc16-rs`    | 3 | safe | safe |
-| `base16g-crc16-rs`  | 4 | **safe (default)** | safe |
-| `base32g-crc16-rs`  | 5 | ~14.8% CER | **0.0% CER** |
-| `base64g-crc16-rs`  | 6 | ~14.6% CER | **0.0% CER** |
+| codec | bits/char | stock OCR restore | needs a trained model |
+|-------|-----------|-------------------|-----------------------|
+| `base8g-crc16-rs`    | 3 | ✅ | no |
+| `base16g-crc16-rs`  | 4 | ✅ **(default; validated to 4pt)** | no |
+| `base32g-crc16-rs`  | 5 | ✗ (~15% CER) | yes |
+| `base64g-crc16-rs`  | 6 | ✗ (~15% CER) | yes |
+
+> The denser codecs (`base32g`/`base64g`, and the standard 32/64/85 sets) do **not**
+> restore under stock OCR — they need a per-font model trained on the real framed page
+> layout. Such models do **not exist yet**: the first attempt was trained on the wrong
+> data (unframed character strings) and does not restore real pages. Until they are
+> retrained and gated on byte-for-byte restore, treat the denser codecs as encode-only /
+> experimental. `base16g` (stock OCR, no model) is the working, recommended path.
 
 **standard (textbook alphabets)** — plain, well-known encodings for interop,
 NOT OCR-tuned:
@@ -96,10 +103,10 @@ NOT OCR-tuned:
 | `z85-crc16-rs`      | 85 | ZeroMQ Z85 (group-packed) |
 
 The glyphive-tuned family also includes `base64g-crc16-rs` (a curated 64-glyph
-OCR-distinct set — reads at 0.0% CER clean and blurred with a trained model,
-~14.6% stock; it includes `#` as a payload glyph and so frames with a `,`
-delimiter) and `basemaxg-crc16-rs`
-(43-glyph group-packed, the maximal OCR-distinct set — also model-backed).
+OCR-distinct set; it includes `#` as a payload glyph and so frames with a `,`
+delimiter) and `basemaxg-crc16-rs` (43-glyph group-packed, the maximal OCR-distinct
+set). Both are denser-than-`base16g` encodings that require a (not-yet-available)
+framed-data-trained model to restore reliably.
 
 ## Two byte↔char packing strategies
 

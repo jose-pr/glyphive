@@ -67,27 +67,35 @@ OCR model before relying on it: a smaller font fits more characters on a
 page, but it must be validated on the intended printer, scanner, resolution,
 and OCR engine — nominal density is not the same as recoverable density.
 
-### Small fonts with a trained OCR model (the biggest density lever)
+### Small fonts are a large density lever
 
-Font size is a stronger density lever than alphabet width, because chars-per-page
-scales roughly with `(8/size)**2` (both page dimensions shrink). Stock OCR sets a
-floor around 8pt — below it, generic engines start dropping and confusing glyphs.
-A **fine-tuned OCR model trained at the target size** breaks that floor. Measured
-on the `base16g` alphabet (Nimbus Mono, VM):
+Font size scales chars-per-page by roughly `(8/size)**2` (both page dimensions
+shrink), so a smaller font is a bigger density lever than a wider alphabet. What
+matters is not the raw OCR character-error rate but whether the whole page still
+**restores byte-for-byte** — the per-line CRC + Reed-Solomon correct a surprising
+amount of small-font OCR noise before decode fails.
 
-| size | density vs 8pt | stock OCR | trained model |
-|------|---------------:|-----------|---------------|
-| 8pt  | 1.0x | ~2% CER | **0% CER** |
-| 6pt  | 1.8x | ~3% CER | **0% CER** |
-| 5pt  | 2.6x | ~7-9% CER (breaking) | **0% CER** |
-| 4pt  | 4.0x | ~42% CER (unusable) | **0% clean / ~1% blurred** |
+End-to-end restore was validated (real `create` → 300 DPI render → stock
+Tesseract with the base16g whitelist → `extract` → byte-diff) on the default
+`base16g` codec:
 
-So `--font-size 5` with a matching trained model restores at 0% CER while nearly
-tripling density — and it **compounds** with a denser codec (a `base64g` + 5pt +
-model is ~4x the shipped 8pt `base16g` default). Caveats: the model must be
-trained at (or across) that size — an 8pt model does not read 5pt as well — and
-any density claim must be validated on the intended printer/scanner/DPI/engine
-(nominal density is not recoverable density).
+| size | density vs 8pt | restores byte-identical (stock OCR)? |
+|------|---------------:|--------------------------------------|
+| 8pt  | 1.0x | ✅ yes |
+| 5pt  | 2.6x | ✅ yes |
+| 4pt  | 4.0x | ✅ yes (clean and Gaussian-blurred) |
+| 3pt  | ~7x  | ✅ yes (OCR-B; monospace fonts marginal at 3pt) |
+
+So **`--font-size 4` roughly quadruples density and still restores with plain
+Tesseract — no trained model required** (the format's error correction does the
+work). Caveats: validate on your actual printer/scanner/DPI/engine (nominal
+density is not recoverable density), and pick OCR-B for the smallest sizes.
+
+> **Note on trained OCR models.** Fine-tuned models were explored for the denser
+> codecs, but the current `glyphive-ocrmodel-*` packages were trained on the wrong
+> data (unstructured character strings, not the real framed page layout) and do
+> **not** improve real restore — for `base16g` they are worse than stock Tesseract.
+> Do not rely on them yet; stock `tesseract-glyphive` is the recommended engine.
 
 The number of rows per page is calculated from the selected font size and page
 geometry. Use `--minimal-margins` to reduce all margins from 36 points to 12
