@@ -81,7 +81,7 @@ glyphive-modified alphabet chosen from OCR measurement:
 | `base8g-crc16-rs`    | 3 | safe | safe |
 | `base16g-crc16-rs`  | 4 | **safe (default)** | safe |
 | `base32g-crc16-rs`  | 5 | ~14.8% CER | **0.0% CER** |
-| `base64g-crc16-rs`  | 6 | ~13% CER | ~0.1% clean / 0% blurred |
+| `base64g-crc16-rs`  | 6 | ~14.6% CER | **0.0% CER** |
 
 **standard (textbook alphabets)** — plain, well-known encodings for interop,
 NOT OCR-tuned:
@@ -96,10 +96,9 @@ NOT OCR-tuned:
 | `z85-crc16-rs`      | 85 | ZeroMQ Z85 (group-packed) |
 
 The glyphive-tuned family also includes `base64g-crc16-rs` (a curated 64-glyph
-set favoring OCR-distinct glyphs — the confusion-union plus least-confusable
-extras; a trained model reads it at ~0.1% CER clean / 0% blurred vs ~13% stock —
-slightly behind RFC-4648 base64's clean 0%, a small residual within the RS/CRC
-budget) and `basemaxg-crc16-rs`
+OCR-distinct set — reads at 0.0% CER clean and blurred with a trained model,
+~14.6% stock; it includes `#` as a payload glyph and so frames with a `,`
+delimiter) and `basemaxg-crc16-rs`
 (43-glyph group-packed, the maximal OCR-distinct set — also model-backed).
 
 ## Two byte↔char packing strategies

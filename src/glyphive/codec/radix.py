@@ -264,21 +264,23 @@ class Z85Codec(Base16GCodec):
 
 
 # --- base64g (glyphive curated 64-glyph set) -------------------------------
-# 64 chars = 6 bits/char. A glyphive-curated 64-set favoring OCR-distinct glyphs:
-# the 56-char cross-font confusion-union plus the 8 least-confusable remaining
-# ASCII glyphs (2026-07-18 confusion-graph). Unlike RFC-4648 base64 it avoids the
-# worst confusable pairs where possible, but a full 64 unavoidably includes some
-# (only ~43-56 glyphs are stock-distinct) -- so like base32g it needs a trained
-# model for reliable restore (measured: RFC-4648 base64 hits 0.0% CER trained;
-# this curated set is trained the same way). Case-significant (has A and a), so
-# case_fold is False (auto). No '#'; default delimiter. check_width 3; index 4.
+# 64 chars = 6 bits/char. A glyphive-curated OCR-distinct 64-set. Refined
+# 2026-07-18: the initial curated set left a 0.123% trained residual; per-char
+# analysis showed it wasn't a few bad glyphs but thin-vertical glyphs (` ~ |)
+# plus small-eval jitter. Dropping ` ~ | and RECLAIMING '#' (one of the most
+# OCR-distinct glyphs, freed by the per-spec delimiter) + more training drove the
+# trained CER to 0.0% clean AND blurred (measured on Nimbus Mono, 400 lines /
+# 10000 iters). Because '#' is now a PAYLOAD glyph, base64g uses ',' as its
+# check-field delimiter (base16g/etc keep '#'). Case-significant -> case_fold
+# False (auto). Needs a trained model for reliable restore (~14.6% stock).
 BASE64G: _ty.Final[_RadixSpec] = _RadixSpec(
     name="base64g-crc16-rs",
-    alphabet="!\"$%&'(-.0123456789:;>ABCDEGHIJKLMNPRSTUVWXY`abcdeghikmnrstyz|}~",
+    alphabet="!\"$%&'(-.0123456789:;>ABCDEGHIJKLMNPRSTUVWXYabcdeghikmnrstyz}#@+",
     bits=6,
     check_width=3,
     index_width=4,
     index_mask=(11, 46, 23, 58),
+    delimiter=",",
 )
 
 
