@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib as _hashlib
+import inspect as _inspect
 import tempfile as _tempfile
 import typing as _ty
 
@@ -412,11 +413,19 @@ class Create(LoggingArgs):
                         compressed_len, line_width=line_width, parity_ratio=parity_ratio
                     )
                 else:
-                    options = (
-                        {"line_width": line_width, "parity_ratio": parity_ratio}
-                        if codec_name == "base16g-crc16-rs"
-                        else {}
-                    )
+                    # Pass line_width/parity_ratio to any codec whose encode()
+                    # accepts them — the whole radix family (base16g and the
+                    # denser base32g/base64/base64g) shares this signature, so
+                    # --line-width must reach all of them, not only base16g.
+                    encode_params = _inspect.signature(codec.encode).parameters
+                    options = {
+                        name: value
+                        for name, value in (
+                            ("line_width", line_width),
+                            ("parity_ratio", parity_ratio),
+                        )
+                        if name in encode_params
+                    }
                     materialized = codec.encode(compressed_spool.read(), **options)
                     encoded, n_encoded = iter(materialized), len(materialized)
                 report("encoded", lines=n_encoded, parity_ratio=parity_ratio)

@@ -362,6 +362,36 @@ def test_create_explicit_line_width_controls_g1_rows(tmp_path):
     assert max(map(len, payloads)) == 100
 
 
+@pytest.mark.parametrize(
+    "codec", ["base32g-crc16-rs", "base64-crc16-rs", "base64g-crc16-rs"]
+)
+def test_create_line_width_reaches_denser_codecs(tmp_path, codec):
+    """--line-width must reach every codec, not only base16g.
+
+    Regression: the CLI previously passed line_width only to base16g and used
+    ``options = {}`` for every other codec, so base32g/base64/base64g silently
+    ignored --line-width and were locked to the 60-char default row.
+    """
+    src = _make_srcdir(tmp_path)
+    (src / "wide.bin").write_bytes(bytes(range(256)) * 8)
+    archive_file = tmp_path / "wide.txt"
+
+    assert cli.run(
+        [
+            "create", "-f", str(archive_file), "-C", str(src),
+            "--codec", codec, "--compression", "none",
+            "--line-width", "100", ".",
+        ]
+    ) == 0
+
+    payloads = [
+        line.split()[1]
+        for line in archive_file.read_text(encoding="utf-8").splitlines()
+        if line.startswith(("L", "P"))
+    ]
+    assert max(map(len, payloads)) == 100
+
+
 def test_create_rejects_too_small_line_width(tmp_path):
     src = _make_srcdir(tmp_path)
     with pytest.raises(SystemExit, match="line-width must be at least 2"):
