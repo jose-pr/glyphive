@@ -19,7 +19,9 @@ On the held-out training sweep (`benchmarks/results/ocr-training-sweep-20260718.
 in the core repo) the fine-tuned model reads the base16g channel at **0.000% CER**
 clean and blurred, versus ~4.6% for stock `eng`. The core document-wide
 Reed-Solomon + per-line CRC already make the stock path restore correctly, so
-this model is a robustness upgrade for marginal scans, not a requirement.
+this model is a robustness upgrade for marginal scans, not a requirement. 
+
+**Multi-size (v0.2.0):** trained across 3/4/5/8/10/12pt renders, so one model reads the whole range. Measured (base16g): **0% CER at 3pt through 12pt, clean AND blurred** — OCR-B's distinct glyphs hold even at 3pt (~7x denser than the 8pt default), where stock OCR is completely dead. See the create guide's small-font section.
 
 ## The model file (not in source control)
 
