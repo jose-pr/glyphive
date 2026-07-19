@@ -85,10 +85,15 @@ glyphive-modified alphabet chosen from OCR measurement:
 
 > The denser codecs (`base32g`/`base64g`, and the standard 32/64/85 sets) do **not**
 > restore under stock OCR — they need a per-font model trained on the real framed page
-> layout. Such models do **not exist yet**: the first attempt was trained on the wrong
-> data (unframed character strings) and does not restore real pages. Until they are
-> retrained and gated on byte-for-byte restore, treat the denser codecs as encode-only /
-> experimental. `base16g` (stock OCR, no model) is the working, recommended path.
+> layout. A shippable, byte-restore-gated model for the denser codecs does **not exist
+> yet**: the first attempt was trained on the wrong data (unframed character strings)
+> and did not restore real pages. The training method has since been fixed and validated
+> for `base16g` (train on real framed `create` output, gate on byte-for-byte restore),
+> but `base16g` needs no model — stock OCR already restores it — so no denser-codec model
+> has been produced and gated. Until one is, treat the denser codecs as encode-only /
+> experimental. `base16g` (stock OCR, no model) is the working, recommended path, and it
+> restores byte-for-byte at row widths up to ~90 (well past the 60 default) on Courier
+> 5–8pt.
 
 **standard (textbook alphabets)** — plain, well-known encodings for interop,
 NOT OCR-tuned:

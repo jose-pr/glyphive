@@ -1,0 +1,138 @@
+[
+  {
+    "pt": 8,
+    "line_width": 60,
+    "blur": 0.0,
+    "engine": "framed",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 60,
+    "blur": 0.0,
+    "engine": "stock",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 60,
+    "blur": 0.6,
+    "engine": "framed",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 60,
+    "blur": 0.6,
+    "engine": "stock",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 8,
+    "line_width": 90,
+    "blur": 0.0,
+    "engine": "framed",
+    "result": "create failed: error: --line-width 90 exceeds the OCR-measured-safe capacity 60; pass --force to use an unmeasured width up to the geometric fit, or --line-width max\n"
+  },
+  {
+    "pt": 8,
+    "line_width": 90,
+    "blur": 0.0,
+    "engine": "stock",
+    "result": "create failed: error: --line-width 90 exceeds the OCR-measured-safe capacity 60; pass --force to use an unmeasured width up to the geometric fit, or --line-width max\n"
+  },
+  {
+    "pt": 8,
+    "line_width": 90,
+    "blur": 0.6,
+    "engine": "framed",
+    "result": "create failed: error: --line-width 90 exceeds the OCR-measured-safe capacity 60; pass --force to use an unmeasured width up to the geometric fit, or --line-width max\n"
+  },
+  {
+    "pt": 8,
+    "line_width": 90,
+    "blur": 0.6,
+    "engine": "stock",
+    "result": "create failed: error: --line-width 90 exceeds the OCR-measured-safe capacity 60; pass --force to use an unmeasured width up to the geometric fit, or --line-width max\n"
+  },
+  {
+    "pt": 5,
+    "line_width": 60,
+    "blur": 0.0,
+    "engine": "framed",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 5,
+    "line_width": 60,
+    "blur": 0.0,
+    "engine": "stock",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 5,
+    "line_width": 60,
+    "blur": 0.6,
+    "engine": "framed",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 5,
+    "line_width": 60,
+    "blur": 0.6,
+    "engine": "stock",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 4,
+    "line_width": 60,
+    "blur": 0.0,
+    "engine": "framed",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 4,
+    "line_width": 60,
+    "blur": 0.0,
+    "engine": "stock",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 4,
+    "line_width": 60,
+    "blur": 0.6,
+    "engine": "framed",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  },
+  {
+    "pt": 4,
+    "line_width": 60,
+    "blur": 0.6,
+    "engine": "stock",
+    "pages": 1,
+    "ocr_lines": 36,
+    "result": "OK byte-identical"
+  }
+]

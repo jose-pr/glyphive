@@ -111,11 +111,14 @@ payload width to whichever is smaller: what fits between the margins at the
 requested size/spacing, or 60 characters -- the one width every OCR-safety
 measurement in this project (including the OCR-B "dense" preset) was actually
 taken at. A font whose glyphs are narrow enough to geometrically fit more than
-60 characters does **not** automatically get a wider row: real-content testing
-found a wider row (e.g. OCR-B 6pt's own ~90-char geometric fit) measurably less
-reliable than 60, even for a font otherwise considered OCR-safe. Text and Word
-output retain 60 by default for the same reason, on top of not exposing
-reliable physical font metrics.
+60 characters does **not** automatically get a wider row: the raw per-character
+OCR error rate climbs as rows get denser (measured, e.g., on OCR-B 6pt's own
+~90-char geometric fit), so 60 is the width that is safe across every font and
+size. A wider row can still restore byte-for-byte once the frame CRC + RS
+correct that extra noise (see the `--force` note below), but that margin is
+font/size-specific, not guaranteed — which is why the conservative width is the
+default rather than the maximum. Text and Word output retain 60 by default for
+the same reason, on top of not exposing reliable physical font metrics.
 
 `--line-width` accepts three spellings:
 
@@ -129,9 +132,16 @@ reliable physical font metrics.
   needs `--force` (and must still fit the geometric width); below the cap it is
   accepted directly. On formats without font metrics no cap is enforced.
 
-A wider-than-60 row (`max`, or a forced integer) hasn't passed the OCR
-print/rasterize/restore benchmark and may reduce restore reliability — the
-render-time guard still fails loud if a frame physically overflows the page.
+A wider-than-60 row (`max`, or a forced integer) is past the conservative
+default cap, but it is **not** automatically unsafe. A byte-restore benchmark
+(create → 300 DPI raster → OCR → `extract` → byte-diff) over Courier `base16g`
+restored byte-for-byte at row widths 60, 75, and **90 (50% past the cap)** at
+both 8pt and 5pt, clean and lightly blurred — the frame CRC + Reed-Solomon
+absorb the extra OCR noise a denser row adds. The `60` default stays because it
+is the width every OCR-safety measurement was taken at and the safe width across
+*all* fonts/sizes; wider rows are font- and size-specific and the render-time
+guard still fails loud if a frame physically overflows the page (at 8pt Courier
+the geometric fit is ~98 characters, and `create` refuses anything past it).
 Decode infers row width from the frames, so no separate restore option is
 needed.
 
