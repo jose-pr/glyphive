@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "glyphive-ocrmodel-dejavu"
-version = "0.1.0"
-description = "Opt-in glyphive OCR model fine-tuned for DejaVu Sans Mono (base16g channel)."
+version = "0.2.0"
+description = "Opt-in glyphive OCR model fine-tuned for DejaVu Sans Mono (base16g channel, multi-size 3-12pt)."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "Apache-2.0"
