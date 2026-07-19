@@ -67,6 +67,28 @@ OCR model before relying on it: a smaller font fits more characters on a
 page, but it must be validated on the intended printer, scanner, resolution,
 and OCR engine — nominal density is not the same as recoverable density.
 
+### Small fonts with a trained OCR model (the biggest density lever)
+
+Font size is a stronger density lever than alphabet width, because chars-per-page
+scales roughly with `(8/size)**2` (both page dimensions shrink). Stock OCR sets a
+floor around 8pt — below it, generic engines start dropping and confusing glyphs.
+A **fine-tuned OCR model trained at the target size** breaks that floor. Measured
+on the `base16g` alphabet (Nimbus Mono, VM):
+
+| size | density vs 8pt | stock OCR | trained model |
+|------|---------------:|-----------|---------------|
+| 8pt  | 1.0x | ~2% CER | **0% CER** |
+| 6pt  | 1.8x | ~3% CER | **0% CER** |
+| 5pt  | 2.6x | ~7-9% CER (breaking) | **0% CER** |
+| 4pt  | 4.0x | ~42% CER (unusable) | **0% clean / ~1% blurred** |
+
+So `--font-size 5` with a matching trained model restores at 0% CER while nearly
+tripling density — and it **compounds** with a denser codec (a `base64g` + 5pt +
+model is ~4x the shipped 8pt `base16g` default). Caveats: the model must be
+trained at (or across) that size — an 8pt model does not read 5pt as well — and
+any density claim must be validated on the intended printer/scanner/DPI/engine
+(nominal density is not recoverable density).
+
 The number of rows per page is calculated from the selected font size and page
 geometry. Use `--minimal-margins` to reduce all margins from 36 points to 12
 points and use more of the sheet. Confirm that the resulting printable area is
