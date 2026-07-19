@@ -99,6 +99,13 @@ restored substantially more documents than plain `tesseract`, so automatic
 engine selection now prefers it over plain `tesseract` (Paddle, where
 installed, still ranks first but needs model downloads and is unusable offline).
 
+An end-to-end check (create → render at 300 DPI → OCR with this profile →
+`extract` → byte-diff) restored `base16g` documents **byte-for-byte at 8pt, 4pt
+(~4× denser), and even 3pt with OCR-B** — all with stock Tesseract, no trained
+model. The format's per-line CRC + Reed-Solomon absorb the residual small-font
+OCR noise. (The `glyphive-ocrmodel-*` packages are experimental and not currently
+recommended — see their notes.)
+
 ### De-scanning raw photos (`--descan`)
 
 Raw phone photos are frequently too sharp/noisy for the frame CRC/RS to
