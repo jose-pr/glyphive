@@ -1,12 +1,12 @@
 """The radix codec family: base8 / base32g / base64.
 
-Each is the shipped ``base16c`` pipeline (``codec/base16c.py``) with a different
+Each is the shipped codec engine (``codec/base16c.py``) with a different
 :class:`~glyphive.codec.base16c._RadixSpec` — a wider alphabet packs more bits
 per printed character (denser pages), at the cost of stock-OCR reliability.
 
-Density vs. base16c (4 bits/char):
+Density vs. base16g (4 bits/char):
   - ``base8``    : 3 bits/char (0.75x — sparser, most OCR-robust)
-  - ``base16c``  : 4 bits/char (the measured stock-safe default)
+  - ``base16g``  : 4 bits/char (the measured stock-safe default)
   - ``base32g``  : 5 bits/char (1.25x — glyphive's measured 32-glyph set)
   - ``base64``   : 6 bits/char (1.5x)
 
@@ -15,7 +15,7 @@ base32g/base64 are NOT stock-OCR-safe (~14.8% CER stock) but read at 0.0% CER wi
 a per-font fine-tuned model (see ``.agents/plans/base32_punctuation_ocr_findings.md``).
 They are for the trained-model restore path (opt-in per-font OCR model packages).
 Codecs are never gated — creation only maps bytes to characters and never needs a
-model; choosing a denser codec is the user's informed decision. base16c stays the
+model; choosing a denser codec is the user's informed decision. base16g stays the
 recommendation.
 """
 
@@ -67,9 +67,9 @@ BASE8G: _ty.Final[_RadixSpec] = _RadixSpec(
 )
 
 # --- base32g ---------------------------------------------------------------
-# 32 chars = 5 bits/char = 25% denser than base16c. This is glyphive's own
+# 32 chars = 5 bits/char = 25% denser than base16g. This is glyphive's own
 # measured alphabet ("32g" = 32 glyphive), NOT RFC-4648 base32: it is the
-# base16c-16 plus 10 measured-distinct letters/digits plus 6 measured-safe
+# base16g-16 plus 10 measured-distinct letters/digits plus 6 measured-safe
 # punctuation glyphs (? @ ! & + =). It is NOT stock-OCR-safe (stock CER ~14.8%),
 # but a per-font fine-tuned model reads it at 0.0% CER clean and blurred
 # (2026-07-18 VM measurement; see .agents/plans/base32_punctuation_ocr_findings.md).
@@ -208,10 +208,10 @@ class Base8GCodec(Base16GCodec):
 
 
 class Base32GCodec(Base16GCodec):
-    """base32g: glyphive's 32-char (5 bits/char) codec — 25% denser than base16c.
+    """base32g: glyphive's 32-char (5 bits/char) codec — 25% denser than base16g.
 
     Reads at 0.0% CER with a per-font trained model; ~14.8% on stock OCR. Denser
-    than base16c but needs the matching trained model for reliable scan restore.
+    than base16g but needs the matching trained model for reliable scan restore.
     """
 
     name = "base32g-crc16-rs"

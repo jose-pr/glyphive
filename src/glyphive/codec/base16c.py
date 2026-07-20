@@ -1446,6 +1446,7 @@ def encoded_line_count(
     line_width: int = 60,
     parity_ratio: float = 0.12,
     nsym_line: int = 2,
+    spec: "_RadixSpec" = BASE16G,
 ) -> int:
     """Return the exact number of lines without reading or encoding payload data.
 
@@ -1454,10 +1455,14 @@ def encoded_line_count(
     accepted and validated here so callers pass the same value they encode
     with, and so an invalid ``nsym_line`` is caught at the same call site a
     caller would naturally check page planning from.
+
+    ``spec`` selects the codec: the denser radix codecs pack more bytes per line,
+    so page planning for ``--codec base32g`` etc. must pass ``codec._spec`` to
+    get the right count instead of assuming base16g's 4 bits/char.
     """
     if data_len < 0 or data_len > 0xFFFFFFFF:
-        raise ValueError("data length must fit the base16g-crc16-rs unsigned 32-bit header")
-    return sum(_encoding_shape(data_len, line_width, parity_ratio, BASE16G, nsym_line)[-2:])
+        raise ValueError("data length must fit the codec's unsigned 32-bit header")
+    return sum(_encoding_shape(data_len, line_width, parity_ratio, spec, nsym_line)[-2:])
 
 
 class StreamShape(_ty.NamedTuple):
@@ -1977,7 +1982,7 @@ class Base16GCodec(Codec):
         memory. ``nsym_line`` (default 2) is documented on :meth:`encode`.
         """
         if data_len < 0 or data_len > 0xFFFFFFFF:
-            raise ValueError("data length must fit the base16g-crc16-rs unsigned 32-bit header")
+            raise ValueError("data length must fit the codec's unsigned 32-bit header")
         if nsym_line not in (0, 2, 4):
             raise ValueError("nsym_line must be 0, 2, or 4")
         (

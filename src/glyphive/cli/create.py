@@ -333,12 +333,12 @@ class Create(LoggingArgs):
         codec = _select_codec(codec_name)
         if codec_name != "base16g-crc16-rs":
             # Denser codecs pack more bits/char but are not stock-OCR-safe: the
-            # measured stock-safe ceiling is base16c's 16 characters. Not a gate
+            # measured stock-safe ceiling is base16g's 16 characters. Not a gate
             # (creation never needs OCR) — an informed-choice advisory.
             self._logger_.warning(
                 "codec %r is not the OCR-recommended default (base16g-crc16-rs); "
                 "denser alphabets need the matching trained OCR model for reliable "
-                "scan restore — pick base16c unless you rely on such a model",
+                "scan restore — pick base16g unless you rely on such a model",
                 codec_name,
             )
         compression_name, compression = self._compression_selection()
@@ -416,7 +416,13 @@ class Create(LoggingArgs):
                 report("compressed", bytes=compressed_len, method=compression_name)
                 compressed_spool.seek(0)
                 parity_ratio = self._parity_ratio_selection()
-                if hasattr(codec, "iter_encode") and codec_name == "base16g-crc16-rs":
+                # Capability check, not a name check: every radix codec inherits
+                # the streaming iter_encode and its exact line-count math, so all
+                # of them get the memory-bounded encode and exact page planning.
+                # encoded_line_count needs the codec's spec (denser codecs pack
+                # more bytes per line), taken from the instance when present.
+                codec_spec = getattr(codec, "_spec", None)
+                if hasattr(codec, "iter_encode") and codec_spec is not None:
                     encoded = codec.iter_encode(
                         compressed_spool,
                         compressed_len,
@@ -430,13 +436,11 @@ class Create(LoggingArgs):
                         line_width=line_width,
                         parity_ratio=parity_ratio,
                         nsym_line=self.line_parity,
+                        spec=codec_spec,
                     )
                 else:
-                    # Pass line_width/parity_ratio/nsym_line to any codec whose
-                    # encode() accepts them — the whole radix family (base16g
-                    # and the denser base32g/base64/base64g) shares this
-                    # signature, so --line-width/--line-parity must reach all
-                    # of them, not only base16g.
+                    # A non-radix codec (no shared engine): fall back to the
+                    # in-memory encode, passing whatever kwargs it accepts.
                     encode_params = _inspect.signature(codec.encode).parameters
                     options = {
                         name: value
