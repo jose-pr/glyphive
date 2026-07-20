@@ -91,11 +91,19 @@ Tesseract — no trained model required** (the format's error correction does th
 work). Caveats: validate on your actual printer/scanner/DPI/engine (nominal
 density is not recoverable density), and pick OCR-B for the smallest sizes.
 
-> **Note on trained OCR models.** Fine-tuned models were explored for the denser
-> codecs, but the current `glyphive-ocrmodel-*` packages were trained on the wrong
-> data (unstructured character strings, not the real framed page layout) and do
-> **not** improve real restore — for `base16g` they are worse than stock Tesseract.
-> Do not rely on them yet; stock `tesseract-glyphive` is the recommended engine.
+> **Note on trained OCR models.** A byte-restore-gated evaluation (2026-07-19)
+> settled what a trained model buys over stock Tesseract:
+> - For `base16g` it buys **nothing** — stock already restores it byte-for-byte to
+>   4pt and across row widths, so no model is needed or shipped.
+> - For `base32g` (5 bits/char, 25% denser) a per-font framed-trained model **does**
+>   restore byte-for-byte where stock fails — the working denser path.
+> - For `base64`/`base64g` a model is **not enough**: their 64-glyph alphabets keep
+>   OCR-confusable pairs (`l`↔`1`, `;`↔`i`) that fail per-line CRCs faster than
+>   Reed-Solomon can repair. They stay encode-only.
+>
+> The currently-published `glyphive-ocrmodel-*` packages predate this work, were
+> trained on the wrong data (unstructured strings, not framed pages), and should not
+> be relied on. Stock `tesseract-glyphive` is the recommended engine for `base16g`.
 
 The number of rows per page is calculated from the selected font size and page
 geometry. Use `--minimal-margins` to reduce all margins from 36 points to 12

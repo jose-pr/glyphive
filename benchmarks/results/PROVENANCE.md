@@ -18,6 +18,7 @@ PaddleOCR 3.7.0 with PaddlePaddle 3.3.1.
 | `ocr-paddle370-radix64-superset.json` | dense Paddle candidate | all 65 candidates safe, radix 64, zero insertions, 3,375 usable bytes/page |
 | `ocr-e2e-framed-width60-20260719.json` | framed-model E2E gate, base16g width 60 | 8/5/4pt × clean/blur × {framed model, stock}: all byte-identical; framed models match but never beat stock |
 | `ocr-e2e-rowsize-sweep-20260719.json` | row-size (line-width) sweep, base16g Courier | widths 60/75/90 restore byte-identical (stock and framed) at 8pt & 5pt; 90 is 50% past the 60 cap (needs `--force`); 105 refused by geometric page fit |
+| `ocr-e2e-denser-and-4pt-20260719.json` | denser-codec + 4pt-max E2E, framed model vs stock | base16g 4pt restores at rows 60 AND max (212); base32g restores byte-identical at 60 and max (98) with a framed model; base64/base64g FAIL even trained (confusable glyphs `l`↔`1`, `;`↔`i` exceed CRC/RS budget) |
 
 The two `ocr-e2e-*-20260719.json` files were captured on the Rocky 9 VM,
 Tesseract 5.4.1 (built from source), at 300 DPI. Each row is a full
