@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Decode hardening (rescues documents that previously hard-failed).** A
+  CRC-failed line whose index token was misread used to be trusted for stream
+  geometry, so one bad character could claim an impossible index (~900,000 vs a
+  true max ~1,000) and make decode die with "cannot recover RS parameters" even
+  with the parity budget barely touched — every ~30 KB document failed at 0.1 %
+  character error. Decode now (1) attempts a **CRC-guided single-substitution
+  repair** of each failed line (accepted only when exactly one candidate
+  reproduces the printed CRC — the CRC is the oracle, never decompressibility),
+  (2) computes stream geometry **only from CRC-valid lines** and positionally
+  reassigns or drops implausible-index failed lines, and (3) **degrades a
+  conflicting-duplicate collision to an erasure** (which Reed-Solomon rebuilds)
+  instead of aborting the whole decode. Applies to all existing documents; no
+  bytes on paper change, and the clean-transcript fast path is untouched.
+
 ## [0.1.0] - 2026-07-18
 
 The first public release provides an end-to-end path from a file tree to
