@@ -177,6 +177,7 @@ __all__ = [
     "ALPHABET",
     "CodecError",
     "RadixCodec",
+    "crc16_ccitt",
     "nibble_encode",
     "nibble_decode",
     "encoded_line_count",
@@ -492,8 +493,14 @@ def _crc16_table() -> _ty.Tuple[int, ...]:
 _CRC16_TABLE: _ty.Final[_ty.Tuple[int, ...]] = _crc16_table()
 
 
-def _crc16_ccitt(data: bytes) -> int:
-    """CRC-16/CCITT-FALSE: poly 0x1021, init 0xFFFF, no reflection, no xorout."""
+def crc16_ccitt(data: bytes) -> int:
+    """CRC-16/CCITT-FALSE: poly 0x1021, init 0xFFFF, no reflection, no xorout.
+
+    Public: this is the single CRC-16 implementation for the whole project.
+    Identical to ``binascii.crc_hqx(data, 0xFFFF)`` (verified byte-for-byte); the
+    machine-frame framing in :mod:`glyphive.layout` uses this rather than a
+    second copy so the per-line and machine-frame checks can never diverge.
+    """
     crc = 0xFFFF
     table = _CRC16_TABLE
     for byte in data:
@@ -523,7 +530,7 @@ def _check_chars(
     ``check_width`` chars of ``spec.bits`` bits; when ``check_width * bits >
     16`` (e.g. base8), the top pad bits are zero.
     """
-    crc = _crc16_ccitt(kind.encode() + idx_token.encode() + payload.encode())
+    crc = crc16_ccitt(kind.encode() + idx_token.encode() + payload.encode())
     alphabet = spec.alphabet
     if spec.packing == "bits":
         bits, mask = spec.bits, spec.mask
