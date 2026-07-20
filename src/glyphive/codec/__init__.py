@@ -6,12 +6,13 @@ from __future__ import annotations
 import typing as _ty
 
 from ._base import Codec
-from .base16c import Base16GCodec
 # Importing registers the whole codec family via Codec.__init_subclass__.
-# Two families: glyphive-tuned OCR-safe codecs (base16g default, base8, base32g,
-# base64) and standard textbook-alphabet codecs (base16, base32, base32c).
-# base16g stays the recommended stock-safe default.
+# The shared engine lives in .engine (RadixCodec); every concrete codec is a
+# thin subclass in .radix. Two families: glyphive-tuned OCR-safe codecs (base16g
+# default, base8, base32g, base64) and standard textbook-alphabet codecs
+# (base16, base32, base32c). base16g stays the recommended stock-safe default.
 from .radix import (
+    Base16GCodec,
     Base8GCodec,
     Base16Codec,
     Base32Codec,

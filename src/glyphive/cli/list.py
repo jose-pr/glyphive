@@ -52,7 +52,7 @@ class List(LoggingArgs):
 
     def __call__(self) -> int:
         from ..restore import decode as _decode
-        from ..codec.base16c import CodecError
+        from ..codec.engine import CodecError
         from .. import layout as _layout
         from ._common import (
             AUTO_DESCAN_RETRY_RADII,

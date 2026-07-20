@@ -250,14 +250,14 @@ def _machine_check(kind: str, idx_token: str, payload: str) -> str:
     """Return a safe-alphabet CRC-16 for a machine metadata frame.
 
     Covers ``kind`` (``H``/``T``/``Q``) as well as the index token and payload
-    -- matching ``codec.base16c``'s kind-covered per-line CRC (v2 wire
+    -- matching ``codec.engine``'s kind-covered per-line CRC (v2 wire
     format). Without this, an OCR misread that flips one machine-frame kind
     letter into another (e.g. ``T``->``H``) produces a CRC-VALID phantom frame
     of the wrong kind at the same index, since a kind-blind CRC cannot tell
     the two apart; covering ``kind`` makes such a flip fail the check like any
     other single-character error.
     """
-    from .codec.base16c import nibble_encode
+    from .codec.engine import nibble_encode
 
     canonical = kind.upper().encode() + idx_token.upper().encode() + payload.upper().encode()
     crc = binascii.crc_hqx(canonical, 0xFFFF)
@@ -265,7 +265,7 @@ def _machine_check(kind: str, idx_token: str, payload: str) -> str:
 
 
 def _format_machine_frame(kind: str, idx: int, payload: str) -> str:
-    from .codec.base16c import ALPHABET, encode_index
+    from .codec.engine import ALPHABET, encode_index
 
     if kind not in (_MACHINE_HEADER_KIND, _MACHINE_FOOTER_KIND):
         raise ValueError(f"invalid machine metadata frame kind {kind!r}")
@@ -287,7 +287,7 @@ def _parse_machine_frame(
     whitespace in the safe-alphabet payload is removed, exactly as it is for
     payload frames; the CRC remains the acceptance oracle.
     """
-    from .codec.base16c import INDEX_WIDTH, decode_index, split_frame
+    from .codec.engine import INDEX_WIDTH, decode_index, split_frame
 
     split = split_frame(line, allow_trailing=kind == _MACHINE_FOOTER_KIND)
     if split is None:
@@ -376,7 +376,7 @@ def _machine_header_bytes(meta: _ty.Mapping[str, _ty.Any]) -> bytes:
 
 
 def _format_machine_header(meta: _ty.Mapping[str, _ty.Any]) -> _ty.List[str]:
-    from .codec.base16c import _rs_encode, nibble_encode
+    from .codec.engine import _rs_encode, nibble_encode
 
     envelope = _machine_header_bytes(meta)
     _data, parity, _nblocks = _rs_encode(envelope, _MACHINE_HEADER_PARITY_BYTES)
@@ -423,7 +423,7 @@ def _num_header_parity_chunks() -> int:
 def _decode_machine_header(
     frames: _ty.Sequence[_ParsedMachineFrame],
 ) -> _ty.Dict[str, _ty.Any]:
-    from .codec.base16c import _rs_decode, nibble_decode, nibble_encode
+    from .codec.engine import _rs_decode, nibble_decode, nibble_encode
 
     if not frames:
         raise LayoutError("no integrity-protected machine header found")
@@ -598,7 +598,7 @@ def format_page_footer(
     ``page_lines`` are the codec-framed data/parity lines on this page (NOT the
     header, NOT the footer). Grammar: ``PAGE <n>/<total> sha256=<first16hex>``.
     """
-    from .codec.base16c import nibble_encode
+    from .codec.engine import nibble_encode
 
     if not (1 <= n <= total < 2**32):
         raise LayoutError(f"invalid page position {n}/{total}")
@@ -628,7 +628,7 @@ def _parse_footer(line: str) -> _ty.Optional[_ParsedFooter]:
     number actually confirmed by a *valid* footer) still catches a genuinely
     lost page; it does not depend on guessing at a damaged footer.
     """
-    from .codec.base16c import nibble_decode
+    from .codec.engine import nibble_decode
 
     frame = _parse_machine_frame(line, _MACHINE_FOOTER_KIND)
     if frame is None:
@@ -817,7 +817,7 @@ def iter_paginate(
     grand_total = data_total + parity_pages
 
     from .codec import pagers as _pagers
-    from .codec.base16c import _detect_line_parity_chars, split_frame, split_frame_with_parity
+    from .codec.engine import _detect_line_parity_chars, split_frame, split_frame_with_parity
 
     # Select the page-parity Galois field automatically: GF(2^8) (1 byte/
     # symbol, cap 255 total blocks) while it fits, GF(2^16) (2 bytes/symbol,
@@ -870,15 +870,15 @@ def iter_paginate(
             # check below never has to special-case an odd/even mismatch.
             block_bytes += 1
         # The L/P lines carry an optional per-line Reed-Solomon parity field
-        # (base16c v2) whose width is not knowable from line_width alone --
+        # (base16g v2) whose width is not knowable from line_width alone --
         # detect it structurally (same heuristic codec decode uses) so the
         # data-payload-width measurement below doesn't fold that field into
         # what it treats as "payload" (which would inflate Q parity rows past
         # the 60-char OCR-safe cap; see the unit-mismatch note below). Uses
         # the SELECTED codec's own alphabet/spec (base32g etc. differ from
-        # the base16c bootstrap), falling back to base16c if the codec name
+        # the base16g bootstrap), falling back to base16g if the codec name
         # is unknown (e.g. a plugin not loaded for this invocation).
-        from .codec.base16c import BASE16G as _BASE16G
+        from .codec.engine import BASE16G as _BASE16G
 
         payload_spec = _BASE16G
         codec_name = meta.get("codec")
@@ -953,7 +953,7 @@ def iter_paginate(
         )
 
     if parity_pages:
-        from .codec.base16c import _frame_bytes
+        from .codec.engine import _frame_bytes
 
         padded_blocks = [b.ljust(block_bytes, b"\x00") for b in data_blocks]
         parity_blocks = _pagers.encode_page_parity(
@@ -993,7 +993,7 @@ def _looks_like_encoded(line: str, spec=None) -> bool:
 
     We do NOT validate the CRC here (that is codec.decode's job) — we only decide
     whether to keep the line as data. This delegates the structural split to
-    ``codec.base16c.split_frame``, which anchors the label as the first token and
+    ``codec.engine.split_frame``, which anchors the label as the first token and
     ``#check`` as the last, joining everything between as the payload -- so an
     OCR-inserted interior space (splitting the payload into extra whitespace
     tokens) never causes a real encoded line to be dropped here. A line is kept
@@ -1003,7 +1003,7 @@ def _looks_like_encoded(line: str, spec=None) -> bool:
     apart again, while still ignoring headers/footers/noise (e.g. the
     ``PAGE 1/1 sha256=...`` footer has no ``#check`` field and is rejected).
     """
-    from .codec.base16c import BASE16G, _decode_index, split_frame
+    from .codec.engine import BASE16G, _decode_index, split_frame
 
     spec = spec or BASE16G
     split = split_frame(line, spec=spec)
@@ -1024,7 +1024,7 @@ def _is_frame_shaped_but_unreadable(line: str, spec=None) -> bool:
     it. Such a line is NOT noise -- it is a real, addressable data/parity line
     the reader should be told about, not silently dropped.
     """
-    from .codec.base16c import BASE16G, _decode_index, split_frame
+    from .codec.engine import BASE16G, _decode_index, split_frame
 
     spec = spec or BASE16G
     split = split_frame(line, spec=spec)
@@ -1076,15 +1076,15 @@ def read_pages(
 def _resolve_payload_spec(header_frames):
     """Return the payload codec's ``_RadixSpec`` from the decoded H-header frames.
 
-    The H (machine header) frames are always base16c-encoded (the bootstrap
+    The H (machine header) frames are always base16g-encoded (the bootstrap
     alphabet), but the L/P payload frames use the *selected* codec's alphabet —
-    which for base32g/base64 includes glyphs base16c's parser would reject. This
+    which for base32g/base64 includes glyphs base16g's parser would reject. This
     reads the codec name from the protected header and returns that codec's spec
     so L/P classification uses the right alphabet/index/check widths. Falls back
-    to the base16c spec if the header is not yet decodable or the codec is not a
-    built-in radix codec (e.g. a plugin codec that reuses the base16c frame shape).
+    to the base16g spec if the header is not yet decodable or the codec is not a
+    built-in radix codec (e.g. a plugin codec that reuses the base16g frame shape).
     """
-    from .codec.base16c import BASE16G
+    from .codec.engine import BASE16G
 
     try:
         meta = _decode_machine_header(header_frames)
@@ -1193,7 +1193,7 @@ def read_pages_to_spool(
         if _parse_machine_frame(line, _MACHINE_HEADER_KIND) is not None:
             continue  # protected machine header is not a payload line
         # The payload L/P frames use the SELECTED codec's alphabet (e.g. base32g
-        # adds symbols), which differs from the base16c bootstrap used for the H
+        # adds symbols), which differs from the base16g bootstrap used for the H
         # header frames. All H frames precede the first payload line, so resolve
         # the payload codec's spec once, lazily, before classifying L/P lines.
         if payload_spec is None:
@@ -1250,7 +1250,7 @@ def read_pages_to_spool(
         # ``None`` erasures. Present parity pages must decode as clean ``Q``
         # frames for their block to be trustworthy input to reconstruction.
         from .codec import pagers as _pagers
-        from .codec.base16c import decode_index, nibble_decode, split_frame
+        from .codec.engine import decode_index, nibble_decode, split_frame
 
         def _q_block(lines: "_ty.List[_ty.Tuple[str, _ty.Any]]") -> _ty.Optional[bytes]:
             chunks: _ty.List[str] = []

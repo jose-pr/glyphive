@@ -15,7 +15,7 @@ from .. import codec as _codec
 from .. import compression as _compression
 from .. import layout as _layout
 from .. import render as _render
-from ..codec.base16c import encoded_line_count as _base16c_encoded_line_count
+from ..codec.engine import encoded_line_count as _encoded_line_count
 from ._common import format_selector_error, progress_logger, resolve_destination
 
 __all__ = ["Create"]
@@ -431,7 +431,7 @@ class Create(LoggingArgs):
                         nsym_line=self.line_parity,
                         temp_dir=self.temp_dir,
                     )
-                    n_encoded = _base16c_encoded_line_count(
+                    n_encoded = _encoded_line_count(
                         compressed_len,
                         line_width=line_width,
                         parity_ratio=parity_ratio,

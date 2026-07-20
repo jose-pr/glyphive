@@ -1,7 +1,7 @@
 """The radix codec family: base8 / base32g / base64.
 
-Each is the shipped codec engine (``codec/base16c.py``) with a different
-:class:`~glyphive.codec.base16c._RadixSpec` — a wider alphabet packs more bits
+Each is the shipped codec engine (``codec/engine.py``) with a different
+:class:`~glyphive.codec.engine._RadixSpec` — a wider alphabet packs more bits
 per printed character (denser pages), at the cost of stock-OCR reliability.
 
 Density vs. base16g (4 bits/char):
@@ -24,9 +24,11 @@ from __future__ import annotations
 import typing as _ty
 
 from ._base import Codec
-from .base16c import BASE16G, Base16GCodec, _RadixSpec
+from .engine import BASE16G, RadixCodec, _RadixSpec
 
 __all__ = [
+    # the recommended default codec
+    "Base16GCodec",
     # glyphive-tuned (OCR-safe) codecs
     "Base8GCodec",
     "Base32GCodec",
@@ -50,6 +52,20 @@ __all__ = [
     "BASE64G",
     "BASEMAXG",
 ]
+
+
+# --- base16g (the recommended stock-OCR-safe default) ----------------------
+class Base16GCodec(RadixCodec):
+    """base16g-crc16-rs: the 16-char stock-OCR-safe default codec.
+
+    The plain shared engine (:class:`~glyphive.codec.engine.RadixCodec`) with
+    the :data:`~glyphive.codec.engine.BASE16G` spec -- 4 bits/char, no trained
+    OCR model needed. Every other codec here is the same engine with a denser
+    or textbook alphabet.
+    """
+
+    name = "base16g-crc16-rs"
+    _spec = BASE16G
 
 
 # --- base8 -----------------------------------------------------------------
@@ -200,14 +216,14 @@ BASEMAXG: _ty.Final[_RadixSpec] = _RadixSpec(
 )
 
 
-class Base8GCodec(Base16GCodec):
+class Base8GCodec(RadixCodec):
     """Sparse 8-char (3 bits/char) codec — most OCR-robust, least dense."""
 
     name = "base8g-crc16-rs"
     _spec = BASE8G
 
 
-class Base32GCodec(Base16GCodec):
+class Base32GCodec(RadixCodec):
     """base32g: glyphive's 32-char (5 bits/char) codec — 25% denser than base16g.
 
     Reads at 0.0% CER with a per-font trained model; ~14.8% on stock OCR. Denser
@@ -218,7 +234,7 @@ class Base32GCodec(Base16GCodec):
     _spec = BASE32G
 
 
-class Base64Codec(Base16GCodec):
+class Base64Codec(RadixCodec):
     """64-char (6 bits/char) codec — densest; needs a trained model to restore."""
 
     name = "base64-crc16-rs"
@@ -228,35 +244,35 @@ class Base64Codec(Base16GCodec):
 # --- standard (textbook) codecs --------------------------------------------
 
 
-class Base16Codec(Base16GCodec):
+class Base16Codec(RadixCodec):
     """Standard hexadecimal (0-9 A-F), 4 bits/char. Not OCR-tuned (use base16g)."""
 
     name = "base16-crc16-rs"
     _spec = BASE16
 
 
-class Base32Codec(Base16GCodec):
+class Base32Codec(RadixCodec):
     """Standard RFC-4648 base32 (A-Z 2-7), 5 bits/char. Not OCR-tuned (use base32g)."""
 
     name = "base32-crc16-rs"
     _spec = BASE32
 
 
-class Base32CCodec(Base16GCodec):
+class Base32CCodec(RadixCodec):
     """Crockford base32 (0-9 A-Z minus I L O U), 5 bits/char. Not OCR-tuned."""
 
     name = "base32c-crc16-rs"
     _spec = BASE32C
 
 
-class Base85Codec(Base16GCodec):
+class Base85Codec(RadixCodec):
     """Standard base85 (RFC-1924-ish), group-packed 4->5. Densest; interop only."""
 
     name = "base85-crc16-rs"
     _spec = BASE85
 
 
-class Z85Codec(Base16GCodec):
+class Z85Codec(RadixCodec):
     """ZeroMQ Z85, group-packed 4->5. Interop only (85 glyphs, not OCR-safe)."""
 
     name = "z85-crc16-rs"
@@ -284,7 +300,7 @@ BASE64G: _ty.Final[_RadixSpec] = _RadixSpec(
 )
 
 
-class Base64GCodec(Base16GCodec):
+class Base64GCodec(RadixCodec):
     """base64g: glyphive's curated 64-glyph set (confusion-distinct favoring).
 
     6 bits/char like base64, but the alphabet favors OCR-distinct glyphs. Needs a
@@ -295,7 +311,7 @@ class Base64GCodec(Base16GCodec):
     _spec = BASE64G
 
 
-class BaseMaxGCodec(Base16GCodec):
+class BaseMaxGCodec(RadixCodec):
     """base-maxg: glyphive's 43-glyph max-distinct set, group-packed 6->9.
 
     The largest mutually-distinct alphabet measured on stock OCR (~43/font).
