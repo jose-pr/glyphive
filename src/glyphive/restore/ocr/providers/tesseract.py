@@ -6,7 +6,7 @@ import importlib.util
 import shutil
 import typing as _ty
 
-from ....codec.base16c import BASE16G
+from ....codec.engine import BASE16G
 from .._base import OcrLine, OcrProvider
 from ._image import load_image
 
