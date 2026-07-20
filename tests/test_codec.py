@@ -433,6 +433,26 @@ def test_describe_line_stream_reports_realized_rs_shape():
     assert shape.parity_lines == sum(1 for l in lines if l.startswith("P"))
 
 
+@pytest.mark.parametrize("name", codec.names())
+def test_describe_line_stream_works_for_every_registered_codec(name):
+    """The stream shape is spec-aware: every codec's own stream is readable.
+
+    Regression: describe_line_stream used to hardcode the base16g spec
+    (default-spec ``_parse_line`` and a literal ``* 4`` bits/char), reporting
+    all-zero shapes for every other codec and breaking ``glyphive inspect``.
+    """
+    from glyphive.codec.base16c import describe_line_stream
+
+    implementation = codec.get(name)
+    data = bytes(range(256)) * 4
+    lines = implementation.encode(data)
+    shape = describe_line_stream(lines, implementation._spec)
+    assert shape.data_lines == sum(1 for l in lines if l.startswith("L"))
+    assert shape.parity_lines == sum(1 for l in lines if l.startswith("P"))
+    assert shape.data_lines > 0
+    assert shape.nsym is not None and shape.nblocks is not None
+
+
 def test_describe_line_stream_ambiguous_shape_reports_none():
     """A line-count-inconsistent stream yields nsym=None, never a guess."""
     from glyphive.codec.base16c import describe_line_stream

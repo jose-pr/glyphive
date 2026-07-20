@@ -889,7 +889,9 @@ class StreamShape(_ty.NamedTuple):
     parity_bytes: int
 
 
-def describe_line_stream(lines: _ty.Iterable[str]) -> StreamShape:
+def describe_line_stream(
+    lines: _ty.Iterable[str], spec: "_RadixSpec" = BASE16G
+) -> StreamShape:
     """Report the realized RS shape of an encoded line stream, read-only.
 
     Mirrors :meth:`Base16GCodec.decode_spool`'s modal-width bookkeeping (widest
@@ -900,11 +902,15 @@ def describe_line_stream(lines: _ty.Iterable[str]) -> StreamShape:
     report a document's per-line redundancy without a full decode. If the
     stream cannot be interpreted (no data lines, or an ambiguous nsym), the
     RS fields are ``None`` rather than a guess.
+
+    ``spec`` must be the radix spec of the codec that produced the stream
+    (``Codec.get(name)._spec``); lines framed with a different alphabet or
+    delimiter simply fail to parse and are not counted.
     """
     data: _ty.Dict[int, "_ParsedLine"] = {}
     parity: _ty.Dict[int, "_ParsedLine"] = {}
     for raw in lines:
-        parsed = _parse_line(raw)
+        parsed = _parse_line(raw, spec)
         if parsed is None:
             continue
         (data if parsed.kind == "L" else parity)[parsed.idx] = parsed
@@ -921,14 +927,18 @@ def describe_line_stream(lines: _ty.Iterable[str]) -> StreamShape:
         modal = widths.most_common(1)[0][0] if widths else (
             len(index[max_idx].payload)
         )
-        bytes_per_line = (modal * 4) // 8
+        bytes_per_line = _bytes_per_line(modal, spec)
+        if bytes_per_line < 1:
+            return 0
         total = 0
         for i in range(max_idx + 1):
             entry = index.get(i)
             if entry is None:
                 total += bytes_per_line
                 continue
-            total += _payload_byte_len(entry.payload, bytes_per_line, i == max_idx)
+            total += _payload_byte_len(
+                entry.payload, bytes_per_line, i == max_idx, spec
+            )
         return total
 
     data_bytes = _totals(data)
@@ -1017,53 +1027,6 @@ def _copy_stream(source, sink, chunk_size=1024 * 1024):
         if not chunk:
             return
         sink.write(chunk)
-
-
-def _assemble(
-    parsed: _ty.Dict[int, "_ParsedLine"],
-    bytes_per_line: int,
-) -> _ty.Tuple[bytearray, _ty.List[int]]:
-    """Reassemble a byte stream from indexed lines; collect erasure positions.
-
-    Returns ``(bytes, erasure_positions)``. Missing indices and CRC-failed lines
-    contribute their byte span to ``erasure_positions`` (filled with zero bytes)
-    so RS can attempt correction. Line labels for error messages are recomputed
-    in :func:`_first_failed_label`.
-    """
-    out = bytearray()
-    erasures: _ty.List[int] = []
-    if not parsed:
-        return out, erasures
-
-    max_idx = max(parsed)
-    for idx in range(max_idx + 1):
-        line = parsed.get(idx)
-        base = len(out)
-        is_last = idx == max_idx
-        if line is not None and line.ok:
-            # A trustworthy line: decode its payload to bytes.
-            span = _payload_byte_len(line.payload, bytes_per_line, is_last)
-            try:
-                chunk = nibble_decode(line.payload, span)
-            except ValueError:
-                # Payload has an illegal char despite a matching CRC — treat as
-                # erasure (extremely unlikely; CRC would normally catch it).
-                chunk = b"\x00" * span
-                erasures.extend(range(base, base + span))
-            out.extend(chunk)
-        else:
-            # Missing or CRC-failed: reserve the expected byte span as erasures.
-            # For a CRC-failed line we know its printed width; for a missing line
-            # we assume a full-width line (the common case) — a wrong guess only
-            # matters if the *final* line is the missing one, which shifts length
-            # and will surface as a header/length error rather than silent loss.
-            if line is not None:
-                span = _payload_byte_len(line.payload, bytes_per_line, is_last)
-            else:
-                span = bytes_per_line
-            out.extend(b"\x00" * span)
-            erasures.extend(range(base, base + span))
-    return out, erasures
 
 
 def _payload_byte_len(
