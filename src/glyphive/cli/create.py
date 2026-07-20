@@ -198,6 +198,15 @@ class Create(LoggingArgs):
     "documented low-redundancy preset instead of hand-tuning this."
     ("--parity-ratio",)
 
+    line_parity: int = 2
+    "Per-line Reed-Solomon parity bytes: 0, 2, or 4 (default 2). Each printed "
+    "line carries this many extra parity bytes so many single/double-character "
+    "OCR errors self-heal in place, without ever touching the document-level "
+    "--parity-ratio budget. 0 disables the field entirely (smallest page, no "
+    "in-line self-heal); 4 roughly doubles the per-line correction margin at "
+    "~7 more printed characters/line than 2."
+    ("--line-parity",)
+
     parity_pages: int = 0
     "Whole-page recovery: emit K extra pages carrying document-level "
     "Reed-Solomon parity over the data pages (default 0 = off, matches prior "
@@ -278,6 +287,7 @@ class Create(LoggingArgs):
                 font_size=self.font_size,
                 page_margin_pt=page_margin_pt,
                 character_spacing_pt=self.character_spacing,
+                nsym_line=self.line_parity,
             )
             if geometric is None:
                 raise SystemExit(
@@ -308,6 +318,7 @@ class Create(LoggingArgs):
                 font_size=self.font_size,
                 page_margin_pt=page_margin_pt,
                 character_spacing_pt=self.character_spacing,
+                nsym_line=self.line_parity,
             )
             if geometric is not None and width > geometric:
                 raise SystemExit(
@@ -345,6 +356,8 @@ class Create(LoggingArgs):
         paths = _archive.list_paths(root, use_ignore=not self.no_ignore)
         if self.chunk_size <= 0:
             raise SystemExit("error: --chunk-size must be a positive integer")
+        if self.line_parity not in (0, 2, 4):
+            raise SystemExit("error: --line-parity must be 0, 2, or 4")
         page_margin_pt = (
             _render.MINIMAL_PAGE_MARGIN_PT
             if self.minimal_margins
@@ -358,6 +371,7 @@ class Create(LoggingArgs):
             font_size=self.font_size,
             page_margin_pt=page_margin_pt,
             character_spacing_pt=self.character_spacing,
+            nsym_line=self.line_parity,
         )
         if measured_capacity is not None and measured_capacity < 60:
             raise SystemExit(
@@ -407,28 +421,39 @@ class Create(LoggingArgs):
                         compressed_len,
                         line_width=line_width,
                         parity_ratio=parity_ratio,
+                        nsym_line=self.line_parity,
                         temp_dir=self.temp_dir,
                     )
                     n_encoded = _base16c_encoded_line_count(
-                        compressed_len, line_width=line_width, parity_ratio=parity_ratio
+                        compressed_len,
+                        line_width=line_width,
+                        parity_ratio=parity_ratio,
+                        nsym_line=self.line_parity,
                     )
                 else:
-                    # Pass line_width/parity_ratio to any codec whose encode()
-                    # accepts them — the whole radix family (base16g and the
-                    # denser base32g/base64/base64g) shares this signature, so
-                    # --line-width must reach all of them, not only base16g.
+                    # Pass line_width/parity_ratio/nsym_line to any codec whose
+                    # encode() accepts them — the whole radix family (base16g
+                    # and the denser base32g/base64/base64g) shares this
+                    # signature, so --line-width/--line-parity must reach all
+                    # of them, not only base16g.
                     encode_params = _inspect.signature(codec.encode).parameters
                     options = {
                         name: value
                         for name, value in (
                             ("line_width", line_width),
                             ("parity_ratio", parity_ratio),
+                            ("nsym_line", self.line_parity),
                         )
                         if name in encode_params
                     }
                     materialized = codec.encode(compressed_spool.read(), **options)
                     encoded, n_encoded = iter(materialized), len(materialized)
-                report("encoded", lines=n_encoded, parity_ratio=parity_ratio)
+                report(
+                    "encoded",
+                    lines=n_encoded,
+                    parity_ratio=parity_ratio,
+                    line_parity=self.line_parity,
+                )
                 if self.parity_pages < 0:
                     raise SystemExit("error: --parity-pages must be >= 0")
                 try:
