@@ -11,7 +11,9 @@ from pathlib_next import Path
 __all__ = [
     "format_selector_error",
     "load_image_lines",
+    "load_image_lines_with_conf",
     "load_input_lines",
+    "load_input_lines_with_conf",
     "load_qr_lines",
     "load_transcript_lines",
     "progress_logger",
@@ -165,6 +167,11 @@ def _merge_ocr_lines(
     it validly, keep one representative so the codec still sees it as an
     erasure. Non-frame lines (headers/footers/noise) pass through de-duplicated
     by exact text, since layout parses those structurally.
+
+    Text-only sibling of :func:`_merge_ocr_conf_lines` (plan 3): kept as its
+    own function, unchanged, because it is directly unit-tested against plain
+    strings -- see that function for the OCR-confidence-preserving version
+    used by the conf-aware loaders.
     """
     from ..codec.base16c import _parse_line
 
@@ -200,6 +207,91 @@ def _merge_ocr_lines(
     return spine + extra
 
 
+def _as_ocr_line(entry: "_ty.Any") -> "_ty.Any":
+    """Normalize one OCR result entry to :class:`~glyphive.restore.ocr.OcrLine`.
+
+    A real provider now returns ``OcrLine`` (text + optional per-character
+    confidence); a plain string (e.g. from a test's mocked ``ocr_pages``, or
+    any legacy caller) is wrapped as ``OcrLine(text, None)`` -- "no confidence
+    available" -- per the plan-3 design note that non-OCR/text paths always
+    carry a ``None`` confidence.
+    """
+    from ..restore.ocr import OcrLine
+
+    if isinstance(entry, OcrLine):
+        return entry
+    return OcrLine(str(entry), None)
+
+
+def _merge_ocr_conf_lines(
+    line_lists: "_ty.Iterable[_ty.Sequence[_ty.Any]]",
+) -> "_ty.List[_ty.Any]":
+    """OCR-confidence-preserving sibling of :func:`_merge_ocr_lines`.
+
+    Identical union-by-CRC-valid-frame algorithm (see that function's
+    docstring), but operates on and returns
+    :class:`~glyphive.restore.ocr.OcrLine` so each frame's ``char_conf``
+    survives the merge attached to whichever pass's reading won -- voting/
+    merging never blends confidences, it only picks which LINE wins.
+    """
+    from ..codec.base16c import _parse_line
+
+    passes = [[_as_ocr_line(line) for line in lines] for lines in line_lists]
+    if len(passes) <= 1:
+        return passes[0] if passes else []
+
+    spine = passes[0]
+    have_valid: "_ty.Set[_ty.Tuple[str, int]]" = set()
+    for line in spine:
+        parsed = _parse_line(line.text)
+        if parsed is not None and parsed.ok:
+            have_valid.add((parsed.kind, parsed.idx))
+
+    extra: "_ty.List[_ty.Any]" = []
+    added: "_ty.Set[_ty.Tuple[str, int]]" = set()
+    for lines in passes[1:]:
+        for line in lines:
+            parsed = _parse_line(line.text)
+            if parsed is None or not parsed.ok:
+                continue
+            key = (parsed.kind, parsed.idx)
+            if key in have_valid or key in added:
+                continue
+            added.add(key)
+            extra.append(line)
+    return spine + extra
+
+
+def _image_ocr_passes(
+    source: _ty.Union[str, "Path"],
+    *,
+    engine: _ty.Optional[str] = None,
+    blur: "_ty.Union[float, _ty.Sequence[float]]" = 0.0,
+) -> "_ty.List[_ty.Any]":
+    """Shared OCR+merge core of :func:`load_image_lines` /
+    :func:`load_image_lines_with_conf`: OCR every image at every blur radius
+    and merge the passes, keeping each surviving line's ``char_conf``. Both
+    public functions read the same merged :class:`~glyphive.restore.ocr.OcrLine`
+    list -- one only reads ``.text``, the other reads both -- so they can
+    never disagree on which lines survive.
+    """
+    from tempfile import TemporaryDirectory
+
+    from ..restore import ocr
+
+    images = _input_files(source)
+    radii = _normalize_blur(blur)
+    per_pass: "_ty.List[_ty.List[_ty.Any]]" = []
+    with TemporaryDirectory(prefix="glyphive-descan-") as temp:
+        for radius in radii:
+            candidates = _blur_images(images, radius, temp) if radius > 0 else images
+            pages = ocr.ocr_pages(candidates, engine=engine)
+            per_pass.append(
+                [_as_ocr_line(line) for page in pages for line in page]
+            )
+    return _merge_ocr_conf_lines(per_pass)
+
+
 def load_image_lines(
     source: _ty.Union[str, "Path"],
     *,
@@ -210,22 +302,30 @@ def load_image_lines(
 
     ``blur`` is a Gaussian pre-blur radius, or a sequence of radii to try. When
     several radii are given, each image is OCR'd at every radius and the
-    CRC-valid lines are merged (see :func:`_merge_ocr_lines`) -- different
+    CRC-valid lines are merged (see :func:`_merge_ocr_conf_lines`) -- different
     blurs recover different lines. ``0`` (the default) leaves images untouched.
     """
-    from tempfile import TemporaryDirectory
+    return [line.text for line in _image_ocr_passes(source, engine=engine, blur=blur)]
 
-    from ..restore import ocr
 
-    images = _input_files(source)
-    radii = _normalize_blur(blur)
-    per_pass: _ty.List[_ty.List[str]] = []
-    with TemporaryDirectory(prefix="glyphive-descan-") as temp:
-        for radius in radii:
-            candidates = _blur_images(images, radius, temp) if radius > 0 else images
-            pages = ocr.ocr_pages(candidates, engine=engine)
-            per_pass.append([line for page in pages for line in page])
-    return _merge_ocr_lines(per_pass)
+def load_image_lines_with_conf(
+    source: _ty.Union[str, "Path"],
+    *,
+    engine: _ty.Optional[str] = None,
+    blur: "_ty.Union[float, _ty.Sequence[float]]" = 0.0,
+) -> "_ty.Tuple[_ty.List[str], _ty.List[_ty.Optional[_ty.Sequence[float]]]]":
+    """Like :func:`load_image_lines`, but also returns per-line OCR confidence.
+
+    Returns ``(lines, char_conf)`` where ``char_conf[i]`` is the RAW per-
+    character confidence of ``lines[i]`` (same length as that line's text,
+    spaces included, or ``None`` if unavailable) -- see
+    :mod:`glyphive.codec.base16c`'s "OCR-confidence erasure hint" section
+    for how a downstream decode uses it (plan 3). Shares the exact OCR/merge
+    pipeline with :func:`load_image_lines` (:func:`_image_ocr_passes`), so
+    ``load_image_lines_with_conf(...)[0] == load_image_lines(...)`` always.
+    """
+    merged = _image_ocr_passes(source, engine=engine, blur=blur)
+    return [line.text for line in merged], [line.char_conf for line in merged]
 
 
 def load_qr_lines(source: _ty.Union[str, "Path"]) -> _ty.List[str]:
@@ -243,19 +343,18 @@ def load_qr_lines(source: _ty.Union[str, "Path"]) -> _ty.List[str]:
     return text.replace("\f", "\n").splitlines()
 
 
-def load_input_lines(
+def _input_ocr_passes(
     source: _ty.Union[str, "Path"],
     *,
     engine: _ty.Optional[str] = None,
     blur: "_ty.Union[float, _ty.Sequence[float]]" = 0.0,
-) -> _ty.List[str]:
-    """Read transcripts and OCR images/PDFs/DOCX files based on extension.
-
-    ``blur`` is a Gaussian pre-blur radius or a sequence of radii; each image
-    and rasterized-PDF page is OCR'd at every radius and the CRC-valid lines
-    are merged across passes (different blurs recover different lines). It
-    never affects text transcripts or DOCX. ``0`` (the default) is a single
-    no-blur pass.
+) -> "_ty.List[_ty.Any]":
+    """Shared dispatch+OCR+merge core of :func:`load_input_lines` /
+    :func:`load_input_lines_with_conf`. Returns one flat
+    :class:`~glyphive.restore.ocr.OcrLine` list in document order; a plain
+    text/DOCX line is wrapped ``OcrLine(text, None)`` (no confidence for a
+    non-OCR source, per the plan-3 design note), an OCR'd line keeps
+    whatever confidence :func:`_merge_ocr_conf_lines` chose for it.
     """
     from tempfile import TemporaryDirectory
 
@@ -274,7 +373,7 @@ def load_input_lines(
     }
     document_suffixes = {".docx", ".pdf"}
     radii = _normalize_blur(blur)
-    lines: _ty.List[str] = []
+    lines: "_ty.List[_ty.Any]" = []
     with TemporaryDirectory(prefix="glyphive-input-") as temp:
         for index, path in enumerate(_input_files(source)):
             kind = _input_kind(path, image_suffixes, document_suffixes)
@@ -286,14 +385,14 @@ def load_input_lines(
                     )
                     passes.append(
                         [
-                            line
+                            _as_ocr_line(line)
                             for page in ocr.ocr_pages(pages, engine=engine)
                             for line in page
                         ]
                     )
-                lines.extend(_merge_ocr_lines(passes))
+                lines.extend(_merge_ocr_conf_lines(passes))
             elif kind == "docx":
-                lines.extend(read_docx_lines(path))
+                lines.extend(_as_ocr_line(text) for text in read_docx_lines(path))
             elif kind == "image":
                 passes = []
                 for radius in radii:
@@ -302,12 +401,12 @@ def load_input_lines(
                     )
                     passes.append(
                         [
-                            line
+                            _as_ocr_line(line)
                             for page in ocr.ocr_pages(candidates, engine=engine)
                             for line in page
                         ]
                     )
-                lines.extend(_merge_ocr_lines(passes))
+                lines.extend(_merge_ocr_conf_lines(passes))
             else:
                 try:
                     text = path.read_text(encoding="utf-8")
@@ -316,8 +415,45 @@ def load_input_lines(
                         f"cannot detect supported input type for {path}; expected "
                         "a UTF-8 transcript, image, PDF, or DOCX"
                     ) from exc
-                lines.extend(text.replace("\f", "\n").splitlines())
+                lines.extend(
+                    _as_ocr_line(t) for t in text.replace("\f", "\n").splitlines()
+                )
     return lines
+
+
+def load_input_lines(
+    source: _ty.Union[str, "Path"],
+    *,
+    engine: _ty.Optional[str] = None,
+    blur: "_ty.Union[float, _ty.Sequence[float]]" = 0.0,
+) -> _ty.List[str]:
+    """Read transcripts and OCR images/PDFs/DOCX files based on extension.
+
+    ``blur`` is a Gaussian pre-blur radius or a sequence of radii; each image
+    and rasterized-PDF page is OCR'd at every radius and the CRC-valid lines
+    are merged across passes (different blurs recover different lines). It
+    never affects text transcripts or DOCX. ``0`` (the default) is a single
+    no-blur pass.
+    """
+    return [line.text for line in _input_ocr_passes(source, engine=engine, blur=blur)]
+
+
+def load_input_lines_with_conf(
+    source: _ty.Union[str, "Path"],
+    *,
+    engine: _ty.Optional[str] = None,
+    blur: "_ty.Union[float, _ty.Sequence[float]]" = 0.0,
+) -> "_ty.Tuple[_ty.List[str], _ty.List[_ty.Optional[_ty.Sequence[float]]]]":
+    """Like :func:`load_input_lines`, but also returns per-line OCR confidence.
+
+    Returns ``(lines, char_conf)`` -- see :func:`load_image_lines_with_conf`
+    for the exact contract of ``char_conf``. Text/DOCX lines always carry
+    ``None`` (no OCR was involved). Shares the exact dispatch/OCR/merge
+    pipeline with :func:`load_input_lines` (:func:`_input_ocr_passes`), so
+    ``load_input_lines_with_conf(...)[0] == load_input_lines(...)`` always.
+    """
+    merged = _input_ocr_passes(source, engine=engine, blur=blur)
+    return [line.text for line in merged], [line.char_conf for line in merged]
 
 
 def _input_kind(
