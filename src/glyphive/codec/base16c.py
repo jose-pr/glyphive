@@ -25,7 +25,7 @@ Frame grammar (one printed line)
 --------------------------------
 Every printed line has exactly this shape (single ASCII spaces as separators)::
 
-    <kind><idx> <payload> #<check>
+    <kind><idx> <payload> [<line-parity>] #<check>
 
 - ``<kind>``   : ``L`` for a data line, ``P`` for a Reed-Solomon parity line.
 - ``<idx>``    : the line's 0-based index within its stream (data lines and
@@ -37,12 +37,27 @@ Every printed line has exactly this shape (single ASCII spaces as separators)::
 - ``<payload>``: exactly ``line_width`` alphabet characters, EXCEPT the last
                  data line, which may be shorter (it carries the remainder).
                  Parity lines are always exactly ``line_width`` wide.
+- ``<line-parity>``: OPTIONAL, present iff the stream's ``nsym_line`` (recorded
+                 in the group header) is non-zero. ``nsym_line`` Reed-Solomon
+                 parity bytes computed over ``idx_token.encode() + <the raw
+                 bytes the payload encodes>``, rendered in the line's own
+                 alphabet (``ceil(nsym_line * 8 / spec.bits)`` characters). On
+                 CRC failure, decode blind-corrects this token+payload
+                 codeword using these bytes, re-renders it, and accepts the
+                 fix only if the RE-COMPUTED check field then matches the
+                 originally printed one (see "Per-line Reed-Solomon" below).
+                 NOT covered by the check field.
 - ``#``        : a literal ``#`` marking the start of the check field.
 - ``<check>``  : ``CHECK_WIDTH`` (4) alphabet characters (16 bits) encoding a
                  16-bit CRC-16/CCITT (poly 0x1021, init 0xFFFF) computed over
-                 the bytes ``idx_token.encode() + payload.encode()`` — i.e.
-                 over the *printed* index token and the *printed* payload
-                 characters, so a human can recompute it from the page by hand.
+                 the bytes ``kind.encode() + idx_token.encode() +
+                 payload.encode()`` — i.e. over the *printed* kind letter,
+                 index token, and payload characters (the optional
+                 line-parity field is deliberately excluded), so a human can
+                 recompute it from the page by hand. Covering ``kind`` means
+                 an OCR misread that flips ``L``<->``P`` (or ``H``/``T``/``Q``
+                 in ``layout.py``) now fails the check instead of silently
+                 producing a CRC-valid phantom line at the same index.
 
 Why 4 check characters (not 2), and why 4 is exact now
 -------------------------------------------------------
@@ -58,14 +73,20 @@ OCR line-merge / line-drop.
 
 Header layout of the encoded stream
 -----------------------------------
-The very first bytes of a group's payload carry an 8-byte binary header so decode
+The very first bytes of a group's payload carry a 9-byte binary header so decode
 can reconstruct the exact original byte length (nibble bit-packing pads the
 final 4-bit group, so the raw length must be carried, never guessed):
 
-    b"B1" | version:u8 | nsym:u8 | orig_len:u32-big-endian
+    b"B1" | version:u8 | nsym:u8 | nsym_line:u8 | orig_len:u32-big-endian
 
-The header bytes are part of the RS-protected data stream, so they are covered by
-parity and per-line CRC just like the payload.
+``nsym_line`` (0, 2, or 4) is the per-line Reed-Solomon parity byte count
+requested at encode time (see "Per-line Reed-Solomon" below); decode needs it
+before it can even find the payload/check boundary of a line, so it is also
+detected STRUCTURALLY from the printed line shape (4 whitespace-delimited
+tokens vs 3) and cross-checked against this header field once the header
+itself is recovered -- a mismatch is a hard decode error, never silently
+resolved either way. The header bytes are part of the RS-protected data
+stream, so they are covered by parity and per-line CRC just like the payload.
 
 Reed-Solomon parity
 -------------------
@@ -78,6 +99,36 @@ whose aggregate parity bytes across all blocks are closest to
 *exactly which* lines are wrong, decode feeds those lines' byte positions to RS
 as **erasures** — RS corrects up to ``nsym`` erasures per block (twice its
 blind-error budget).
+
+The document parity BYTE STREAM itself is interleaved symbol-major: parity
+byte ``j`` of block ``b`` sits at printed-stream offset ``j * nblocks + b``
+(not ``b * nsym + j``). A single bad parity LINE therefore only ever costs
+each block at most ``ceil(line_width_bytes / nblocks)`` parity symbols instead
+of erasing one block's entire parity budget outright -- the same
+burst-spreading logic the data stream already gets from its own
+interleaving, just applied to the parity stream too. Pure permutation, zero
+size cost.
+
+Per-line Reed-Solomon (``nsym_line``, default 2)
+-------------------------------------------------
+A single misread character normally erases its WHOLE line for the document-
+level RS tier above (the line's CRC fails, so every byte the line carries
+becomes an erasure). When ``nsym_line`` is non-zero, each line additionally
+carries ``nsym_line`` Reed-Solomon parity bytes computed over
+``idx_token.encode() + <the raw bytes that line's payload encodes>`` and
+rendered in the line's own alphabet, between the payload and the check field
+(the parity field itself is NOT covered by the check). On a CRC failure,
+decode treats the printed token+payload+line-parity as one small RS
+codeword, blind-corrects up to ``nsym_line // 2`` byte errors (no known
+erasure positions -- this tier runs before anything is treated as an
+erasure), re-renders the corrected token/payload, and RECOMPUTES the check
+field: only if that recomputed check matches the originally printed one is
+the correction trusted. This keeps the "recoverable" property of the check
+field intact -- an RS miscorrection almost never reproduces the original
+16-bit CRC by chance -- while turning many single/double-character line
+errors into a silent, free repair that never touches the document-level RS
+erasure budget at all. Lines the in-line tier cannot verify fall through
+to the existing repair/erasure tiers unchanged.
 
 Decode oracle discipline (CRITICAL)
 -----------------------------------
@@ -418,15 +469,22 @@ def _crc16_ccitt(data: bytes) -> int:
 CHECK_WIDTH: _ty.Final[int] = 4
 
 
-def _check_chars(idx_token: str, payload: str, spec: "_RadixSpec" = BASE16G) -> str:
+def _check_chars(
+    kind: str, idx_token: str, payload: str, spec: "_RadixSpec" = BASE16G
+) -> str:
     """Compute the check field (``spec.check_width`` chars) for a framed line.
 
-    The CRC covers exactly what is *printed* -- the index token and the payload
-    characters -- so a human can recompute it straight off the page. The 16-bit
-    CRC is rendered MSB-first across ``check_width`` chars of ``spec.bits`` bits;
-    when ``check_width * bits > 16`` (e.g. base8), the top pad bits are zero.
+    The CRC covers exactly what is *printed* -- the kind letter, the index
+    token, and the payload characters -- so a human can recompute it straight
+    off the page. Covering ``kind`` closes the v1 gap where a misread
+    ``L``<->``P`` (or ``H``/``T``/``Q``) kind letter produced a CRC-VALID
+    phantom line at the same index: the kind letter is now part of what the
+    16-bit CRC actually protects, so a kind flip fails the check like any
+    other single-character error. The CRC is rendered MSB-first across
+    ``check_width`` chars of ``spec.bits`` bits; when ``check_width * bits >
+    16`` (e.g. base8), the top pad bits are zero.
     """
-    crc = _crc16_ccitt(idx_token.encode() + payload.encode())
+    crc = _crc16_ccitt(kind.encode() + idx_token.encode() + payload.encode())
     alphabet = spec.alphabet
     if spec.packing == "bits":
         bits, mask = spec.bits, spec.mask
@@ -544,20 +602,84 @@ def decode_index(token: str) -> _ty.Optional[int]:
     return _decode_index(token, BASE16G)
 
 
-def _frame(kind: str, idx: int, payload: str, spec: "_RadixSpec" = BASE16G) -> str:
+def _line_parity_chars(nsym_line: int, spec: "_RadixSpec") -> int:
+    """Printed width of the optional line-parity field, in alphabet characters."""
+    if nsym_line <= 0:
+        return 0
+    if spec.packing == "group":
+        import math
+
+        return math.ceil(nsym_line * 8 / math.log2(spec.radix))
+    return -(-(nsym_line * 8) // spec.bits)  # ceil(nsym_line*8 / spec.bits)
+
+
+def _line_rs_codeword(token: str, chunk: bytes) -> bytes:
+    """The bytes a line's per-line Reed-Solomon parity is computed over."""
+    return token.encode("ascii") + chunk
+
+
+def _nsym_line_for_chars(line_parity_chars: int, spec: "_RadixSpec") -> int:
+    """Invert :func:`_line_parity_chars`: the printed width -> ``nsym_line`` bytes.
+
+    Only 0, 2, and 4 are ever encoded (:meth:`Base16GCodec.encode` validates
+    this), so this maps a detected width back to whichever of those three
+    values would have produced it, defaulting to 0 (no line-parity field) for
+    a width that matches none -- decode's header cross-check is the actual
+    authority; this is only the structural pre-header guess.
+    """
+    if line_parity_chars <= 0:
+        return 0
+    for candidate in (2, 4):
+        if _line_parity_chars(candidate, spec) == line_parity_chars:
+            return candidate
+    return 0
+
+
+def _frame(
+    kind: str,
+    idx: int,
+    chunk: bytes,
+    spec: "_RadixSpec" = BASE16G,
+    *,
+    nsym_line: int = 0,
+) -> str:
+    """Render one printed line: ``<kind><idx> <payload> [<line-parity>] #<check>``.
+
+    ``chunk`` is the raw bytes this line carries (its ``radix_encode`` is the
+    printed payload). When ``nsym_line`` is non-zero, ``nsym_line`` Reed-
+    Solomon parity bytes are computed over ``idx_token + chunk`` and rendered
+    as an extra glyph-run between the payload and the check field; the check
+    field itself covers ``kind + idx_token + payload`` only (the line-parity
+    field is deliberately NOT covered -- see the module docstring's "Per-line
+    Reed-Solomon" section).
+    """
     token = _encode_index(idx, spec)
-    return f"{kind}{token} {payload} {spec.delimiter}{_check_chars(token, payload, spec)}"
+    payload = radix_encode(chunk, spec)
+    fields = [f"{kind}{token}", payload]
+    if nsym_line > 0:
+        codec = _reedsolo.RSCodec(nsym_line)
+        message = _line_rs_codeword(token, chunk)
+        parity = bytes(codec.encode(message)[len(message):])
+        fields.append(radix_encode(parity, spec))
+    check = _check_chars(kind, token, payload, spec)
+    fields.append(f"{spec.delimiter}{check}")
+    return " ".join(fields)
 
 
 class _ParsedLine(_ty.NamedTuple):
     kind: str  # "L" or "P"
     idx: int
     payload: str
+    line_parity: _ty.Optional[str]  # printed line-parity token, or None
     ok: bool  # True iff the CRC check field matched
 
 
 def split_frame(
-    line: str, *, allow_trailing: bool = False, spec: "_RadixSpec" = BASE16G
+    line: str,
+    *,
+    allow_trailing: bool = False,
+    spec: "_RadixSpec" = BASE16G,
+    line_parity_chars: int = 0,
 ) -> _ty.Optional[_ty.Tuple[str, str, str]]:
     """Structurally split a printed line into ``(label, payload, check)``.
 
@@ -565,25 +687,66 @@ def split_frame(
     payload (e.g. ``...FYWZQH4 6F1IWO0C...``), which would turn the intended 3
     whitespace tokens into 4+ and cause a naive ``line.split()`` shape test to
     discard an otherwise-perfect line. The frame's actual shape is not "exactly
-    3 tokens" -- it is "a label, then a payload, then a ``#check`` field": the
-    label is always the *first* token and ``#check`` is always the *last*
-    token, so the payload is unambiguously everything in between.
+    3 tokens" -- it is "a label, then a payload [then a line-parity run], then
+    a ``#check`` field": the label is always the *first* token and ``#check``
+    is always the *last* token, so everything in between is payload (+
+    optionally line-parity).
 
     This is deterministic normalization, not guessing: the payload alphabet
     contains no whitespace, so any interior space is provably OCR noise, and
     joining the middle tokens with no separator recovers exactly the printed
-    payload characters. The per-line CRC (computed downstream over this
-    recovered payload) is what actually decides correctness -- this function
-    only ensures a noisy-but-readable line reaches that check instead of being
-    silently dropped before it gets the chance.
+    payload (+ line-parity) characters. The per-line CRC (computed downstream
+    over this recovered payload) is what actually decides correctness -- this
+    function only ensures a noisy-but-readable line reaches that check instead
+    of being silently dropped before it gets the chance.
+
+    ``line_parity_chars`` (0 by default -- no line-parity field): when > 0,
+    the trailing ``line_parity_chars`` characters of the joined middle run are
+    split off as a fourth field; the returned ``payload`` is the remainder
+    (positional split from the end, since interior OCR spaces mean the
+    payload/line-parity boundary cannot be found by whitespace alone -- see
+    the module docstring's frame grammar). The returned tuple's second element
+    stays ``payload`` only for callers that pass ``line_parity_chars=0``; when
+    it is > 0, use :func:`split_frame_with_parity` for the 4-tuple form.
 
     Returns ``None`` if the line has fewer than 3 tokens or the last token
     does not start with ``#`` (i.e. it does not have the frame shape at all --
     e.g. the ``PAGE 1/1 sha256=...`` footer, which is 3 tokens but whose last
     token is not a check field).
     """
+    result = split_frame_with_parity(
+        line,
+        allow_trailing=allow_trailing,
+        spec=spec,
+        line_parity_chars=line_parity_chars,
+    )
+    if result is None:
+        return None
+    label, payload, line_parity, check = result
+    if line_parity_chars:
+        return label, payload + line_parity, check
+    return label, payload, check
+
+
+def split_frame_with_parity(
+    line: str,
+    *,
+    allow_trailing: bool = False,
+    spec: "_RadixSpec" = BASE16G,
+    line_parity_chars: int = 0,
+) -> _ty.Optional[_ty.Tuple[str, str, str, str]]:
+    """Like :func:`split_frame` but returns ``(label, payload, line_parity, check)``.
+
+    ``line_parity`` is ``""`` when ``line_parity_chars`` is 0. When positive,
+    the middle glyph run is split positionally from the end: the LAST
+    ``line_parity_chars`` characters are the line-parity field, everything
+    before that is payload. This is exact (not a guess) because both fields
+    are drawn from the same alphabet at fixed, known widths -- there is no
+    delimiter between them, by design (one glyph run, split by position).
+    """
     delim = spec.delimiter
     parts = line.split()
+    middle = None
     if len(parts) >= 3:
         check_positions = [
             index for index, part in enumerate(parts[1:], 1)
@@ -592,52 +755,77 @@ def split_frame(
         if len(check_positions) == 1:
             position = check_positions[0]
             if allow_trailing or position == len(parts) - 1:
-                return parts[0], "".join(parts[1:position]), parts[position]
+                middle = "".join(parts[1:position])
+                label, check = parts[0], parts[position]
 
-    # A constrained Tesseract whitelist can remove both printed separator
-    # spaces while preserving every protected glyph.  The label and check have
-    # fixed widths, and the delimiter is outside the payload alphabet, so this
-    # compact shape remains unambiguous and still flows through the CRC check.
-    stripped = line.strip()
-    label_width = spec.index_width + 1
-    if len(stripped) < label_width + 1 + spec.check_width:
-        return None
-    label = stripped[:label_width]
-    remainder = stripped[label_width:]
-    if remainder.count(delim) != 1:
-        return None
-    marker = remainder.index(delim)
-    check_end = marker + 1 + spec.check_width
-    if marker == 0 or check_end > len(remainder):
-        return None
-    trailing = remainder[check_end:]
-    if trailing and not allow_trailing:
-        return None
-    payload = "".join(remainder[:marker].split())
-    check = remainder[marker:check_end]
-    return label, payload, check
+    if middle is None:
+        # A constrained Tesseract whitelist can remove both printed separator
+        # spaces while preserving every protected glyph.  The label and check
+        # have fixed widths, and the delimiter is outside the payload
+        # alphabet, so this compact shape remains unambiguous and still flows
+        # through the CRC check.
+        stripped = line.strip()
+        label_width = spec.index_width + 1
+        if len(stripped) < label_width + 1 + spec.check_width:
+            return None
+        label = stripped[:label_width]
+        remainder = stripped[label_width:]
+        if remainder.count(delim) != 1:
+            return None
+        marker = remainder.index(delim)
+        check_end = marker + 1 + spec.check_width
+        if marker == 0 or check_end > len(remainder):
+            return None
+        trailing = remainder[check_end:]
+        if trailing and not allow_trailing:
+            return None
+        middle = "".join(remainder[:marker].split())
+        check = remainder[marker:check_end]
+
+    if line_parity_chars:
+        if len(middle) < line_parity_chars:
+            return None
+        payload = middle[:-line_parity_chars]
+        line_parity = middle[-line_parity_chars:]
+    else:
+        payload = middle
+        line_parity = ""
+    return label, payload, line_parity, check
 
 
-def _parse_line(line: str, spec: "_RadixSpec" = BASE16G) -> _ty.Optional[_ParsedLine]:
+def _parse_line(
+    line: str, spec: "_RadixSpec" = BASE16G, *, line_parity_chars: int = 0
+) -> _ty.Optional[_ParsedLine]:
     """Parse one framed line. Returns None for blank/foreign lines.
 
     ``ok`` reflects whether the printed check field matches a freshly computed
-    CRC over the (alias-normalized) index+payload. A structurally broken line
-    (missing fields, bad kind) is treated as a failed check on a best-effort
-    index so decode can still localize it; if even the index is unreadable the
-    line is skipped (its absence surfaces later as a length/erasure error).
+    CRC over the (alias-normalized) kind+index+payload -- the check field does
+    NOT cover the optional line-parity field (see the module docstring). A
+    structurally broken line (missing fields, bad kind) is treated as a failed
+    check on a best-effort index so decode can still localize it; if even the
+    index is unreadable the line is skipped (its absence surfaces later as a
+    length/erasure error).
 
-    The line is split via :func:`split_frame`, which anchors the label as the
-    first token and ``#check`` as the last, joining everything between as the
-    payload -- this tolerates OCR-inserted interior spaces (see its docstring).
+    ``line_parity_chars`` (0 by default) is the printed width of the optional
+    line-parity field for this stream; the caller determines it once per
+    decode (structurally, from the modal per-line token/character shape) and
+    passes it consistently for every line of that stream -- see
+    :func:`_detect_line_parity_chars`.
+
+    The line is split via :func:`split_frame_with_parity`, which anchors the
+    label as the first token and ``#check`` as the last, joining everything
+    between as payload (+ line-parity) -- this tolerates OCR-inserted interior
+    spaces (see its docstring).
     """
     stripped = line.strip()
     if not stripped:
         return None
-    split = split_frame(stripped, spec=spec)
+    split = split_frame_with_parity(
+        stripped, spec=spec, line_parity_chars=line_parity_chars
+    )
     if split is None:
         return None
-    label, payload, check = split
+    label, payload, line_parity, check = split
     kind = label[:1]
     if kind not in ("L", "P"):
         return None
@@ -652,21 +840,75 @@ def _parse_line(line: str, spec: "_RadixSpec" = BASE16G) -> _ty.Optional[_Parsed
     fold = spec.case_fold
     token_for_crc = idx_token.upper() if fold else idx_token
     check_chars = check[1:]
-    expected = _check_chars(token_for_crc, payload, spec)
+    expected = _check_chars(kind, token_for_crc, payload, spec)
     ok = (check_chars.upper() if fold else check_chars) == expected
-    return _ParsedLine(kind=kind, idx=idx, payload=payload, ok=ok)
+    return _ParsedLine(
+        kind=kind,
+        idx=idx,
+        payload=payload,
+        line_parity=line_parity if line_parity_chars else None,
+        ok=ok,
+    )
 
 
-def repair_line(line: str, spec: "_RadixSpec" = BASE16G) -> _ty.Optional[str]:
+def _detect_line_parity_chars(
+    sample_lines: _ty.Iterable[str], spec: "_RadixSpec"
+) -> int:
+    """Structurally detect the printed line-parity field width from raw lines.
+
+    A clean frame line is exactly 3 whitespace tokens (``label payload
+    #check``) with no line-parity field, or 4 tokens (``label payload
+    line_parity #check``) with one. This counts whitespace-token counts across
+    a sample of L/P-shaped lines (label starts with L or P, last token starts
+    with the delimiter) and returns the modal count translated to a character
+    width: 0 for 3-token lines, or the modal LENGTH of the third token for
+    4-token lines. Ties and ambiguous/empty samples resolve to 0 (no
+    line-parity field) -- the header cross-check (decode's actual authority)
+    catches a wrong guess rather than this heuristic silently mis-framing
+    every line.
+
+    A line with ALL interior whitespace removed (the "compact frame" OCR
+    class ``split_frame`` also tolerates) has exactly one token and cannot
+    vote here: the fixed label/check widths alone cannot distinguish "wide
+    payload, no line-parity" from "narrower payload plus a line-parity field"
+    without a separator, so a transcript sampled entirely from compact lines
+    is genuinely ambiguous by this heuristic and falls back to 0 -- the header
+    cross-check is the backstop for that case.
+    """
+    delim = spec.delimiter
+    counts: _ty.Counter[int] = _collections.Counter()
+    for line in sample_lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        parts = stripped.split()
+        if len(parts) not in (3, 4):
+            continue
+        if parts[0][:1] not in ("L", "P") or not parts[-1].startswith(delim):
+            continue
+        if len(parts) == 3:
+            counts[0] += 1
+        else:
+            counts[len(parts[2])] += 1
+    if not counts:
+        return 0
+    return counts.most_common(1)[0][0]
+
+
+def repair_line(
+    line: str, spec: "_RadixSpec" = BASE16G, *, line_parity_chars: int = 0
+) -> _ty.Optional[str]:
     """Attempt to repair a single misread character in a CRC-failed line.
 
     The per-line CRC is the *oracle*: we try every single-character
-    substitution of the printed ``index_token + payload`` body (and the case
-    where the printed check field itself is the corrupted character), recompute
-    the CRC for each candidate, and accept a repair **only if exactly one
-    candidate reproduces the printed check** (or, for a corrupted check field,
-    the recomputed check is within one character of the printed one). Ambiguity
-    or zero hits leaves the line untouched (the caller keeps it as an erasure).
+    substitution of the printed ``kind + index_token + payload`` body (kind is
+    included because the CRC now covers it too -- a kind flip is just another
+    single-character error) and the case where the printed check field itself
+    is the corrupted character, recompute the CRC for each candidate, and
+    accept a repair **only if exactly one candidate reproduces the printed
+    check** (or, for a corrupted check field, the recomputed check is within
+    one character of the printed one). Ambiguity or zero hits leaves the line
+    untouched (the caller keeps it as an erasure).
 
     This does not violate the decode-discipline doctrine ("never mutate a
     character merely because more compressed bytes become readable"): acceptance
@@ -675,14 +917,20 @@ def repair_line(line: str, spec: "_RadixSpec" = BASE16G) -> _ty.Optional[str]:
     true candidate; such a line enters as a blind error which document RS still
     corrects within budget, and the whole-document SHA-256 gate backstops it.
 
+    ``line_parity_chars`` (0 by default): the line-parity field (if present) is
+    NOT covered by the CRC and is not searched for errors here; it is carried
+    through unchanged in the repaired output.
+
     Returns the repaired printed line (which re-parses as CRC-ok), or ``None``.
     Works for both bit-packed and group-packed specs -- the CRC covers the
     printed characters, so the procedure is alphabet-agnostic.
     """
-    split = split_frame(line.strip(), spec=spec)
+    split = split_frame_with_parity(
+        line.strip(), spec=spec, line_parity_chars=line_parity_chars
+    )
     if split is None:
         return None
-    label, payload, check = split
+    label, payload, line_parity, check = split
     kind = label[:1]
     if kind not in ("L", "P"):
         return None
@@ -694,33 +942,41 @@ def repair_line(line: str, spec: "_RadixSpec" = BASE16G) -> _ty.Optional[str]:
         return None
     fold = spec.case_fold
     want_cmp = want.upper() if fold else want
-    body = token + payload
+    body = kind + token + payload
     alphabet = spec.alphabet
+    parity_field = f" {line_parity}" if line_parity_chars else ""
     hits: _ty.List[str] = []
     for pos in range(len(body)):
         original = body[pos]
-        for sub in alphabet:
+        # The kind character (position 0) is restricted to the two valid
+        # kinds, not the whole payload alphabet -- a "kind" character is never
+        # a member of the payload alphabet in general (e.g. base32g), and even
+        # when it happens to be, only L/P are ever legal there.
+        candidates_here = ("L", "P") if pos == 0 else alphabet
+        for sub in candidates_here:
             if sub == original:
                 continue
             cand = body[:pos] + sub + body[pos + 1:]
-            cand_token = cand[:len(token)]
-            cand_payload = cand[len(token):]
+            cand_kind = cand[0]
+            cand_token = cand[1:1 + len(token)]
+            cand_payload = cand[1 + len(token):]
             token_for_crc = cand_token.upper() if fold else cand_token
-            if _check_chars(token_for_crc, cand_payload, spec) == want_cmp:
+            if _check_chars(cand_kind, token_for_crc, cand_payload, spec) == want_cmp:
                 hits.append(cand)
                 if len(hits) > 1:
                     return None  # ambiguous -- refuse to guess
     # Case: the check FIELD was the corrupted character (body is already right).
     token_for_crc = token.upper() if fold else token
-    expected = _check_chars(token_for_crc, payload, spec)
+    expected = _check_chars(kind, token_for_crc, payload, spec)
     if not hits and expected != want_cmp and _hamming1(expected, want_cmp):
-        # Payload/token are intact; only the printed check drifted. Re-render it.
-        return f"{kind}{token} {payload} {spec.delimiter}{expected}"
+        # Payload/token/kind are intact; only the printed check drifted.
+        return f"{kind}{token} {payload}{parity_field} {spec.delimiter}{expected}"
     if len(hits) == 1:
         cand = hits[0]
-        cand_token = cand[:len(token)]
-        cand_payload = cand[len(token):]
-        return f"{kind}{cand_token} {cand_payload} {spec.delimiter}{want}"
+        cand_kind = cand[0]
+        cand_token = cand[1:1 + len(token)]
+        cand_payload = cand[1 + len(token):]
+        return f"{cand_kind}{cand_token} {cand_payload}{parity_field} {spec.delimiter}{want}"
     return None
 
 
@@ -731,27 +987,98 @@ def _hamming1(a: str, b: str) -> bool:
     return sum(x != y for x, y in zip(a, b)) == 1
 
 
+def line_rs_correct(
+    line: str, spec: "_RadixSpec" = BASE16G, *, nsym_line: int
+) -> _ty.Optional[str]:
+    """In-line Reed-Solomon correction tier (runs BEFORE :func:`repair_line`).
+
+    For a CRC-failed line carrying a non-empty line-parity field, treat the
+    printed ``idx_token + payload`` bytes plus the ``nsym_line`` printed
+    parity bytes as one small RS codeword and blind-correct it (no known
+    erasure positions -- the line-parity tier runs before anything is
+    committed as an erasure). On a successful decode, re-render the corrected
+    token/payload and RECOMPUTE the check field: the fix is trusted only if
+    that recomputed check reproduces the ORIGINALLY PRINTED one exactly (an RS
+    miscorrection essentially never also reproduces a 16-bit CRC by chance).
+    Otherwise -- ambiguous RS decode, or a "corrected" line whose check still
+    disagrees -- returns ``None`` and the caller falls through to
+    :func:`repair_line` and finally to whole-line erasure, unchanged.
+
+    The payload's own printed width determines how many raw bytes it decodes
+    to (``len(payload) * spec.bits // 8``, i.e. the line's OWN declared
+    shape -- this tier runs before the modal-width vote, so it cannot rely on
+    stream-wide bookkeeping). Returns ``None`` immediately if ``nsym_line`` is
+    0 (no line-parity field to correct with) or the line does not
+    structurally carry one.
+    """
+    if nsym_line <= 0:
+        return None
+    split = split_frame_with_parity(
+        line.strip(), spec=spec, line_parity_chars=_line_parity_chars(nsym_line, spec)
+    )
+    if split is None:
+        return None
+    label, payload, line_parity, check = split
+    kind = label[:1]
+    if kind not in ("L", "P"):
+        return None
+    token = label[1:]
+    if len(token) != spec.index_width or not check.startswith(spec.delimiter):
+        return None
+    want = check[len(spec.delimiter):]
+    if len(want) != spec.check_width:
+        return None
+    payload_bytes = _bytes_per_line(len(payload), spec) if payload else 0
+    try:
+        chunk = radix_decode(payload, payload_bytes, spec)
+        line_parity_bytes = radix_decode(line_parity, nsym_line, spec)
+    except ValueError:
+        return None
+    codeword = bytearray(_line_rs_codeword(token, chunk) + line_parity_bytes)
+    codec = _reedsolo.RSCodec(nsym_line)
+    try:
+        decoded = codec.decode(codeword)[0]
+    except (_reedsolo.ReedSolomonError, ValueError):
+        return None
+    corrected_token_bytes = bytes(decoded[:spec.index_width])
+    corrected_chunk = bytes(decoded[spec.index_width:])
+    try:
+        corrected_token = corrected_token_bytes.decode("ascii")
+    except UnicodeDecodeError:
+        return None
+    fold = spec.case_fold
+    token_for_crc = corrected_token.upper() if fold else corrected_token
+    corrected_payload = radix_encode(corrected_chunk, spec)
+    recomputed = _check_chars(kind, token_for_crc, corrected_payload, spec)
+    want_cmp = want.upper() if fold else want
+    if recomputed != want_cmp:
+        return None  # the RS "fix" doesn't reproduce the printed CRC -- reject
+    return f"{kind}{corrected_token} {corrected_payload} {line_parity} {spec.delimiter}{want}"
+
+
 # ---------------------------------------------------------------------------
 # Group header (carries exact original length + RS params)
 # ---------------------------------------------------------------------------
 
 _MAGIC: _ty.Final[bytes] = b"B1"
 _VERSION: _ty.Final[int] = 1
-_HEADER_LEN: _ty.Final[int] = len(_MAGIC) + 1 + 1 + 4  # magic + ver + nsym + u32
+#: magic + ver + nsym + nsym_line + u32(orig_len)
+_HEADER_LEN: _ty.Final[int] = len(_MAGIC) + 1 + 1 + 1 + 4
 
 
-def _make_header(nsym: int, orig_len: int) -> bytes:
-    return _MAGIC + bytes([_VERSION, nsym]) + orig_len.to_bytes(4, "big")
+def _make_header(nsym: int, orig_len: int, nsym_line: int = 0) -> bytes:
+    return _MAGIC + bytes([_VERSION, nsym, nsym_line]) + orig_len.to_bytes(4, "big")
 
 
-def _parse_header(data: bytes) -> _ty.Tuple[int, int]:
+def _parse_header(data: bytes) -> _ty.Tuple[int, int, int]:
     if len(data) < _HEADER_LEN or data[:2] != _MAGIC:
         raise ValueError("corrupt group header: bad magic or truncated stream")
     if data[2] != _VERSION:
         raise ValueError(f"unsupported codec version {data[2]}")
     nsym = data[3]
-    orig_len = int.from_bytes(data[4:8], "big")
-    return nsym, orig_len
+    nsym_line = data[4]
+    orig_len = int.from_bytes(data[5:9], "big")
+    return nsym, orig_len, nsym_line
 
 
 # ---------------------------------------------------------------------------
@@ -815,20 +1142,42 @@ def _candidate_nsym(data_len: int, parity_len: int) -> _ty.List[int]:
     return matches
 
 
+def _parity_position(j: int, b: int, nblocks: int) -> int:
+    """Symbol-major printed-stream offset of parity byte ``j`` of block ``b``.
+
+    Interleaved (not ``b * nsym + j``, the pre-v2 contiguous layout): parity
+    byte ``j`` of every block is grouped together before byte ``j + 1`` of any
+    block. A single bad PARITY line (a contiguous run of ``bytes_per_line``
+    printed-stream positions) then costs each of the ``nblocks`` blocks at
+    most ``ceil(bytes_per_line / nblocks)`` parity symbols instead of wiping
+    one block's entire parity budget -- the same burst-spreading the data
+    stream already gets from its own interleaving (``data[b::nblocks]``),
+    applied to the parity stream. Pure permutation of where each parity byte
+    is *printed*; the RS math per block is unchanged.
+    """
+    return j * nblocks + b
+
+
 def _rs_encode(data: bytes, nsym: int) -> _ty.Tuple[bytes, bytes, int]:
     """Return (data_bytes, parity_bytes, num_blocks).
 
-    ``parity_bytes`` is the concatenation of each block's ``nsym`` parity
-    symbols, block 0 first. ``data_bytes`` is returned unchanged (it is the
-    stream the caller frames into ``L`` lines).
+    ``parity_bytes`` is INTERLEAVED symbol-major across blocks (see
+    :func:`_parity_position`): parity byte ``j`` of block ``b`` lives at
+    offset ``j * nblocks + b``, not the contiguous ``b * nsym + j``.
+    ``data_bytes`` is returned unchanged (it is the stream the caller frames
+    into ``L`` lines).
     """
     nblocks = _num_blocks(len(data), nsym)
     codec = _reedsolo.RSCodec(nsym)
-    parity = bytearray()
+    block_parities: _ty.List[bytes] = []
     for b in range(nblocks):
         block = bytes(data[b::nblocks])  # interleaved stripe
         encoded = codec.encode(block)  # data + nsym parity
-        parity.extend(encoded[len(block):])
+        block_parities.append(bytes(encoded[len(block):]))
+    parity = bytearray(nsym * nblocks)
+    for b in range(nblocks):
+        for j in range(nsym):
+            parity[_parity_position(j, b, nblocks)] = block_parities[b][j]
     return data, bytes(parity), nblocks
 
 
@@ -843,18 +1192,25 @@ def _rs_decode(
     """Correct ``data`` in place using ``parity``; return corrected data bytes.
 
     ``*_erasures`` are byte positions (within data / within parity) whose source
-    line failed CRC — RS treats them as known-position erasures. Raises
+    line failed CRC — RS treats them as known-position erasures. ``parity`` and
+    ``parity_erasures`` use the INTERLEAVED symbol-major layout (see
+    :func:`_parity_position`); this reads block ``b``'s ``nsym`` parity bytes
+    back out of that layout before handing them to reedsolo. Raises
     ``_reedsolo.ReedSolomonError`` if a block exceeds the correction budget.
     """
     codec = _reedsolo.RSCodec(nsym)
     data_len = len(data)
+    parity_len = len(parity)
     data_erasure_set = set(data_erasures)
     parity_erasure_set = set(parity_erasures)
     out = bytearray(data)
     for b in range(nblocks):
         data_pos = list(range(b, data_len, nblocks))  # global positions in stripe
         block_data = bytes(data[b::nblocks])
-        block_parity = bytes(parity[b * nsym:(b + 1) * nsym])
+        parity_pos = [_parity_position(j, b, nblocks) for j in range(nsym)]
+        block_parity = bytes(
+            parity[pos] if pos < parity_len else 0 for pos in parity_pos
+        )
         codeword = bytearray(block_data + block_parity)
         # Map global erasure positions to positions within this codeword.
         erase_pos: _ty.List[int] = []
@@ -862,8 +1218,8 @@ def _rs_decode(
             if gpos in data_erasure_set:
                 erase_pos.append(local_i)
         base = len(block_data)
-        for j in range(nsym):
-            if (b * nsym + j) in parity_erasure_set:
+        for j, pos in enumerate(parity_pos):
+            if pos in parity_erasure_set or pos >= parity_len:
                 erase_pos.append(base + j)
         decoded = codec.decode(codeword, erase_pos=erase_pos or None)
         corrected = decoded[0]  # data portion only (nsym stripped)
@@ -889,7 +1245,12 @@ def _bytes_per_line(line_width: int, spec: "_RadixSpec") -> int:
 
 
 def _frame_bytes(
-    kind: str, data: bytes, line_width: int, spec: "_RadixSpec" = BASE16G
+    kind: str,
+    data: bytes,
+    line_width: int,
+    spec: "_RadixSpec" = BASE16G,
+    *,
+    nsym_line: int = 0,
 ) -> _ty.List[str]:
     """Encode ``data`` with the alphabet and split into framed lines of ``line_width``.
 
@@ -898,6 +1259,11 @@ def _frame_bytes(
     possible, and the final line carries whatever remains. To keep byte↔line
     mapping exact and simple, we pack a fixed number of bytes per line such that
     they encode to at most ``line_width`` chars.
+
+    ``nsym_line`` (0 by default) requests a per-line Reed-Solomon parity field
+    on each emitted line (see :func:`_frame`); page-parity ``Q`` frames
+    (``layout.py``) intentionally pass 0 -- whole-page RS already protects
+    them, and they carry no group header to record a per-stream value in.
     """
     if not data:
         return []
@@ -909,23 +1275,40 @@ def _frame_bytes(
     idx = 0
     for start in range(0, len(data), bytes_per_line):
         chunk = data[start:start + bytes_per_line]
-        payload = radix_encode(chunk, spec)
         if idx >= spec.max_idx:
             raise ValueError(
                 f"{kind} stream exceeds {spec.max_idx} lines; use smaller pages"
             )
-        lines.append(_frame(kind, idx, payload, spec))
+        lines.append(_frame(kind, idx, chunk, spec, nsym_line=nsym_line))
         idx += 1
     return lines
 
 
 def _encoding_shape(
-    data_len: int, line_width: int, parity_ratio: float, spec: "_RadixSpec" = BASE16G
+    data_len: int,
+    line_width: int,
+    parity_ratio: float,
+    spec: "_RadixSpec" = BASE16G,
+    nsym_line: int = 0,
 ):
+    """Compute the encoder's exact byte/line layout ahead of encoding.
+
+    ``nsym_line`` does not change ``bytes_per_line`` or the resulting L/P
+    LINE COUNTS -- those are governed purely by ``line_width`` (the PAYLOAD
+    width in characters) and the document-level RS ``nsym``/``nblocks``, both
+    unaffected by the per-line parity field. It is accepted here (and
+    validated) purely so every call site can pass the same ``nsym_line`` it
+    encodes with -- :func:`_line_parity_chars` (``ceil(nsym_line*8/spec.bits)``
+    characters/line) is what a caller needing the full PRINTED line width
+    (payload + line-parity) must add on top of ``line_width`` separately;
+    :func:`encoded_line_count`'s job is only the exact line COUNT.
+    """
     if line_width < 1:
         raise ValueError("line_width must be >= 1")
     if not 0 < parity_ratio < 1:
         raise ValueError("parity_ratio must be in (0, 1)")
+    if nsym_line not in (0, 2, 4):
+        raise ValueError("nsym_line must be 0, 2, or 4")
     bytes_per_line = _bytes_per_line(line_width, spec)
     if bytes_per_line < 1:
         raise ValueError("line_width too small to carry a byte")
@@ -939,12 +1322,23 @@ def _encoding_shape(
 
 
 def encoded_line_count(
-    data_len: int, *, line_width: int = 60, parity_ratio: float = 0.12
+    data_len: int,
+    *,
+    line_width: int = 60,
+    parity_ratio: float = 0.12,
+    nsym_line: int = 2,
 ) -> int:
-    """Return the exact number of lines without reading or encoding payload data."""
+    """Return the exact number of lines without reading or encoding payload data.
+
+    ``nsym_line`` (default 2, matching :meth:`Base16GCodec.encode`'s default)
+    does not change the returned COUNT (see :func:`_encoding_shape`); it is
+    accepted and validated here so callers pass the same value they encode
+    with, and so an invalid ``nsym_line`` is caught at the same call site a
+    caller would naturally check page planning from.
+    """
     if data_len < 0 or data_len > 0xFFFFFFFF:
         raise ValueError("data length must fit the base16g-crc16-rs unsigned 32-bit header")
-    return sum(_encoding_shape(data_len, line_width, parity_ratio)[-2:])
+    return sum(_encoding_shape(data_len, line_width, parity_ratio, BASE16G, nsym_line)[-2:])
 
 
 class StreamShape(_ty.NamedTuple):
@@ -952,7 +1346,10 @@ class StreamShape(_ty.NamedTuple):
 
     ``nsym``/``nblocks`` are ``None`` when the stream shape is ambiguous
     (``_candidate_nsym`` returned other than exactly one candidate) -- never
-    guessed. ``nsym`` is the per-interleaved-block erasure budget.
+    guessed. ``nsym`` is the per-interleaved-block erasure budget. ``nsym_line``
+    is detected STRUCTURALLY from the printed line shape (3 vs 4 tokens/line),
+    the same heuristic decode itself uses before the group header is
+    recoverable -- not read from the (possibly-undecoded) header.
     """
 
     data_lines: int
@@ -961,6 +1358,7 @@ class StreamShape(_ty.NamedTuple):
     nblocks: _ty.Optional[int]
     data_bytes: int
     parity_bytes: int
+    nsym_line: int = 0
 
 
 def describe_line_stream(
@@ -981,10 +1379,13 @@ def describe_line_stream(
     (``Codec.get(name)._spec``); lines framed with a different alphabet or
     delimiter simply fail to parse and are not counted.
     """
+    materialized = list(lines)
+    line_parity_chars = _detect_line_parity_chars(materialized, spec)
+    nsym_line = _nsym_line_for_chars(line_parity_chars, spec)
     data: _ty.Dict[int, "_ParsedLine"] = {}
     parity: _ty.Dict[int, "_ParsedLine"] = {}
-    for raw in lines:
-        parsed = _parse_line(raw, spec)
+    for raw in materialized:
+        parsed = _parse_line(raw, spec, line_parity_chars=line_parity_chars)
         if parsed is None:
             continue
         (data if parsed.kind == "L" else parity)[parsed.idx] = parsed
@@ -1031,11 +1432,12 @@ def describe_line_stream(
         nblocks=nblocks,
         data_bytes=data_bytes,
         parity_bytes=parity_bytes,
+        nsym_line=nsym_line,
     )
 
 
 def _frame_stream(kind: str, source, length: int, bytes_per_line: int,
-                  spec: "_RadixSpec" = BASE16G):
+                  spec: "_RadixSpec" = BASE16G, *, nsym_line: int = 0):
     index = 0
     remaining = length
     while remaining:
@@ -1045,46 +1447,77 @@ def _frame_stream(kind: str, source, length: int, bytes_per_line: int,
         remaining -= len(chunk)
         if index >= spec.max_idx:
             raise ValueError(f"{kind} stream exceeds {spec.max_idx} lines")
-        yield _frame(kind, index, radix_encode(chunk, spec), spec)
+        yield _frame(kind, index, chunk, spec, nsym_line=nsym_line)
         index += 1
     if source.read(1):
         raise ValueError(f"{kind} spool has trailing bytes")
 
 
 def _preprocess_spool(source, sink, spec: "_RadixSpec") -> bool:
-    """Decode-hardening pre-pass (plan 1). Streams ``source`` -> ``sink`` applying,
-    to CRC-*failed* L/P lines only:
+    """Decode-hardening pre-pass (plans 1 & 2). Streams ``source`` -> ``sink``
+    applying, to CRC-*failed* L/P lines only:
 
-      1. CRC-guided single-substitution repair (:func:`repair_line`) -- a repaired
-         line re-enters as CRC-valid and restores true geometry;
-      2. trusted-geometry filtering -- a still-failed line whose claimed index
+      1. in-line Reed-Solomon correction (:func:`line_rs_correct`) -- runs
+         FIRST: a line carrying a non-empty line-parity field is
+         blind-corrected and the fix accepted only if it reproduces the
+         printed CRC, restoring true geometry without ever touching the
+         document-level RS erasure budget;
+      2. CRC-guided single-substitution repair (:func:`repair_line`) -- a
+         repaired line re-enters as CRC-valid and restores true geometry;
+      3. trusted-geometry filtering -- a still-failed line whose claimed index
          exceeds the max CRC-valid index of its kind is not allowed to extend the
          stream: it is positionally reassigned when it sits in a unit gap between
          two CRC-valid same-kind neighbors (still a CRC-failed erasure candidate),
          otherwise dropped (its true slot stays a missing-line erasure).
+
+    ``line_parity_chars`` (the printed width of the optional line-parity
+    field) is detected STRUCTURALLY once, up front, from the raw lines
+    (:func:`_detect_line_parity_chars`) -- decode needs it before the group
+    header (which carries the authoritative ``nsym_line``) can even be
+    assembled, since it changes where the payload/check boundary falls. The
+    header cross-check happens later in ``_decode_hardened_spool`` once the
+    header itself is recovered; a mismatch there is a hard error.
 
     Clean and structurally-foreign lines pass through verbatim. Returns True if it
     changed anything (so the caller can keep the original spool on the fast path).
     Buffers only small per-line metadata (kind/idx/ok/text), never payloads-at-scale.
     """
     source.seek(0)
-    entries: _ty.List[_ty.Tuple[_ty.Optional[_ParsedLine], str]] = []
-    changed = False
+    raw_lines: _ty.List[str] = []
     while True:
         raw = source.readline()
         if not raw:
             break
-        text = raw.decode("utf-8").rstrip("\r\n")
-        parsed = _parse_line(text, spec)
-        entries.append((parsed, text))
+        raw_lines.append(raw.decode("utf-8").rstrip("\r\n"))
 
-    # Tier 3 first: repair CRC-failed lines (a repaired index restores geometry
-    # before the trusted-geometry rule measures max_ok).
+    line_parity_chars = _detect_line_parity_chars(raw_lines, spec)
+    nsym_line = _nsym_line_for_chars(line_parity_chars, spec)
+    entries: _ty.List[_ty.Tuple[_ty.Optional[_ParsedLine], str]] = [
+        (_parse_line(text, spec, line_parity_chars=line_parity_chars), text)
+        for text in raw_lines
+    ]
+    changed = False
+
+    # Tier 1: in-line RS correction, CRC re-verified. Runs first because a
+    # successful in-line fix restores exact geometry without any of the
+    # heuristics below (positional reassignment, ambiguity-driven refusal).
+    if nsym_line:
+        for i, (parsed, text) in enumerate(entries):
+            if parsed is not None and not parsed.ok:
+                fixed = line_rs_correct(text, spec, nsym_line=nsym_line)
+                if fixed is not None:
+                    reparsed = _parse_line(fixed, spec, line_parity_chars=line_parity_chars)
+                    if reparsed is not None and reparsed.ok:
+                        entries[i] = (reparsed, fixed)
+                        changed = True
+
+    # Tier 2: repair remaining CRC-failed lines (a repaired index restores
+    # geometry before the trusted-geometry rule measures max_ok).
     for i, (parsed, text) in enumerate(entries):
         if parsed is not None and not parsed.ok:
-            repaired = repair_line(text, spec)
+            repaired = repair_line(text, spec, line_parity_chars=line_parity_chars)
             if repaired is not None:
-                reparsed = _parse_line(repaired, spec)
+                reparsed = _parse_line(repaired, spec, line_parity_chars=line_parity_chars)
                 if reparsed is not None and reparsed.ok:
                     entries[i] = (reparsed, repaired)
                     changed = True
@@ -1124,12 +1557,16 @@ def _preprocess_spool(source, sink, spec: "_RadixSpec") -> bool:
         if prev is not None and nxt is not None and nxt - prev == 2:
             fixed_idx = prev + 1
             token = _encode_index(fixed_idx, spec)
-            split = split_frame(text, spec=spec)
+            split = split_frame_with_parity(
+                text, spec=spec, line_parity_chars=line_parity_chars
+            )
             if split is not None:
-                _label, payload, check = split
-                # Keep payload/check; CRC still fails -> stays an erasure, but now
-                # in its true positional slot instead of a poisoned index.
-                out.append(f"{parsed.kind}{token} {payload} {check}")
+                _label, payload, line_parity, check = split
+                # Keep payload/line-parity/check; CRC still fails -> stays an
+                # erasure, but now in its true positional slot instead of a
+                # poisoned index.
+                parity_field = f" {line_parity}" if line_parity_chars else ""
+                out.append(f"{parsed.kind}{token} {payload}{parity_field} {check}")
                 changed = True
                 continue
         # Otherwise drop the geometry-poisoning claim entirely.
@@ -1140,16 +1577,22 @@ def _preprocess_spool(source, sink, spec: "_RadixSpec") -> bool:
     return changed
 
 
-def _read_spooled_line(source, offset: int, spec: "_RadixSpec" = BASE16G) -> _ParsedLine:
+def _read_spooled_line(
+    source, offset: int, spec: "_RadixSpec" = BASE16G, *, line_parity_chars: int = 0
+) -> _ParsedLine:
     source.seek(offset)
-    parsed = _parse_line(source.readline().decode("utf-8").rstrip("\r\n"), spec)
+    parsed = _parse_line(
+        source.readline().decode("utf-8").rstrip("\r\n"),
+        spec,
+        line_parity_chars=line_parity_chars,
+    )
     if parsed is None:
         raise ValueError("indexed codec line is no longer parseable")
     return parsed
 
 
 def _assemble_to_spool(source, index, sink, bytes_per_line: int,
-                       spec: "_RadixSpec" = BASE16G):
+                       spec: "_RadixSpec" = BASE16G, *, line_parity_chars: int = 0):
     erasures = []
     if not index:
         return 0, erasures
@@ -1157,7 +1600,11 @@ def _assemble_to_spool(source, index, sink, bytes_per_line: int,
     written = 0
     for idx in range(max_idx + 1):
         entry = index.get(idx)
-        parsed = _read_spooled_line(source, entry[0], spec) if entry is not None else None
+        parsed = (
+            _read_spooled_line(source, entry[0], spec, line_parity_chars=line_parity_chars)
+            if entry is not None
+            else None
+        )
         is_last = idx == max_idx
         if parsed is not None:
             span = _payload_byte_len(parsed.payload, bytes_per_line, is_last, spec)
@@ -1249,23 +1696,38 @@ class Base16GCodec(Codec):
         *,
         line_width: int = 60,
         parity_ratio: float = 0.12,
+        nsym_line: int = 2,
     ) -> _ty.List[str]:
-        """Encode bytes into OCR-safe framed data and parity lines."""
+        """Encode bytes into OCR-safe framed data and parity lines.
+
+        ``nsym_line`` (default 2; must be 0, 2, or 4) is the per-line Reed-
+        Solomon parity budget: 0 disables the in-line correction tier (the
+        line-parity field is omitted entirely), 2/4 add that many parity
+        bytes to every printed line so many single/double-character OCR
+        errors self-heal without ever touching the document-level RS erasure
+        budget (see the module docstring's "Per-line Reed-Solomon" section).
+        """
         if line_width < 1:
             raise ValueError("line_width must be >= 1")
         if not 0 < parity_ratio < 1:
             raise ValueError("parity_ratio must be in (0, 1)")
+        if nsym_line not in (0, 2, 4):
+            raise ValueError("nsym_line must be 0, 2, or 4")
 
         orig_len = len(data)
         protected_len = _HEADER_LEN + orig_len
         nsym = _select_nsym(protected_len, parity_ratio)
-        header = _make_header(nsym, orig_len)
+        header = _make_header(nsym, orig_len, nsym_line)
         stream = header + data
         data_bytes, parity_bytes, _nblocks = _rs_encode(stream, nsym)
 
         lines: _ty.List[str] = []
-        lines.extend(_frame_bytes("L", data_bytes, line_width, self._spec))
-        lines.extend(_frame_bytes("P", parity_bytes, line_width, self._spec))
+        lines.extend(
+            _frame_bytes("L", data_bytes, line_width, self._spec, nsym_line=nsym_line)
+        )
+        lines.extend(
+            _frame_bytes("P", parity_bytes, line_width, self._spec, nsym_line=nsym_line)
+        )
         return lines
 
     def iter_encode(
@@ -1275,17 +1737,26 @@ class Base16GCodec(Codec):
         *,
         line_width: int = 60,
         parity_ratio: float = 0.12,
+        nsym_line: int = 2,
         temp_dir: _ty.Optional[str] = None,
     ) -> _ty.Iterator[str]:
         """Encode a seekable payload source with bounded Python allocations.
 
-        The existing interleaved RS layout is preserved exactly. A temporary
-        parity spool avoids retaining parity or framed lines in memory; mmap is
-        used when the source exposes a file descriptor so each RS codeword is
-        at most 255 bytes in Python memory.
+        The existing interleaved RS layout is preserved exactly (document-level
+        data interleave), plus the v2 symbol-major PARITY interleave (see
+        :func:`_parity_position`). A temporary parity spool avoids retaining
+        parity or framed lines in memory: each block's parity is written
+        contiguously (cheap sequential writes), then re-read through the
+        interleaved position mapping when framing ``P`` lines -- the spool
+        never exceeds ``nsym * nblocks`` bytes, which stays tiny (RS blocks
+        are capped at 255 bytes each). mmap is used when the source exposes a
+        file descriptor so each RS codeword is at most 255 bytes in Python
+        memory. ``nsym_line`` (default 2) is documented on :meth:`encode`.
         """
         if data_len < 0 or data_len > 0xFFFFFFFF:
             raise ValueError("data length must fit the base16g-crc16-rs unsigned 32-bit header")
+        if nsym_line not in (0, 2, 4):
+            raise ValueError("nsym_line must be 0, 2, or 4")
         (
             bytes_per_line,
             protected_len,
@@ -1293,8 +1764,8 @@ class Base16GCodec(Codec):
             nblocks,
             _data_lines,
             _parity_lines,
-        ) = _encoding_shape(data_len, line_width, parity_ratio, self._spec)
-        header = _make_header(nsym, data_len)
+        ) = _encoding_shape(data_len, line_width, parity_ratio, self._spec, nsym_line)
+        header = _make_header(nsym, data_len, nsym_line)
         source.seek(0, 2)
         actual_len = source.tell()
         if actual_len != data_len:
@@ -1311,7 +1782,7 @@ class Base16GCodec(Codec):
             except (AttributeError, OSError, ValueError):
                 mapping = None
         try:
-            with _tempfile.TemporaryFile(dir=temp_dir) as parity:
+            with _tempfile.TemporaryFile(dir=temp_dir) as block_parity_spool:
                 rs = _reedsolo.RSCodec(nsym)
                 for block_index in range(nblocks):
                     block = bytearray()
@@ -1327,7 +1798,7 @@ class Base16GCodec(Codec):
                                 raise ValueError("source was truncated during RS encoding")
                             block.extend(value)
                     encoded = rs.encode(bytes(block))
-                    parity.write(encoded[len(block):])
+                    block_parity_spool.write(encoded[len(block):])
 
                 source.seek(0)
                 pending = bytearray(header)
@@ -1347,15 +1818,34 @@ class Base16GCodec(Codec):
                     del pending[:bytes_per_line]
                     if line_index >= self._spec.max_idx:
                         raise ValueError(f"L stream exceeds {self._spec.max_idx} lines")
-                    yield _frame("L", line_index, radix_encode(chunk, self._spec), self._spec)
+                    yield _frame(
+                        "L", line_index, chunk, self._spec, nsym_line=nsym_line
+                    )
                     line_index += 1
                 if source.read(1):
                     raise ValueError("source grew during data framing")
 
-                parity.seek(0)
-                yield from _frame_stream(
-                    "P", parity, nblocks * nsym, bytes_per_line, self._spec
-                )
+                # Re-read the contiguously-written per-block parity through the
+                # v2 interleaved (symbol-major) position mapping -- the spool
+                # holds nsym*nblocks bytes total (always tiny; RS blocks are
+                # capped at 255 bytes), so a full in-memory read is bounded.
+                block_parity_spool.seek(0)
+                contiguous_parity = block_parity_spool.read()
+                interleaved_parity = bytearray(len(contiguous_parity))
+                for b in range(nblocks):
+                    for j in range(nsym):
+                        interleaved_parity[_parity_position(j, b, nblocks)] = (
+                            contiguous_parity[b * nsym + j]
+                        )
+                with _io.BytesIO(bytes(interleaved_parity)) as parity:
+                    yield from _frame_stream(
+                        "P",
+                        parity,
+                        nblocks * nsym,
+                        bytes_per_line,
+                        self._spec,
+                        nsym_line=nsym_line,
+                    )
         finally:
             if mapping is not None:
                 mapping.close()
@@ -1407,13 +1897,27 @@ class Base16GCodec(Codec):
         collisions: _ty.List[str] = []
         collided: _ty.Set[_ty.Tuple[str, int]] = set()
         length_counts: _ty.Counter[int] = _collections.Counter()
+        # The optional line-parity field's printed width is not known until the
+        # group header is recovered (it carries the authoritative nsym_line),
+        # but the field's presence changes where payload/check fall on EVERY
+        # line -- so it is detected STRUCTURALLY up front (3 vs 4
+        # whitespace-delimited tokens per line) and later cross-checked against
+        # the header once that's recoverable; a mismatch is a hard error.
+        encoded_source.seek(0)
+        line_parity_chars = _detect_line_parity_chars(
+            (raw.decode("utf-8", "replace") for raw in encoded_source), self._spec
+        )
         encoded_source.seek(0)
         while True:
             offset = encoded_source.tell()
             raw = encoded_source.readline()
             if not raw:
                 break
-            parsed = _parse_line(raw.decode("utf-8").rstrip("\r\n"), self._spec)
+            parsed = _parse_line(
+                raw.decode("utf-8").rstrip("\r\n"),
+                self._spec,
+                line_parity_chars=line_parity_chars,
+            )
             if parsed is None:
                 continue
             target = data_lines if parsed.kind == "L" else parity_lines
@@ -1483,10 +1987,20 @@ class Base16GCodec(Codec):
             dir=temp_dir
         ) as parity_spool:
             data_len, data_erasures = _assemble_to_spool(
-                encoded_source, data_lines, data_spool, bytes_per_line, self._spec
+                encoded_source,
+                data_lines,
+                data_spool,
+                bytes_per_line,
+                self._spec,
+                line_parity_chars=line_parity_chars,
             )
             parity_len, parity_erasures = _assemble_to_spool(
-                encoded_source, parity_lines, parity_spool, bytes_per_line, self._spec
+                encoded_source,
+                parity_lines,
+                parity_spool,
+                bytes_per_line,
+                self._spec,
+                line_parity_chars=line_parity_chars,
             )
             if data_len < _HEADER_LEN:
                 raise ValueError("data stream shorter than the group header")
@@ -1518,9 +2032,20 @@ class Base16GCodec(Codec):
                     data_spool.seek(0)
                     prefix = data_spool.read(_HEADER_LEN)
                     try:
-                        hdr_nsym, orig_len = _parse_header(prefix)
+                        hdr_nsym, orig_len, hdr_nsym_line = _parse_header(prefix)
                     except ValueError:
-                        hdr_nsym, orig_len = None, None
+                        hdr_nsym, orig_len, hdr_nsym_line = None, None, None
+                    if hdr_nsym == only_nsym and hdr_nsym_line is not None:
+                        expected_nsym_line = _nsym_line_for_chars(
+                            line_parity_chars, self._spec
+                        )
+                        if hdr_nsym_line != expected_nsym_line:
+                            raise ValueError(
+                                "group header nsym_line "
+                                f"({hdr_nsym_line}) disagrees with the printed "
+                                f"line-parity field shape ({expected_nsym_line}) "
+                                "-- corrupt or mismatched-version transcript"
+                            )
                     if (
                         hdr_nsym == only_nsym
                         and orig_len is not None
@@ -1556,10 +2081,17 @@ class Base16GCodec(Codec):
                         for block_index in range(nblocks):
                             positions = list(range(block_index, data_len, nblocks))
                             block_data = bytes(data_map[pos] for pos in positions)
-                            parity_base = block_index * nsym
+                            # v2: parity byte j of this block lives at the
+                            # INTERLEAVED (symbol-major) offset j*nblocks+b,
+                            # not the contiguous b*nsym+j -- see
+                            # _parity_position.
+                            parity_pos = [
+                                _parity_position(j, block_index, nblocks)
+                                for j in range(nsym)
+                            ]
                             block_parity = bytes(
                                 parity_map[pos] if pos < parity_len else 0
-                                for pos in range(parity_base, parity_base + nsym)
+                                for pos in parity_pos
                             )
                             erase_pos = [
                                 local for local, pos in enumerate(positions)
@@ -1567,9 +2099,8 @@ class Base16GCodec(Codec):
                             ]
                             erase_pos.extend(
                                 len(positions) + offset
-                                for offset in range(nsym)
-                                if parity_base + offset in parity_erasure_set
-                                or parity_base + offset >= parity_len
+                                for offset, pos in enumerate(parity_pos)
+                                if pos in parity_erasure_set or pos >= parity_len
                             )
                             # Per-block fast path: a block with no erasures is
                             # already CRC-trusted and its data bytes are already
@@ -1596,11 +2127,21 @@ class Base16GCodec(Codec):
                         corrected.seek(0)
                         prefix = corrected.read(_HEADER_LEN)
                         try:
-                            hdr_nsym, orig_len = _parse_header(prefix)
+                            hdr_nsym, orig_len, hdr_nsym_line = _parse_header(prefix)
                         except ValueError:
                             continue
                         if hdr_nsym != nsym or orig_len > data_len - _HEADER_LEN:
                             continue
+                        expected_nsym_line = _nsym_line_for_chars(
+                            line_parity_chars, self._spec
+                        )
+                        if hdr_nsym_line != expected_nsym_line:
+                            raise ValueError(
+                                "group header nsym_line "
+                                f"({hdr_nsym_line}) disagrees with the printed "
+                                f"line-parity field shape ({expected_nsym_line}) "
+                                "-- corrupt or mismatched-version transcript"
+                            )
                         remaining = orig_len
                         while remaining:
                             chunk = corrected.read(min(1024 * 1024, remaining))
