@@ -1,6 +1,6 @@
 # Agent config must never be committed (global rule)
 AGENTS.md
-.agents/
+.agents
 CLAUDE*
 .claude
 
