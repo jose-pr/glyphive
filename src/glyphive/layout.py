@@ -356,12 +356,16 @@ def _machine_header_bytes(meta: _ty.Mapping[str, _ty.Any]) -> bytes:
     else:
         body.append(0xFF)
     body.extend(struct.pack(
-        ">QQIII",
+        ">QQIIIB",
         _machine_uint(meta, "files", 64),
         _machine_uint(meta, "bytes", 64),
         _machine_uint(meta, "pages", 32),
         _machine_uint(meta, "pgpar", 32) if "pgpar" in meta else 0,
         _machine_uint(meta, "page_block_bytes", 32) if "page_block_bytes" in meta else 0,
+        # Page-parity Galois field width (8 or 16; see codec.pagers). Only
+        # meaningful when pgpar > 0; 8 is the byte-identical-with-the-past
+        # default when page parity is unused.
+        _machine_uint(meta, "pgpar_field", 8) if "pgpar_field" in meta else 8,
     ))
     body.extend(sha_bytes)
     if len(body) > 0xFFFF:
@@ -538,16 +542,20 @@ def _decode_machine_header(
     else:
         profile, cursor = _take_machine_text(body, cursor, "meta")
 
-    fixed_size = struct.calcsize(">QQIII") + 32
+    fixed_size = struct.calcsize(">QQIIIB") + 32
     if len(body) - cursor != fixed_size:
         raise LayoutError("machine header fixed fields have an invalid length")
-    files, byte_count, pages, parity_pages, page_block_bytes = struct.unpack_from(
-        ">QQIII", body, cursor
+    files, byte_count, pages, parity_pages, page_block_bytes, pgpar_field = struct.unpack_from(
+        ">QQIIIB", body, cursor
     )
-    cursor += struct.calcsize(">QQIII")
+    cursor += struct.calcsize(">QQIIIB")
     sha256 = body[cursor:cursor + 32].hex()
     if pages == 0:
         raise LayoutError("machine header page count must be positive")
+    if pgpar_field not in (8, 16):
+        raise LayoutError(
+            f"machine header page-parity field width must be 8 or 16, got {pgpar_field}"
+        )
 
     meta: _ty.Dict[str, _ty.Any] = {
         "v": LAYOUT_VERSION,
@@ -558,6 +566,7 @@ def _decode_machine_header(
         "pages": pages,
         "pgpar": parity_pages,
         "page_block_bytes": page_block_bytes,
+        "pgpar_field": pgpar_field,
         "sha256": sha256,
     }
     if profile is not None:
@@ -810,12 +819,22 @@ def iter_paginate(
     from .codec import pagers as _pagers
     from .codec.base16c import _detect_line_parity_chars, split_frame, split_frame_with_parity
 
-    if parity_pages and data_total + parity_pages > _pagers.MAX_TOTAL_BLOCKS:
-        raise LayoutError(
-            f"parity_pages={parity_pages} with {data_total} data page(s) "
-            f"exceeds the {_pagers.MAX_TOTAL_BLOCKS}-page Reed-Solomon limit "
-            f"(data pages + parity pages must be <= {_pagers.MAX_TOTAL_BLOCKS})"
-        )
+    # Select the page-parity Galois field automatically: GF(2^8) (1 byte/
+    # symbol, cap 255 total blocks) while it fits, GF(2^16) (2 bytes/symbol,
+    # cap 65535) once the archive is too large for GF(2^8). K=0 records the
+    # GF(2^8) default field for byte-for-byte compatibility with pre-GF(2^16)
+    # output, though the field is meaningless without parity pages.
+    pgpar_field = 8
+    if parity_pages:
+        pgpar_field = 16 if grand_total > _pagers.MAX_TOTAL_BLOCKS else 8
+        limit = _pagers.max_total_blocks(pgpar_field)
+        if grand_total > limit:
+            raise LayoutError(
+                f"parity_pages={parity_pages} with {data_total} data page(s) "
+                f"exceeds the {limit}-page Reed-Solomon limit "
+                f"(data pages + parity pages must be <= {limit})"
+            )
+    meta["pgpar_field"] = pgpar_field
 
     # ``page_block_bytes`` (B) is a protected header field, but it depends on
     # every data page's contents (the max block length across all of them),
@@ -844,6 +863,12 @@ def iter_paginate(
             (len("\n".join(chunk).encode("utf-8")) for chunk in precomputed_chunks),
             default=0,
         )
+        if pgpar_field == 16 and block_bytes % 2:
+            # GF(2^16) pairs adjacent bytes into symbols; keeping block_bytes
+            # even here means every parity block comes out exactly
+            # block_bytes long too (see codec.pagers), so the Q-page length
+            # check below never has to special-case an odd/even mismatch.
+            block_bytes += 1
         # The L/P lines carry an optional per-line Reed-Solomon parity field
         # (base16c v2) whose width is not knowable from line_width alone --
         # detect it structurally (same heuristic codec decode uses) so the
@@ -931,7 +956,9 @@ def iter_paginate(
         from .codec.base16c import _frame_bytes
 
         padded_blocks = [b.ljust(block_bytes, b"\x00") for b in data_blocks]
-        parity_blocks = _pagers.encode_page_parity(padded_blocks, parity_pages)
+        parity_blocks = _pagers.encode_page_parity(
+            padded_blocks, parity_pages, c_exp=pgpar_field
+        )
         # A parity line's PAYLOAD width matches the widest data-line payload
         # (not the full framed-line length -- that units bug printed Q rows
         # wider than the 60-char OCR-safe cap). Falls back to the safe default
@@ -1168,6 +1195,7 @@ def read_pages_to_spool(
     data_total = header_meta["pages"]  # D: data pages only (machine envelope)
     parity_budget = header_meta.get("pgpar", 0)
     block_bytes = header_meta.get("page_block_bytes", 0)
+    pgpar_field = header_meta.get("pgpar_field", 8)
     grand_total = data_total + parity_budget
     inconsistent = sorted(
         n for n, observed_total in pages_seen.items()
@@ -1229,7 +1257,9 @@ def read_pages_to_spool(
 
         if recoverable:
             try:
-                rebuilt = _pagers.reconstruct_pages(blocks, parity_budget)
+                rebuilt = _pagers.reconstruct_pages(
+                    blocks, parity_budget, c_exp=pgpar_field
+                )
             except _pagers.PageParityError:
                 rebuilt = None
             if rebuilt is not None:

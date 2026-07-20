@@ -100,6 +100,7 @@ class Inspect(LoggingArgs):
         shape = describe_line_stream(encoded, spec)
         data_pages = int(meta["pages"])
         parity_pages = int(meta.get("pgpar", 0) or 0)
+        parity_field = int(meta.get("pgpar_field", 8) or 8)
         missing = list(meta.get("_missing_pages", []) or [])
         reconstructed = list(meta.get("_reconstructed_pages", []) or [])
         # A missing data page is reconstructable if page-parity can still cover
@@ -116,6 +117,7 @@ class Inspect(LoggingArgs):
             "bytes": meta.get("bytes"),
             "data_pages": data_pages,
             "parity_pages": parity_pages,
+            "parity_field": parity_field,
             "survives_lost_data_pages": parity_pages,
             "pages_present": sorted(meta.get("_pages_seen", []) or []),
             "pages_missing": missing,
@@ -153,10 +155,16 @@ class Inspect(LoggingArgs):
                 **report
             )
         )
+        parity_field_text = (
+            f" [GF(2^{report['parity_field']})]" if report["parity_pages"] else ""
+        )
         print(
-            "  pages: {data_pages} data + {parity_pages} parity "
-            "(survives up to {survives_lost_data_pages} wholly lost data "
-            "page(s))".format(**report)
+            (
+                "  pages: {data_pages} data + {parity_pages} parity"
+                + parity_field_text
+                + " (survives up to {survives_lost_data_pages} wholly lost data "
+                "page(s))"
+            ).format(**report)
         )
         print(f"  per-line Reed-Solomon budget: {nsym_text}")
         line_parity = report["line_parity_nsym"]

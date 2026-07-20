@@ -2,6 +2,7 @@
 
 import hashlib
 import io
+import os
 
 import pytest
 
@@ -140,6 +141,76 @@ def test_parity_pages_positive_paginates_to_data_plus_parity_and_round_trips():
     assert restored_meta["pages"] == d  # machine envelope pages == D, not D+K
     assert restored_meta["pgpar"] == k
     assert restored_meta["page_block_bytes"] > 0
+
+
+def test_parity_pages_selects_gf216_field_past_255_total_blocks_and_round_trips():
+    """Plan 5: data_total + K > 255 must switch to the GF(2^16) page-parity
+    field automatically (instead of raising), and restore must round-trip.
+    """
+    data = os.urandom(90000)
+    lines = codec.get("base16g-crc16-rs").encode(data)
+    assert len(lines) > 3000  # sanity: enough to clear 250+ data pages below
+    meta = {
+        "codec": "base16g-crc16-rs",
+        "comp": "none",
+        "meta": "none",
+        "files": 1,
+        "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    k = 5
+    pages = list(
+        layout.iter_paginate(
+            iter(lines), len(lines), dict(meta), lines_per_page=13, parity_pages=k
+        )
+    )
+    d = len(pages) - k
+    assert d + k > 255  # the whole point: this used to be rejected outright
+
+    all_lines = [line for page in pages for line in page.text_lines]
+    restored_meta, encoded_lines = layout.read_pages(all_lines)
+    assert restored_meta["pgpar"] == k
+    assert restored_meta["pgpar_field"] == 16
+    assert restored_meta["pages"] == d
+    assert encoded_lines == lines
+    assert codec.get("base16g-crc16-rs").decode(encoded_lines) == data
+
+
+def test_parity_pages_still_selects_gf28_field_at_or_under_255_total_blocks():
+    data = b"stays on GF(2^8)" * 5
+    encoded = codec.get("base16g-crc16-rs").encode(data)
+    meta = {
+        "codec": "base16g-crc16-rs",
+        "comp": "none",
+        "meta": "none",
+        "files": 1,
+        "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    pages = layout.paginate(encoded, dict(meta), lines_per_page=13, parity_pages=2)
+    all_lines = [line for page in pages for line in page.text_lines]
+    restored_meta, _ = layout.read_pages(all_lines)
+    assert restored_meta["pgpar_field"] == 8
+
+
+def test_parity_pages_exceeding_65535_total_blocks_raises():
+    meta = {
+        "codec": "base16g-crc16-rs",
+        "comp": "none",
+        "meta": "none",
+        "files": 1,
+        "bytes": 0,
+        "sha256": "0" * 64,
+    }
+    # The cap check runs before the encoded-line source is ever consumed, so
+    # an empty iterator plus a declared (huge) n_encoded is enough to exercise
+    # it cheaply -- no need to materialize a million real lines.
+    with pytest.raises(layout.LayoutError, match="65535-page Reed-Solomon limit"):
+        list(
+            layout.iter_paginate(
+                iter(()), 1_000_000, dict(meta), lines_per_page=15, parity_pages=5
+            )
+        )
 
 
 def test_parity_row_payload_never_wider_than_data_or_safe_cap():
