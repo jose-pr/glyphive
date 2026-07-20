@@ -58,7 +58,8 @@ class Inspect(LoggingArgs):
 
     def __call__(self) -> int:
         from .. import layout as _layout
-        from ..codec.base16c import describe_line_stream
+        from ..codec import get as _get_codec
+        from ..codec.base16c import BASE16G, describe_line_stream
 
         source = Path(self.file)
         lines = (
@@ -85,7 +86,18 @@ class Inspect(LoggingArgs):
             self._emit({"readable": False, "reason": str(exc)})
             return 1
 
-        shape = describe_line_stream(encoded)
+        # The stream shape must be read with the payload codec's own alphabet
+        # and framing; the protected header names the codec. An unknown codec
+        # (e.g. a plugin not loaded for this invocation) falls back to the
+        # base16g bootstrap spec rather than failing the whole report.
+        spec = BASE16G
+        codec_name = meta.get("codec")
+        if codec_name:
+            try:
+                spec = getattr(_get_codec(str(codec_name)), "_spec", BASE16G)
+            except ValueError:
+                pass
+        shape = describe_line_stream(encoded, spec)
         data_pages = int(meta["pages"])
         parity_pages = int(meta.get("pgpar", 0) or 0)
         missing = list(meta.get("_missing_pages", []) or [])
