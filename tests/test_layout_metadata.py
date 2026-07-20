@@ -365,12 +365,16 @@ def test_unreadable_index_token_is_surfaced_not_silently_dropped():
     assert unreadable[0]["page"] == 1  # single-page fixture; footer is page 1
 
 
-def test_conflicting_index_collision_fails_instead_of_silent_overwrite():
-    """Two CRC-valid lines claiming one index with different payloads must fail.
+def test_conflicting_index_collision_degrades_to_erasure_not_fatal():
+    """Two CRC-valid lines claiming one index with different payloads must NOT
+    abort the whole decode (plan-1 Fix 3).
 
     Real-recovery finding #3 (the most dangerous class): a corrupted label that
-    decodes to a real-but-wrong index used to silently overwrite a different
-    genuine line under blind last-write-wins. Detect the conflict and refuse.
+    decodes to a real-but-wrong index. The old behavior raised a fatal
+    ``CodecError``; a single such collision is far better handled by degrading
+    that index to an erasure and letting Reed-Solomon rebuild it -- an erasure at
+    one index is squarely inside the default parity budget. Only if the resulting
+    erasure load exceeds the budget does decode fail, via the budget path.
     """
     from glyphive.codec.base16c import CodecError, _check_chars
 
@@ -380,17 +384,13 @@ def test_conflicting_index_collision_fails_instead_of_silent_overwrite():
 
     data_positions = [i for i, line in enumerate(lines) if line.startswith("L")]
     assert len(data_positions) >= 2
-    # Build a genuinely CRC-valid line that claims line 0's index but carries a
-    # DIFFERENT payload (borrowed from line 1) -- i.e. finding #3 exactly: a
-    # corrupted label decoded to a real-but-wrong index, and the resulting line
-    # still passes its own CRC because the check is recomputed for the new label.
     idx0_token = lines[data_positions[0]].split()[0][1:]
     payload_from_line1 = lines[data_positions[1]].split()[1]
     forged = f"L{idx0_token} {payload_from_line1} #{_check_chars(idx0_token, payload_from_line1)}"
     lines[data_positions[1]] = forged
 
-    with pytest.raises(CodecError, match="conflicting duplicate line index"):
-        c.decode(lines)
+    # No fatal "conflicting duplicate" abort; RS rebuilds the degraded slot.
+    assert c.decode(lines) == data
 
 
 def test_benign_exact_duplicate_lines_do_not_trigger_collision():

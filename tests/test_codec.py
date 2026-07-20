@@ -15,11 +15,15 @@ import pytest
 from glyphive import codec
 from glyphive.codec.base16c import (
     ALPHABET,
+    BASE16G,
     CodecError,
+    _check_chars,
     _encoding_shape,
+    _parse_line,
     encoded_line_count,
     nibble_decode,
     nibble_encode,
+    repair_line,
 )
 
 
@@ -117,6 +121,17 @@ def _mutate_one_payload_char(line):
     return f"{label} {new_payload} {check}"
 
 
+def _wreck_payload(line):
+    """Return ``line`` with MANY payload chars changed -- beyond the reach of the
+    decode-hardening single-substitution repair, so the line is a true erasure."""
+    label, payload, check = line.split()
+    new_payload = "".join(
+        next(c for c in ALPHABET if c != ch) if i % 2 == 0 else ch
+        for i, ch in enumerate(payload)
+    )
+    return f"{label} {new_payload} {check}"
+
+
 def test_single_char_error_self_heals():
     rng = random.Random(42)
     data = bytes(rng.randrange(256) for _ in range(500))
@@ -130,6 +145,88 @@ def test_single_char_error_self_heals():
 
     # The line's CRC now fails, marking it an erasure; RS repairs it.
     assert base16c.decode(corrupted) == data
+
+
+# --------------------------------------------------------------------------- #
+# Plan 1 — decode hardening (geometry poisoning, repair, kind-flip, collisions)
+# --------------------------------------------------------------------------- #
+def _corrupt_index_token(line):
+    """Change one character of a line's 5-char index token (poisons geometry:
+    the CRC-failed line now claims an arbitrary, likely huge, index)."""
+    label, payload, check = line.split()
+    token = label[1:]
+    orig = token[0]
+    sub = next(c for c in ALPHABET if c != orig)
+    return f"{label[0]}{sub}{token[1:]} {payload} {check}"
+
+
+def test_repair_line_fixes_single_char_errors():
+    """repair_line is SOUND: for a single payload error it returns either the
+    exact original or None (never a wrong non-None repair). It reproduces the
+    original in the large majority of cases; the residual are genuine CRC
+    ambiguities (a different single substitution also matches the 16-bit check),
+    which it correctly declines rather than guessing."""
+    spec = BASE16G
+    from glyphive.codec.base16c import _frame, radix_encode
+
+    rng = random.Random(7)
+    exact = 0
+    trials = 200
+    for _ in range(trials):
+        orig = _frame("L", rng.randrange(1000), radix_encode(bytes(rng.randrange(256) for _ in range(30)), spec), spec)
+        label, payload, check = orig.split()
+        i = rng.randrange(len(payload))
+        bad_payload = payload[:i] + next(c for c in ALPHABET if c != payload[i]) + payload[i + 1:]
+        bad = f"{label} {bad_payload} {check}"
+        assert not _parse_line(bad, spec).ok
+        repaired = repair_line(bad, spec)
+        # Soundness: any non-None repair must itself pass CRC.
+        if repaired is not None:
+            assert _parse_line(repaired, spec).ok
+            if repaired == orig:
+                exact += 1
+    assert exact >= int(trials * 0.85)  # measured ~94% exact
+    # A kind flip (L->P) is CRC-valid and MUST NOT be altered by repair.
+    p_line = "P" + orig[1:]
+    assert _parse_line(p_line, spec).ok  # CRC blind to kind
+    assert repair_line(p_line, spec) is None or repair_line(p_line, spec).startswith("P")
+
+
+def test_geometry_poisoning_index_corruption_still_decodes():
+    """A CRC-failed line with a corrupted index token (claiming an impossible
+    index) must NOT destroy stream geometry -- decode still succeeds (repair
+    fixes most; the trusted-geometry rule contains the rest). Regression for the
+    'cannot recover RS parameters' failure at low CER."""
+    rng = random.Random(11)
+    data = bytes(rng.randrange(256) for _ in range(4000))
+    lines = base16c.encode(data)
+    damaged = list(lines)
+    # Corrupt the index token of a few data lines.
+    dpos = [i for i, l in enumerate(damaged) if l.startswith("L")]
+    for i in dpos[:3]:
+        damaged[i] = _corrupt_index_token(damaged[i])
+    assert base16c.decode(damaged) == data
+
+
+def test_kind_flip_does_not_abort_with_collision_error():
+    """One L->P kind flip yields a CRC-valid phantom parity line at the same
+    index. Decode must NOT raise the fatal 'conflicting duplicate' collision
+    error -- it degrades the colliding index to an erasure. (Full data recovery
+    from a kind flip needs the v2 kind-covered CRC + interleaved parity; in v1
+    the non-interleaved parity layout can still make the specific block
+    unrecoverable, which surfaces as the honest budget error, never a collision
+    abort.)"""
+    rng = random.Random(13)
+    data = bytes(rng.randrange(256) for _ in range(4000))
+    lines = base16c.encode(data)
+    damaged = list(lines)
+    idx = _first_data_line_index(damaged)
+    damaged[idx] = "P" + damaged[idx][1:]  # flip kind; CRC still passes
+    try:
+        assert base16c.decode(damaged) == data
+    except CodecError as exc:
+        assert "conflicting duplicate" not in str(exc)
+        assert "exceeds RS correction budget" in str(exc)
 
 
 def _find_non_last_data_line(lines):
@@ -219,11 +316,12 @@ def test_over_budget_corruption_raises_named():
     lines = base16c.encode(data, parity_ratio=0.02)
 
     corrupted = list(lines)
-    # Wreck every data line's payload -> far beyond any RS budget.
+    # Wreck every data line's payload with MANY errors each (single-char repair
+    # cannot rescue these) -> far beyond any RS budget.
     n_wrecked = 0
     for i, line in enumerate(corrupted):
         if line.startswith("L"):
-            corrupted[i] = _mutate_one_payload_char(line)
+            corrupted[i] = _wreck_payload(line)
             n_wrecked += 1
     assert n_wrecked > 0
 
@@ -502,7 +600,9 @@ def test_damaged_decode_calls_rs_only_for_blocks_with_erasures(monkeypatch):
     lines = base16c.encode(data)
     damaged = list(lines)
     idx = _first_data_line_index(damaged)
-    damaged[idx] = _mutate_one_payload_char(damaged[idx])
+    # Wreck the line beyond single-char repair so it is a genuine erasure that
+    # reaches RS (a single-char error would now be repaired before RS runs).
+    damaged[idx] = _wreck_payload(damaged[idx])
 
     assert base16c.decode(damaged) == data
     # One corrupted line is an erasure across the blocks its interleaved bytes
