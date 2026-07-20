@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **OCR per-character confidence drives char-level erasure marking (plan
+  3).** A CRC-failed line used to erase its ENTIRE byte span for the
+  document-level Reed-Solomon tier, even though the typical cause is one or
+  two misread characters — the erasure budget was consumed far faster than
+  the true error mass. `OcrProvider.ocr_image` now returns
+  `List[OcrLine]` (text + optional per-character confidence, 0..1 or
+  `None`) instead of `List[str]` — a breaking change to the provider
+  contract, fine pre-1.0. Tesseract builds confidence from
+  `image_to_data` (word-granularity, broadcast per character — Tesseract's
+  stable API has no finer level); EasyOCR/PaddleOCR broadcast their own
+  per-segment/per-line score. `Base16GCodec.decode_spool` accepts an
+  optional `char_conf` (keyed by physical line order, since a CRC-failed
+  line's own index label may be corrupt): for a failed line with usable
+  confidence, only the byte offsets its low-confidence characters map to
+  are marked as erasures — the line's other bytes enter the RS stream as
+  ordinary (unverified) data. A two-pass, block-local safety valve makes
+  this strictly no-worse than today: if a block still fails RS with the
+  narrower erasure set, it is retried with the touching line(s) promoted
+  to a full-span erasure (today's behaviour) before giving up. This is a
+  hint about erasure *position* only — acceptance is still CRC/RS/SHA-256,
+  never guessed. `char_conf` absent (the default) is byte-identical to a
+  build without this feature. New `tools/conf_calibration.py` measures
+  `P(char wrong | conf < t)` and recall of wrong characters against
+  Tesseract to calibrate the default threshold (ships at `0.6` pending a
+  real calibration run — see the tool's own docstring).
+
 ### Changed
 
 - **Page parity lifts the 255-page cap: `--parity-pages` now supports up to
