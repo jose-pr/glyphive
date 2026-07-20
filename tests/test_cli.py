@@ -116,20 +116,67 @@ def test_create_with_parity_pages_survives_deleted_page_blocks(tmp_path):
     _compare_dirs(src, outdir)
 
 
-def test_create_rejects_parity_pages_exceeding_the_255_page_cap(tmp_path):
+def test_create_no_longer_rejects_parity_pages_exceeding_the_old_255_page_cap(tmp_path):
+    """Plan 5: page-parity switched to a GF(2^16) field past 255 total
+    blocks, raising the cap to 65535 -- this used to be a create-time error.
+    """
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "a.txt"
 
-    with pytest.raises(SystemExit, match="255"):
-        cli.run(
-            [
-                "create",
-                "-f", str(archive_file),
-                "-C", str(src),
-                "--parity-pages", "255",
-                ".",
-            ]
-        )
+    exit_code = cli.run(
+        [
+            "create",
+            "-f", str(archive_file),
+            "-C", str(src),
+            "--parity-pages", "255",
+            ".",
+        ]
+    )
+    assert exit_code == 0
+    assert archive_file.exists()
+
+
+def test_create_with_gf216_parity_pages_survives_deleted_page_blocks(tmp_path):
+    """Full create -> delete 5 data pages -> extract round trip driven past
+    the GF(2^8) 255-block cap (300+ data pages), forcing the GF(2^16) page-
+    parity field end to end through the real CLI + text renderer.
+    """
+    from glyphive.render.formats.text import FORM_FEED
+
+    src = _make_srcdir(tmp_path)
+    (src / "big.bin").write_bytes(os.urandom(450_000))  # ~300+ data pages
+    archive_file = tmp_path / "a.txt"
+    outdir = tmp_path / "out"
+
+    rc = cli.run(
+        [
+            "create",
+            "-f", str(archive_file),
+            "-C", str(src),
+            "--parity-pages", "5",
+            "--compression", "none",
+            ".",
+        ]
+    )
+    assert rc == 0
+
+    text = archive_file.read_text(encoding="utf-8")
+    blocks = text.split(FORM_FEED)
+    header_line = blocks[0].splitlines()[0]
+    assert "pgpar=5" in header_line
+
+    data_pages = int(header_line.split("pages=", 1)[1].split()[0])
+    assert data_pages + 5 > 255  # sanity: this is actually exercising GF(2^16)
+
+    # Drop 5 whole data page blocks (never page 1, which carries the header).
+    assert len(blocks) > 10
+    victims = {1, 2, 3, 4, 5}
+    surviving_blocks = [b for i, b in enumerate(blocks) if i not in victims]
+    archive_file.write_text(FORM_FEED.join(surviving_blocks), encoding="utf-8")
+
+    rc = cli.run(["extract", "-f", str(archive_file), "-C", str(outdir)])
+    assert rc == 0
+    _compare_dirs(src, outdir)
 
 
 def test_tar_style_mode_flags_roundtrip(tmp_path, capsys):

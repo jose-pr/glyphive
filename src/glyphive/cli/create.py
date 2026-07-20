@@ -212,8 +212,9 @@ class Create(LoggingArgs):
     "Reed-Solomon parity over the data pages (default 0 = off, matches prior "
     "behavior exactly). Survives up to K wholly lost/unscannable data pages, "
     "independent of --parity-ratio's per-line correction; costs K extra "
-    "printed pages. Data pages + K must not exceed 255 (a create-time error "
-    "names the cap if exceeded)."
+    "printed pages. Data pages + K use a GF(2^8) field up to 255 total, and "
+    "automatically switch to GF(2^16) beyond that (up to 65535 total; a "
+    "create-time error names the cap if exceeded)."
     ("--parity-pages",)
 
     simple: bool = False

@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Page parity lifts the 255-page cap: `--parity-pages` now supports up to
+  65,535 total pages (breaking, pre-release — no compat shim).** Document-level
+  whole-page recovery (`codec/pagers.py`) previously required data pages +
+  parity pages <= 255 (one Reed-Solomon symbol per byte, GF(2^8)) — too small
+  for large archives (a 30 MB tree at ~3 KB/page is ~10,000 pages). Page
+  parity now automatically switches to a GF(2^16) field (one symbol per pair
+  of bytes) whenever the total exceeds 255, raising the cap to 65,535; the
+  protected machine header gains a `pgpar_field` byte (8 or 16) recording
+  which field a document uses, and `glyphive inspect` reports it. GF(2^8)
+  documents (<=255 total pages) are unaffected byte-for-byte. Existing
+  documents from before this change do not decode (the machine header
+  envelope grew one byte to carry the new field).
+
 - **Wire format hardened: interleaved parity, kind-covered CRC, optional
   per-line Reed-Solomon (breaking, pre-release — no compat shim).** The
   ``base16g-crc16-rs`` codec (and every denser radix codec sharing its
