@@ -5,6 +5,13 @@ wire identifier is `base16g-crc16-rs`.
 
 ::: glyphive.codec
 
-## `base16g-crc16-rs`
+## Codec engine and specs
 
-::: glyphive.codec.base16c
+The shared codec engine (`RadixCodec`, framing, CRC-16, Reed-Solomon, the
+machine-frame API) lives in `glyphive.codec.engine`; every concrete codec
+(`base16g-crc16-rs` and the denser family) is a thin spec-bearing subclass in
+`glyphive.codec.radix`.
+
+::: glyphive.codec.engine
+
+::: glyphive.codec.radix

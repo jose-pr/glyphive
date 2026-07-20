@@ -239,73 +239,29 @@ def parse_header(line: str) -> _ty.Dict[str, _ty.Any]:
 # ---------------------------------------------------------------------------
 
 
-class _ParsedMachineFrame(_ty.NamedTuple):
-    idx: _ty.Optional[int]
-    payload: str
-    ok: bool
-
-
-def _machine_check(kind: str, idx_token: str, payload: str) -> str:
-    """Return a safe-alphabet CRC-16 for a machine metadata frame.
-
-    Covers ``kind`` (``H``/``T``/``Q``) as well as the index token and payload
-    -- matching ``codec.engine``'s kind-covered per-line CRC (v2 wire
-    format). Without this, an OCR misread that flips one machine-frame kind
-    letter into another (e.g. ``T``->``H``) produces a CRC-VALID phantom frame
-    of the wrong kind at the same index, since a kind-blind CRC cannot tell
-    the two apart; covering ``kind`` makes such a flip fail the check like any
-    other single-character error.
-    """
-    from .codec.engine import crc16_ccitt, nibble_encode
-
-    canonical = kind.upper().encode() + idx_token.upper().encode() + payload.upper().encode()
-    crc = crc16_ccitt(canonical)
-    return nibble_encode(crc.to_bytes(2, "big"))
-
-
-def _format_machine_frame(kind: str, idx: int, payload: str) -> str:
-    from .codec.engine import ALPHABET, encode_index
-
-    if kind not in (_MACHINE_HEADER_KIND, _MACHINE_FOOTER_KIND):
-        raise ValueError(f"invalid machine metadata frame kind {kind!r}")
-    if any(char not in ALPHABET for char in payload):
-        raise ValueError("machine metadata payload contains an unsafe character")
-    token = encode_index(idx)
-    return f"{kind}{token} {payload} #{_machine_check(kind, token, payload)}"
+# The H/T/Q machine-frame framing lives in the codec engine (the base16g
+# bootstrap spec, framing primitives, and RS all belong there). layout builds
+# and parses machine frames only through that public surface. These module-level
+# aliases keep the historical layout names (used across this module and by
+# render/formats/qr.py) pointing at the engine implementation.
+from .codec.engine import (  # noqa: E402
+    ParsedMachineFrame as _ParsedMachineFrame,
+    machine_check as _machine_check,
+    machine_frame as _format_machine_frame,
+)
 
 
 def _parse_machine_frame(
     line: str, kind: str
 ) -> _ty.Optional[_ParsedMachineFrame]:
-    """Parse one H/T frame without trusting any surrounding human text.
+    """Parse one H/T machine frame (footer T allows a trailing ``PAGE n/total``
+    display hint). Thin wrapper over :func:`codec.engine.parse_machine_frame`
+    that supplies layout's footer-trailing rule."""
+    from .codec.engine import parse_machine_frame
 
-    Footer lines append a human ``PAGE n/total`` hint *after* the protected T
-    frame.  H/T labels are therefore always the first token, keeping the entire
-    authoritative frame within the same proven line width as L/P payload frames;
-    clipping or corruption in the trailing hint is irrelevant.  Interior
-    whitespace in the safe-alphabet payload is removed, exactly as it is for
-    payload frames; the CRC remains the acceptance oracle.
-    """
-    from .codec.engine import INDEX_WIDTH, decode_index, split_frame
-
-    split = split_frame(line, allow_trailing=kind == _MACHINE_FOOTER_KIND)
-    if split is None:
-        return None
-    label, payload, check_field = split
-    if label[:1].upper() != kind:
-        return None
-    if len(label) != INDEX_WIDTH + 1:
-        return _ParsedMachineFrame(idx=None, payload="", ok=False)
-
-    idx_token = label[1:]
-    idx = decode_index(idx_token)
-    if idx is None:
-        return _ParsedMachineFrame(idx=None, payload="", ok=False)
-
-    payload = payload.upper()
-    check = check_field[1:].upper()
-    expected = _machine_check(kind, idx_token, payload)
-    return _ParsedMachineFrame(idx=idx, payload=payload, ok=check == expected)
+    return parse_machine_frame(
+        line, kind, allow_trailing=kind == _MACHINE_FOOTER_KIND
+    )
 
 
 def _pack_machine_text(value: _ty.Any, key: str) -> bytes:
@@ -375,10 +331,10 @@ def _machine_header_bytes(meta: _ty.Mapping[str, _ty.Any]) -> bytes:
 
 
 def _format_machine_header(meta: _ty.Mapping[str, _ty.Any]) -> _ty.List[str]:
-    from .codec.engine import _rs_encode, nibble_encode
+    from .codec.engine import nibble_encode, rs_protect
 
     envelope = _machine_header_bytes(meta)
-    _data, parity, _nblocks = _rs_encode(envelope, _MACHINE_HEADER_PARITY_BYTES)
+    _data, parity, _nblocks = rs_protect(envelope, _MACHINE_HEADER_PARITY_BYTES)
     payload = nibble_encode(envelope)
     parity_payload = nibble_encode(parity)
     chunks = [
@@ -422,7 +378,7 @@ def _num_header_parity_chunks() -> int:
 def _decode_machine_header(
     frames: _ty.Sequence[_ParsedMachineFrame],
 ) -> _ty.Dict[str, _ty.Any]:
-    from .codec.engine import _rs_decode, nibble_decode, nibble_encode
+    from .codec.engine import nibble_decode, nibble_encode, rs_recover
 
     if not frames:
         raise LayoutError("no integrity-protected machine header found")
@@ -486,7 +442,7 @@ def _decode_machine_header(
                 start = local * bytes_per_chunk
                 parity_erasure_bytes.extend(range(start, min(start + bytes_per_chunk, len(parity_bytes))))
         try:
-            raw_bytes = _rs_decode(
+            raw_bytes = rs_recover(
                 data_bytes,
                 data_erasure_bytes,
                 parity_bytes,
