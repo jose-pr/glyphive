@@ -429,8 +429,19 @@ def restore_document_spooled(
     chunk_size: int = 1024 * 1024,
     max_output_bytes: _ty.Optional[int] = None,
     on_progress: _ty.Optional[ProgressCallback] = None,
+    char_conf: _ty.Optional[
+        _ty.Sequence[_ty.Optional[_ty.Sequence[float]]]
+    ] = None,
 ) -> _ty.Tuple[_ty.Dict[str, _ty.Any], _ty.List[str]]:
-    """Decode to a private spool, validate globally, stage, then publish."""
+    """Decode to a private spool, validate globally, stage, then publish.
+
+    When ``char_conf`` is supplied (per-line OCR character confidence, aligned
+    to ``text_lines`` by physical order), the codec uses it to narrow the
+    erasures of a CRC-failed line to just its low-confidence bytes instead of
+    the whole line. It is only ever a hint: acceptance still rests on the
+    per-line CRC, Reed-Solomon, and the whole-document SHA-256 gate, and a block
+    that fails with the narrowed erasures is retried with the whole line erased.
+    """
     from .decode import decode_document_to_spool
 
     with _tempfile.TemporaryFile(dir=temp_dir) as raw_spool:
@@ -440,6 +451,7 @@ def restore_document_spooled(
             max_output_bytes=max_output_bytes,
             chunk_size=chunk_size,
             temp_dir=temp_dir,
+            char_conf=char_conf,
         )
         written = unarchive_spool(
             raw_spool,
