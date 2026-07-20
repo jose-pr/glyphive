@@ -680,8 +680,8 @@ def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch)
     seen = {}
     monkeypatch.setattr(
         extract_command,
-        "load_image_lines",
-        lambda source, engine=None, blur=0.0: seen.update(source=source, engine=engine) or [],
+        "load_image_lines_with_conf",
+        lambda source, engine=None, blur=0.0: seen.update(source=source, engine=engine) or ([], None),
     )
     monkeypatch.setattr(
         unarchive,
@@ -702,6 +702,34 @@ def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch)
         ]
     ) == 0
     assert seen["engine"] == "test-engine"
+
+
+def test_extract_threads_ocr_confidence_into_restore(tmp_path, monkeypatch):
+    """extract must forward per-line OCR confidence from the image loader all the
+    way to restore_document_spooled, so a scan's confidence actually reaches the
+    codec's char-level erasure logic (not silently dropped at the CLI seam)."""
+    from glyphive.cli import extract as extract_command
+    from glyphive.restore import unarchive
+
+    conf = [[0.9, 0.2], None]
+    monkeypatch.setattr(
+        extract_command,
+        "load_image_lines_with_conf",
+        lambda source, engine=None, blur=0.0: (["L00000 AB #CD", "L00001 EF #GH"], conf),
+    )
+    captured = {}
+
+    def fake_restore(lines, dest, **options):
+        captured["char_conf"] = options.get("char_conf")
+        return {"_page_warnings": []}, ["a.txt"]
+
+    monkeypatch.setattr(unarchive, "restore_document_spooled", fake_restore)
+
+    assert cli.run(
+        ["extract", "-f", str(tmp_path / "scan.png"), "--from-images",
+         "-C", str(tmp_path / "out")]
+    ) == 0
+    assert captured["char_conf"] == conf
 
 
 def test_extract_from_qr_uses_qr_loader(tmp_path, monkeypatch):
@@ -895,12 +923,13 @@ def test_descan_auto_retries_with_blur_on_image_decode_failure(tmp_path, monkeyp
     def fake_loader(source, *, engine=None, blur=None):
         calls.append(list(blur) if blur is not None else None)
         # First (sharp) call raises via the decode below; second returns good.
-        return ["sharp"] if len(calls) == 1 else good_lines
+        # extract now consumes (lines, char_conf); char_conf is None here.
+        return (["sharp"] if len(calls) == 1 else good_lines), None
 
-    monkeypatch.setattr(_common, "load_image_lines", fake_loader)
+    monkeypatch.setattr(_common, "load_image_lines_with_conf", fake_loader)
     # Also patch the name imported into extract's module namespace.
     from glyphive.cli import extract as extract_mod
-    monkeypatch.setattr(extract_mod, "load_image_lines", fake_loader)
+    monkeypatch.setattr(extract_mod, "load_image_lines_with_conf", fake_loader)
 
     def fake_restore(lines, dest, **kw):
         if lines == ["sharp"]:
@@ -930,9 +959,9 @@ def test_descan_auto_does_not_retry_text_input(tmp_path, monkeypatch):
 
     def fake_loader(source, *, engine=None, blur=None):
         calls.append(list(blur) if blur is not None else None)
-        return ["lines"]
+        return ["lines"], None  # extract now consumes (lines, char_conf)
 
-    monkeypatch.setattr(extract_mod, "load_input_lines", fake_loader)
+    monkeypatch.setattr(extract_mod, "load_input_lines_with_conf", fake_loader)
 
     from glyphive.restore import unarchive
     monkeypatch.setattr(

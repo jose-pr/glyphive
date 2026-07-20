@@ -8,8 +8,8 @@ from duho import LoggingArgs
 from pathlib_next import Path
 
 from ._common import (
-    load_image_lines,
-    load_input_lines,
+    load_image_lines_with_conf,
+    load_input_lines_with_conf,
     load_qr_lines,
     progress_logger,
     resolve_destination,
@@ -85,22 +85,31 @@ class Extract(LoggingArgs):
         blur_radii, auto_retry = resolve_descan(self.descan)
 
         def _load(radii):
+            # Returns (lines, char_conf). char_conf is per-line OCR character
+            # confidence (aligned to lines by physical order) or None for a line
+            # that had no OCR (QR / text / DOCX). The codec uses it only to
+            # narrow a CRC-failed line's erasures; correctness still rests on
+            # CRC/RS/SHA, so a None confidence is exactly today's behavior.
             if self.from_qr:
-                return load_qr_lines(src)
+                return load_qr_lines(src), None
             if self.from_images:
-                return load_image_lines(src, engine=self.ocr_engine, blur=radii)
-            return load_input_lines(src, engine=self.ocr_engine, blur=radii)
+                return load_image_lines_with_conf(
+                    src, engine=self.ocr_engine, blur=radii
+                )
+            return load_input_lines_with_conf(
+                src, engine=self.ocr_engine, blur=radii
+            )
 
-        lines = _load(blur_radii)
+        lines, char_conf = _load(blur_radii)
         meta, written = self._restore_with_descan_retry(
-            _unarchive, dest, lines, _load, auto_retry, src
+            _unarchive, dest, lines, char_conf, _load, auto_retry, src
         )
         warn_page_integrity(self._logger_, meta)
         self._logger_.info("restored %d entries into %s", len(written), dest)
         return 0
 
     def _restore_with_descan_retry(
-        self, _unarchive, dest, lines, load_fn, auto_retry, src
+        self, _unarchive, dest, lines, char_conf, load_fn, auto_retry, src
     ):
         """Restore; on a too-sharp-photo decode failure, auto-retry with a blur.
 
@@ -116,7 +125,7 @@ class Extract(LoggingArgs):
 
         retryable = (_layout.LayoutError, CodecError)
         try:
-            return self._restore(_unarchive, dest, lines)
+            return self._restore(_unarchive, dest, lines, char_conf)
         except retryable as first_error:
             if not (auto_retry and not self.from_qr and input_is_image_or_pdf(src)):
                 raise
@@ -125,9 +134,9 @@ class Extract(LoggingArgs):
                 "de-scan blur ladder %s", type(first_error).__name__,
                 AUTO_DESCAN_RETRY_RADII,
             )
-            retry_lines = load_fn(AUTO_DESCAN_RETRY_RADII)
+            retry_lines, retry_conf = load_fn(AUTO_DESCAN_RETRY_RADII)
             try:
-                return self._restore(_unarchive, dest, retry_lines)
+                return self._restore(_unarchive, dest, retry_lines, retry_conf)
             except retryable as retry_error:
                 self._logger_.debug(
                     "de-scan blur retry did not recover the document (%s); "
@@ -136,7 +145,7 @@ class Extract(LoggingArgs):
                 )
                 raise first_error
 
-    def _restore(self, _unarchive, dest, lines):
+    def _restore(self, _unarchive, dest, lines, char_conf=None):
         return _unarchive.restore_document_spooled(
             lines,
             dest,
@@ -145,4 +154,5 @@ class Extract(LoggingArgs):
             chunk_size=self.chunk_size,
             max_output_bytes=self.max_output_bytes,
             on_progress=progress_logger(self._logger_),
+            char_conf=char_conf,
         )
