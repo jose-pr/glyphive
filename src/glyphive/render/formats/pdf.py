@@ -237,18 +237,22 @@ class PdfRenderFormat(RenderFormat):
         font_size: float = 11.0,
         page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
         character_spacing_pt: float = 0.0,
+        nsym_line: int = 2,
     ) -> _ty.Optional[int]:
         """Public hook for the uncapped physical fit (see the base class).
 
         Delegates to :meth:`_geometric_payload_capacity`; kept as a thin public
         override so the CLI (``--line-width max``) never reaches into a private
-        method and the geometry math stays in one place.
+        method and the geometry math stays in one place. ``nsym_line`` (default
+        2) must match what will actually be encoded (``create --line-parity``)
+        so the reserved width for the optional line-parity field is correct.
         """
         return self._geometric_payload_capacity(
             font=font,
             font_size=font_size,
             page_margin_pt=page_margin_pt,
             character_spacing_pt=character_spacing_pt,
+            nsym_line=nsym_line,
         )
 
     def _geometric_payload_capacity(
@@ -258,6 +262,7 @@ class PdfRenderFormat(RenderFormat):
         font_size: float = 11.0,
         page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
         character_spacing_pt: float = 0.0,
+        nsym_line: int = 2,
     ) -> int:
         """Largest payload width that geometrically fits, uncapped.
 
@@ -267,8 +272,19 @@ class PdfRenderFormat(RenderFormat):
         the geometry math itself (font size / margins / spacing scaling) can
         be tested without the clamp hiding a regression in the underlying
         measurement.
+
+        ``nsym_line`` (default 2, matching ``create``'s default) reserves room
+        for the optional per-line Reed-Solomon parity field
+        (:func:`glyphive.codec.base16c._line_parity_chars`): that field is an
+        extra glyph run printed between the payload and the check field, so a
+        geometric fit that ignored it could choose a payload width whose full
+        printed line (label + payload + line-parity + check) overflows the
+        page -- exactly the frame-overflow error ``render`` raises loud rather
+        than silently shrinking.
         """
         import fpdf
+
+        from glyphive.codec.base16c import BASE16G, _line_parity_chars
 
         if font_size <= 0:
             raise ValueError("font_size must be > 0")
@@ -277,20 +293,27 @@ class PdfRenderFormat(RenderFormat):
             raise ValueError("page_margin_pt must leave positive printable width")
         if character_spacing_pt < 0:
             raise ValueError("character_spacing_pt must be >= 0")
+        if nsym_line not in (0, 2, 4):
+            raise ValueError("nsym_line must be 0, 2, or 4")
+        line_parity_chars = _line_parity_chars(nsym_line, BASE16G)
         pdf = fpdf.FPDF(orientation="P", unit="pt", format="Letter")
         with registered_pdf_font(pdf, font) as family:
             pdf.set_font(family, size=font_size)
             widest_safe = max(pdf.get_string_width(char) for char in _SAFE_ALPHABET)
             widest_kind = max(pdf.get_string_width(char) for char in _FRAME_KINDS)
+            extra_spaces = 1 if line_parity_chars else 0
             fixed_width = (
                 widest_kind
                 + 9 * widest_safe  # five index and four check characters
-                + 2 * pdf.get_string_width(" ")
+                + line_parity_chars * widest_safe  # optional line-parity field
+                + (2 + extra_spaces) * pdf.get_string_width(" ")
                 + pdf.get_string_width("#")
             )
-        # A frame with N payload characters has N+13 total characters and
-        # therefore N+12 tracking gaps.
-        remaining = available - fixed_width - 12 * character_spacing_pt
+        # A frame with N payload characters has N+13(+line_parity_chars+1 when
+        # the line-parity field is present) total characters and one fewer
+        # tracking gap than that.
+        total_extra = 12 + (line_parity_chars + 1 if line_parity_chars else 0)
+        remaining = available - fixed_width - total_extra * character_spacing_pt
         capacity = int(remaining // (widest_safe + character_spacing_pt))
         return max(0, capacity - capacity % 2)
 
@@ -301,6 +324,7 @@ class PdfRenderFormat(RenderFormat):
         font_size: float = 11.0,
         page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
         character_spacing_pt: float = 0.0,
+        nsym_line: int = 2,
     ) -> _ty.Optional[int]:
         """Return the largest OCR-measured-safe payload width that also fits.
 
@@ -309,13 +333,15 @@ class PdfRenderFormat(RenderFormat):
         the OCR-B "dense" preset, and real-content testing found a wider
         geometrically-fitting row (e.g. OCR-B 6pt's ~90-char fit) measurably
         less reliable. Pass an explicit ``--line-width`` to opt into an
-        unmeasured wider row.
+        unmeasured wider row. ``nsym_line`` (default 2) reserves room for the
+        optional per-line parity field -- see :meth:`_geometric_payload_capacity`.
         """
         capacity = self._geometric_payload_capacity(
             font=font,
             font_size=font_size,
             page_margin_pt=page_margin_pt,
             character_spacing_pt=character_spacing_pt,
+            nsym_line=nsym_line,
         )
         capacity = min(capacity, _MEASURED_SAFE_LINE_WIDTH)
         return max(0, capacity - capacity % 2)

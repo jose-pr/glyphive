@@ -123,6 +123,7 @@ class Inspect(LoggingArgs):
             "pages_still_missing": still_missing,
             "line_rs_nsym": shape.nsym,
             "line_rs_blocks": shape.nblocks,
+            "line_parity_nsym": shape.nsym_line,
             "data_lines": shape.data_lines,
             "parity_lines": shape.parity_lines,
             "page_warnings": list(meta.get("_page_warnings", []) or []),
@@ -158,6 +159,13 @@ class Inspect(LoggingArgs):
             "page(s))".format(**report)
         )
         print(f"  per-line Reed-Solomon budget: {nsym_text}")
+        line_parity = report["line_parity_nsym"]
+        line_parity_text = (
+            f"{line_parity} parity byte(s)/line (in-line self-heal enabled)"
+            if line_parity
+            else "0 (in-line self-heal disabled for this document)"
+        )
+        print(f"  per-line parity field: {line_parity_text}")
         if report["pages_missing"]:
             print(f"  missing pages: {report['pages_missing']}")
         if report["pages_reconstructed"]:
