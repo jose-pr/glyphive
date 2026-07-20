@@ -387,8 +387,11 @@ def test_looks_like_encoded_tolerates_captured_ocr_transcript_line():
 
 
 def test_looks_like_encoded_tolerates_two_interior_spaces():
+    # nsym_line=0: isolates this from the (separately tested) line-parity
+    # field so the encoded line has an unambiguous bare 3-token shape --
+    # _looks_like_encoded's own line_parity_chars default is 0.
     data = bytes(range(40))
-    lines = base16c.encode(data)
+    lines = base16c.encode(data, nsym_line=0)
     line = next(l for l in lines if l.startswith("L"))
     label, payload, check = line.split()
     noisy_payload = payload[:10] + " " + payload[10:20] + " " + payload[20:]
