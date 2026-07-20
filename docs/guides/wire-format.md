@@ -76,24 +76,32 @@ same frame/RS pipeline, differing only in alphabet and bits per character, in
 **glyphive-tuned (OCR-safe / OCR-optimized)** — the `g` suffix marks a
 glyphive-modified alphabet chosen from OCR measurement:
 
-| codec | bits/char | stock OCR restore | needs a trained model |
-|-------|-----------|-------------------|-----------------------|
-| `base8g-crc16-rs`    | 3 | ✅ | no |
-| `base16g-crc16-rs`  | 4 | ✅ **(default; validated to 4pt)** | no |
-| `base32g-crc16-rs`  | 5 | ✗ (~15% CER) | yes |
-| `base64g-crc16-rs`  | 6 | ✗ (~15% CER) | yes |
+| codec | bits/char | stock OCR restore | trained-model restore (byte-gated) |
+|-------|-----------|-------------------|-------------------------------------|
+| `base8g-crc16-rs`    | 3 | ✅ | — (stock already works) |
+| `base16g-crc16-rs`  | 4 | ✅ **(default; validated to 4pt, rows to max)** | — (stock already works) |
+| `base32g-crc16-rs`  | 5 | ✗ (~15% CER) | ✅ **byte-identical, 8pt, rows 60 and max (98)** |
+| `base64-crc16-rs`   | 6 | ✗ | ✗ (alphabet has confusable glyphs, e.g. `l`↔`1`) |
+| `base64g-crc16-rs`  | 6 | ✗ | ✗ (residual `;`↔`i` confusion blows the CRC/RS budget) |
 
-> The denser codecs (`base32g`/`base64g`, and the standard 32/64/85 sets) do **not**
-> restore under stock OCR — they need a per-font model trained on the real framed page
-> layout. A shippable, byte-restore-gated model for the denser codecs does **not exist
-> yet**: the first attempt was trained on the wrong data (unframed character strings)
-> and did not restore real pages. The training method has since been fixed and validated
-> for `base16g` (train on real framed `create` output, gate on byte-for-byte restore),
-> but `base16g` needs no model — stock OCR already restores it — so no denser-codec model
-> has been produced and gated. Until one is, treat the denser codecs as encode-only /
-> experimental. `base16g` (stock OCR, no model) is the working, recommended path, and it
-> restores byte-for-byte at row widths up to ~90 (well past the 60 default) on Courier
-> 5–8pt.
+> **Byte-restore E2E results (Courier 8pt, framed-trained models vs stock, 2026-07-19).**
+> The denser codecs do **not** restore under stock OCR — they need a per-font model
+> trained on the real framed page layout (train on framed `create` output, gate on
+> byte-for-byte restore). With such a model:
+> - **`base32g` restores byte-identical** at rows 60 **and** max (98), clean and blurred —
+>   its 32-glyph alphabet was curated to exclude OCR-confusable pairs, so the model reads
+>   it cleanly at page scale.
+> - **`base64` and `base64g` still fail**, even with a 0.00–0.01% framed-CER model. Their
+>   64-glyph alphabets retain confusable pairs (base64's textbook set has `l`↔`1`, `O`↔`0`;
+>   base64g's curated set still confuses `;`↔`i`). A single such flip per line fails that
+>   line's CRC, and enough of them per page exceed the Reed-Solomon budget. Density past 32
+>   glyphs is not reliably OCR-recoverable at 8pt on these fonts.
+>
+> So the recommended-model ceiling is **`base32g` (5 bits/char, 25% denser than base16g)**.
+> `base16g` (stock OCR, no model) remains the zero-dependency default and restores
+> byte-for-byte to 4pt and at row widths up to the geometric page fit. `base64`/`base64g`
+> are encode-only until a further-curated 64-set or a higher-resolution capture closes the
+> residual confusions.
 
 **standard (textbook alphabets)** — plain, well-known encodings for interop,
 NOT OCR-tuned:
@@ -110,8 +118,10 @@ NOT OCR-tuned:
 The glyphive-tuned family also includes `base64g-crc16-rs` (a curated 64-glyph
 OCR-distinct set; it includes `#` as a payload glyph and so frames with a `,`
 delimiter) and `basemaxg-crc16-rs` (43-glyph group-packed, the maximal OCR-distinct
-set). Both are denser-than-`base16g` encodings that require a (not-yet-available)
-framed-data-trained model to restore reliably.
+set). Both are denser than `base16g`, but a framed-trained model was **not** enough to
+restore `base64g` byte-for-byte (residual `;`↔`i` confusion; see the E2E note above).
+The validated denser path is `base32g` with a per-font framed model; `base64g`/`basemaxg`
+remain encode-only pending a further-curated alphabet.
 
 ## Two byte↔char packing strategies
 
