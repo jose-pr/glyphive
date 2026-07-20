@@ -220,7 +220,13 @@ Three independent layers protect a printed document, tuned separately:
   of document-level Reed-Solomon parity over the data pages, so the document
   survives up to K *wholly lost* pages (physically destroyed, unscannable, or
   dropped) — not just character noise. Costs K extra printed pages. Data pages
-  plus K must not exceed 255 (a create-time error names the cap).
+  plus K must not exceed 65,535 (a create-time error names the cap). Documents
+  of 255 blocks or fewer use Reed-Solomon over GF(2^8); larger ones switch
+  automatically to GF(2^16), which pairs adjacent bytes into 16-bit symbols so
+  the codeword limit rises from 255 to 65,535. The choice is recorded in the
+  protected header, so restore selects the right field without being told, and
+  `glyphive inspect` reports which one a document uses. Encoding a 1,000-page
+  document with `--parity-pages 8` measures ~2.7 s.
 
 ```bash
 glyphive create -f resilient.pdf --parity-pages 2 -C project .
