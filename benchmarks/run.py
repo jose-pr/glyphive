@@ -4,7 +4,7 @@
 The suite deliberately excludes compression, rendering, filesystem traversal,
 and OCR. It measures deterministic in-memory work at the format boundary:
 
-* ``base16c-crc16-rs`` encode/decode for fixed 1 KiB and 16 KiB payloads.
+* ``base16g-crc16-rs`` encode/decode for fixed 1 KiB and 16 KiB payloads.
 * layout pagination over the already-encoded 16 KiB workload.
 
 Each metric gets one warmup call, then ``repeat`` samples containing a fixed
@@ -33,7 +33,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib_next import Path
 
 import glyphive
-from glyphive.codec.base16c import Base16CCodec
+from glyphive.codec.base16c import Base16GCodec
 from glyphive.layout import paginate
 
 
@@ -49,10 +49,10 @@ PARITY_RATIO = 0.12
 LINES_PER_PAGE = 48
 
 INNER_COUNTS = {
-    "codec.base16c.encode_1k": 10,
-    "codec.base16c.decode_1k": 10,
-    "codec.base16c.encode_16k": 2,
-    "codec.base16c.decode_16k": 2,
+    "codec.base16g.encode_1k": 10,
+    "codec.base16g.decode_1k": 10,
+    "codec.base16g.encode_16k": 2,
+    "codec.base16g.decode_16k": 2,
     "layout.paginate_16k": 50,
 }
 
@@ -81,7 +81,7 @@ def sample(
 def _layout_meta(payload: bytes) -> ty.Dict[str, ty.Any]:
     return {
         "v": 1,
-        "codec": "base16c-crc16-rs",
+        "codec": "base16g-crc16-rs",
         "comp": "none",
         "files": 1,
         "bytes": len(payload),
@@ -92,7 +92,7 @@ def _layout_meta(payload: bytes) -> ty.Dict[str, ty.Any]:
 
 def measure() -> ty.Dict[str, ty.Dict[str, float]]:
     """Build fixtures once, validate them, then measure only target work."""
-    codec = Base16CCodec()
+    codec = Base16GCodec()
     small = deterministic_payload(SMALL_BYTES)
     medium = deterministic_payload(MEDIUM_BYTES)
     small_lines = codec.encode(
@@ -103,7 +103,7 @@ def measure() -> ty.Dict[str, ty.Dict[str, float]]:
     )
 
     if codec.decode(small_lines) != small or codec.decode(medium_lines) != medium:
-        raise RuntimeError("benchmark fixture failed the base16c-crc16-rs round-trip check")
+        raise RuntimeError("benchmark fixture failed the base16g-crc16-rs round-trip check")
 
     layout_meta = _layout_meta(medium)
 
@@ -119,14 +119,14 @@ def measure() -> ty.Dict[str, ty.Dict[str, float]]:
         raise RuntimeError("benchmark fixture failed the pagination check")
 
     workloads = {
-        "codec.base16c.encode_1k": lambda: codec.encode(
+        "codec.base16g.encode_1k": lambda: codec.encode(
             small, line_width=LINE_WIDTH, parity_ratio=PARITY_RATIO
         ),
-        "codec.base16c.decode_1k": lambda: codec.decode(small_lines),
-        "codec.base16c.encode_16k": lambda: codec.encode(
+        "codec.base16g.decode_1k": lambda: codec.decode(small_lines),
+        "codec.base16g.encode_16k": lambda: codec.encode(
             medium, line_width=LINE_WIDTH, parity_ratio=PARITY_RATIO
         ),
-        "codec.base16c.decode_16k": lambda: codec.decode(medium_lines),
+        "codec.base16g.decode_16k": lambda: codec.decode(medium_lines),
         "layout.paginate_16k": paginate_medium,
     }
     return {
@@ -204,12 +204,12 @@ def build_result(
                 },
             },
             "codec": {
-                "name": "base16c-crc16-rs",
+                "name": "base16g-crc16-rs",
                 "line_width": LINE_WIDTH,
                 "parity_ratio": PARITY_RATIO,
             },
             "layout": {
-                "input": "precomputed base16c-crc16-rs 16k lines",
+                "input": "precomputed base16g-crc16-rs 16k lines",
                 "lines_per_page": LINES_PER_PAGE,
             },
         },
