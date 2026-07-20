@@ -54,7 +54,7 @@ case-insensitive, but there are no visual-confusion aliases.
 Data and parity lines use one grammar:
 
 ```text
-<kind><index5> <payload> #<check4>
+<kind><index5> <payload> [<line-parity>] #<check4>
 ```
 
 - `<kind>` is `L` for data or `P` for Reed-Solomon parity.
@@ -62,8 +62,44 @@ Data and parity lines use one grammar:
   fixed positional mask avoids low indices printing as repeated glyphs.
 - `<payload>` is normally 60 safe characters; the last data frame may be
   shorter.
+- `<line-parity>` is **optional per-line Reed-Solomon parity** over this line's
+  own index token and payload bytes — `nsym_line` bytes rendered in the same
+  alphabet (`ceil(nsym_line * 8 / bits)` characters; 4 characters at the
+  `nsym_line=2` default). It is present only when `nsym_line > 0`; a document
+  encoded with `--line-parity 0` prints the classic three-token frame. Decode
+  detects its presence structurally (three tokens vs four) and cross-checks that
+  against the header field.
 - `<check4>` stores the full CRC-16/CCITT (`0x1021`, initial `0xFFFF`) over the
-  printed index token and payload. Four safe characters hold exactly 16 bits.
+  **kind character**, the printed index token, and the payload. Four safe
+  characters hold exactly 16 bits. The line-parity field is deliberately *not*
+  covered: a corrupted parity field must not fail the line, because that parity
+  is itself validated by the correct-then-reverify loop below.
+
+Two concrete frames, with and without line parity:
+
+```text
+LMYCVH HCDBABBRACAAAAAAXPMPMPMPMPM…PMP RPAP #HDVX   (nsym_line=2, default)
+LMYCVH HCDBABBRAAAAAAAAXPMPMPMPMPM…PMP #XVKT        (nsym_line=0)
+```
+
+### Why the kind character is under the CRC
+
+`L` and `P` are both members of the payload alphabet, so a single misread that
+flips one into the other used to produce a **CRC-valid phantom line** — a data
+line silently re-filed as parity (or vice versa), poisoning stream geometry or
+colliding with a genuine line. Covering the kind character makes that misread
+fail its own check like any other corruption. The `H`/`T`/`Q` machine frames in
+`layout.py` use the same kind-covered CRC.
+
+### Per-line correction, and why the CRC still decides
+
+When a line's CRC fails and the line carries parity, decode Reed-Solomon-corrects
+the payload and parity bytes, re-renders the line, and **re-verifies the printed
+CRC**. Only a correction that reproduces the printed check is accepted; anything
+else falls through to the CRC-guided single-substitution repair tier and finally
+to whole-line erasure. The CRC remains the only oracle — the extra parity just
+supplies more candidates for it to judge, so a miscorrection cannot be silently
+accepted.
 
 ## Codec family
 
@@ -163,16 +199,32 @@ field). Because the L/P payload alphabet differs from the base16g-encoded `H`
 header, restore reads the selected codec name from the protected header first,
 then parses payload frames with that codec's alphabet.
 
-The protected byte stream begins with an eight-byte `base16g-crc16-rs` header:
+The protected byte stream begins with a nine-byte `base16g-crc16-rs` header:
 
 ```text
-"B1" | version:u8 | parity_symbols:u8 | original_length:u32-big-endian
+"B1" | version:u8 | parity_symbols:u8 | line_parity_symbols:u8 | original_length:u32-big-endian
 ```
 
+`line_parity_symbols` (`nsym_line`) records the per-line Reed-Solomon width — 0,
+2, or 4 — so a reader can cross-check the field width it detected structurally
+from the printed frames.
+
 Reed-Solomon parity is computed over that header and the compressed archive
-bytes. Blocks are interleaved across the document. A line whose CRC fails
-becomes a known erasure, allowing the decoder to spend the stronger erasure
-correction budget instead of guessing which character changed.
+bytes. A line whose CRC fails becomes a known erasure, allowing the decoder to
+spend the stronger erasure correction budget instead of guessing which character
+changed.
+
+**Both streams are interleaved.** The data stream has always been interleaved
+across blocks (block *b* holds data bytes at positions *b*, *b+B*, *b+2B*, …), so
+one bad line spreads its damage instead of exhausting a single block. The parity
+stream is interleaved the same way: parity byte *j* of block *b* is printed at
+offset `j*nblocks + b` (symbol-major), **not** in per-block runs. This matters
+because parity is printed on ordinary lines too — under the old block-contiguous
+layout a single corrupted parity *line* (30 consecutive parity bytes at the
+default width) wiped out one block's entire parity budget, leaving any data
+erasure in that block unrecoverable. Symbol-major ordering costs one bad parity
+line at most about one parity symbol per block. It is a pure permutation: no size
+cost, and the aggregate parity ratio is unchanged.
 
 The default `parity_ratio=0.12` targets parity bytes across the complete
 protected stream, not 12% independently multiplied by every block. Glyphive
@@ -182,7 +234,9 @@ to that many known erasures, or half as many errors whose positions are unknown.
 
 Rows below use the default 60-character payload (30 bytes per row). Byte
 percentages are parity bytes divided by protected bytes (input plus the
-eight-byte codec header).
+nine-byte codec header). They count document-level parity only; the optional
+per-line parity field is separate page overhead (measured +6.9 % of printed
+characters at `nsym_line=2`, +12.3 % at 4).
 
 The correction columns are maxima when damage is distributed within every
 block's budget; one concentrated block can fail sooner.
@@ -232,6 +286,11 @@ frames. Pages may arrive out of order. Duplicate/conflicting identities, a
 missing page, a bad page hash, or damaged machine metadata causes restore to
 fail loudly.
 
+`H`/`T`/`Q` machine frames carry the same **kind-covered** CRC as `L`/`P` lines
+(the check covers the leading kind letter, so a flipped kind fails its own
+check). They do not carry the optional per-line parity field — their protection
+is CRC plus the envelope/duplication/RS scheme described next.
+
 `H`/`T` frames have CRC and envelope/hash protection. Each `H` frame is also
 printed as two identical, independently CRC-checked copies
 (`_MACHINE_HEADER_COPIES = 2`), and the header envelope carries one extra
@@ -249,6 +308,17 @@ their own CRC/RS protection independently of the footer's advisory hash).
 ## Compatibility rule
 
 Treat the exact codec name, compression name, frame kinds, and alphabet as wire
-data. A new alphabet or framing rule needs a new codec identifier and must be
-validated with print/OCR/restore measurements; silently changing
-`base16g-crc16-rs` would make existing pages undecodable.
+data. A new alphabet or framing rule must be validated with print/OCR/restore
+measurements, because changing `base16g-crc16-rs` makes existing printed pages
+undecodable.
+
+**Pre-1.0 exception, exercised deliberately.** The frame grammar, CRC coverage,
+parity ordering, and group header above all changed *without* a new codec
+identifier: the name `base16g-crc16-rs` and the `B1`/version-1 group header are
+held stable while the format underneath them was fixed. Nothing had been
+published that depends on the old layout, so a rename would have bought
+compatibility nobody needs at the cost of churning every identifier, config, and
+document reference. The consequence is explicit and accepted: **documents printed
+before this change do not decode with this version**, and there is no compat
+shim or version dispatch to make them. Once 1.0 ships, this exception ends — a
+format change then requires a new identifier.
