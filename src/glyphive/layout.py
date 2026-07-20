@@ -20,7 +20,6 @@ read out of order; a missing or integrity-invalid metadata frame fails loud.
 
 from __future__ import annotations
 
-import binascii
 import hashlib
 import itertools
 import io
@@ -257,10 +256,10 @@ def _machine_check(kind: str, idx_token: str, payload: str) -> str:
     the two apart; covering ``kind`` makes such a flip fail the check like any
     other single-character error.
     """
-    from .codec.engine import nibble_encode
+    from .codec.engine import crc16_ccitt, nibble_encode
 
     canonical = kind.upper().encode() + idx_token.upper().encode() + payload.upper().encode()
-    crc = binascii.crc_hqx(canonical, 0xFFFF)
+    crc = crc16_ccitt(canonical)
     return nibble_encode(crc.to_bytes(2, "big"))
 
 
