@@ -33,7 +33,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib_next import Path
 
 import glyphive
-from glyphive.codec.base16c import Base16GCodec
+from glyphive.codec import Base16GCodec
 from glyphive.layout import paginate
 
 

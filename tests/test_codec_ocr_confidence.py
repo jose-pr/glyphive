@@ -32,10 +32,10 @@ import tempfile
 import pytest
 
 from glyphive import archive, codec, compression, layout
-from glyphive.codec.base16c import (
+from glyphive.codec import Base16GCodec
+from glyphive.codec.engine import (
     ALPHABET,
     BASE16G,
-    Base16GCodec,
     CodecError,
     _bytes_per_line,
     _num_blocks,
@@ -47,7 +47,7 @@ from glyphive.codec.radix import BASEMAXG
 from glyphive.render import lines_per_page_for
 from glyphive.restore import decode as restore_decode
 
-base16c = codec.get("base16g-crc16-rs")
+base16g_codec = codec.get("base16g-crc16-rs")
 
 
 # --------------------------------------------------------------------------- #
@@ -167,7 +167,7 @@ def test_gate2_char_level_marking_succeeds_where_whole_line_marking_fails():
     value if it went through that tier first -- unrelated to this plan.
     """
     rng_data = bytes((i * 97 + 13) % 256 for i in range(30000))
-    lines = base16c.encode(rng_data, line_width=60, parity_ratio=0.12, nsym_line=0)
+    lines = base16g_codec.encode(rng_data, line_width=60, parity_ratio=0.12, nsym_line=0)
     num_l = sum(1 for line in lines if line.startswith("L"))
     assert num_l > 900  # sanity: this really is a ~30 KB-scale document
 
@@ -186,11 +186,11 @@ def test_gate2_char_level_marking_succeeds_where_whole_line_marking_fails():
     encoded_text = ("\n".join(new_lines) + "\n").encode("utf-8")
 
     sink = io.BytesIO()
-    base16c._decode_hardened_spool(io.BytesIO(encoded_text), sink, char_conf=char_conf)
+    base16g_codec._decode_hardened_spool(io.BytesIO(encoded_text), sink, char_conf=char_conf)
     assert sink.getvalue() == rng_data  # char-level marking: succeeds, byte-identical
 
     with pytest.raises(CodecError, match="exceeds RS correction budget"):
-        base16c._decode_hardened_spool(io.BytesIO(encoded_text), io.BytesIO())
+        base16g_codec._decode_hardened_spool(io.BytesIO(encoded_text), io.BytesIO())
     # whole-line marking (no confidence, today's behaviour): fails outright
 
 
@@ -198,15 +198,15 @@ def test_confidence_absent_is_byte_identical_to_no_confidence_build():
     """``char_conf=None`` (the default) must behave exactly like a build
     without this feature at all -- gate 1."""
     data = bytes((i * 31 + 5) % 256 for i in range(5000))
-    lines = base16c.encode(data)
+    lines = base16g_codec.encode(data)
     encoded = io.BytesIO(("\n".join(lines) + "\n").encode("utf-8"))
     sink = io.BytesIO()
-    base16c.decode_spool(encoded, sink)
+    base16g_codec.decode_spool(encoded, sink)
     assert sink.getvalue() == data
 
     encoded2 = io.BytesIO(("\n".join(lines) + "\n").encode("utf-8"))
     sink2 = io.BytesIO()
-    base16c.decode_spool(encoded2, sink2, char_conf=None)
+    base16g_codec.decode_spool(encoded2, sink2, char_conf=None)
     assert sink2.getvalue() == data
 
 
@@ -230,7 +230,7 @@ def test_safety_valve_rescues_a_block_when_the_confidence_hint_is_incomplete():
     """
     import reedsolo
 
-    from glyphive.codec.base16c import (
+    from glyphive.codec.engine import (
         _candidate_nsym,
         _detect_line_parity_chars,
         _parity_position,
@@ -238,7 +238,7 @@ def test_safety_valve_rescues_a_block_when_the_confidence_hint_is_incomplete():
     )
 
     data = bytes((i * 7 + 3) % 256 for i in range(20))
-    lines = base16c.encode(data, line_width=4, parity_ratio=0.2, nsym_line=0)
+    lines = base16g_codec.encode(data, line_width=4, parity_ratio=0.2, nsym_line=0)
     new_lines = list(lines)
 
     # Two always-fully-erased lines (no confidence data at all).
@@ -261,7 +261,7 @@ def test_safety_valve_rescues_a_block_when_the_confidence_hint_is_incomplete():
         (raw.decode() for raw in io.BytesIO(encoded_text)), BASE16G
     )
     src = io.BytesIO(encoded_text)
-    from glyphive.codec.base16c import _assemble_to_spool
+    from glyphive.codec.engine import _assemble_to_spool
 
     data_lines, parity_lines = {}, {}
     offset_conf = {}

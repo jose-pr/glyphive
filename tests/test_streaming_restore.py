@@ -155,7 +155,7 @@ def test_page_parity_exceeding_k_fails_to_restore():
     assert header_meta["_reconstructed_pages"] == []
     assert set(header_meta["_missing_pages"]) == {2, 3, 4}
 
-    from glyphive.codec.base16c import CodecError
+    from glyphive.codec.engine import CodecError
 
     with pytest.raises(CodecError):
         c.decode(encoded_lines)
@@ -350,7 +350,7 @@ def test_unreadable_line_is_logged_even_when_decode_subsequently_fails(
     survive losing that line) must still log which raw line was unreadable and
     on which page, before the eventual CodecError propagates.
     """
-    from glyphive.codec.base16c import (
+    from glyphive.codec.engine import (
         BASE16G,
         _detect_line_parity_chars,
         split_frame_with_parity,

@@ -274,7 +274,7 @@ class PdfRenderFormat(RenderFormat):
 
         ``nsym_line`` (default 2, matching ``create``'s default) reserves room
         for the optional per-line Reed-Solomon parity field
-        (:func:`glyphive.codec.base16c._line_parity_chars`): that field is an
+        (:func:`glyphive.codec.engine._line_parity_chars`): that field is an
         extra glyph run printed between the payload and the check field, so a
         geometric fit that ignored it could choose a payload width whose full
         printed line (label + payload + line-parity + check) overflows the
@@ -283,7 +283,7 @@ class PdfRenderFormat(RenderFormat):
         """
         import fpdf
 
-        from glyphive.codec.base16c import BASE16G, _line_parity_chars
+        from glyphive.codec.engine import BASE16G, _line_parity_chars
 
         if font_size <= 0:
             raise ValueError("font_size must be > 0")

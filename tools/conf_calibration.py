@@ -9,7 +9,7 @@ Reports, for a sweep of candidate thresholds ``t`` in ``0.50..0.95``:
                                   sample, what fraction had conf < t (i.e.
                                   would have been caught)?
 
-:mod:`glyphive.codec.base16c`'s ``decode_spool`` uses a low-confidence
+:mod:`glyphive.codec.engine`'s ``decode_spool`` uses a low-confidence
 character only to choose ERASURE POSITIONS for a line that has already
 failed its CRC -- it is a hint, never an acceptance criterion (the CRC/RS/
 SHA-256 gates are unchanged). The calibration goal per plan 3 is a threshold
@@ -137,7 +137,7 @@ def _samples_from_synthetic_render(
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import ocr_font_report as _report
 
-    from glyphive.codec.base16c import ALPHABET
+    from glyphive.codec.engine import ALPHABET
     from glyphive.restore import ocr as glyphive_ocr
 
     chars_per_line, lines_per_page, _max_w, font_label = _report.font_geometry(
@@ -274,7 +274,7 @@ def main(argv: "list[str] | None" = None) -> int:
             "conf_calibration: Tesseract is not available on this machine "
             "(pytesseract and/or the tesseract binary is missing) -- degrading "
             "cleanly, no calibration run, no numbers fabricated. The shipped "
-            "default conf_threshold stays 0.6 (see glyphive.codec.base16c."
+            "default conf_threshold stays 0.6 (see glyphive.codec.engine."
             "DEFAULT_CONF_THRESHOLD) until this is run somewhere Tesseract is "
             "installed.",
             file=sys.stderr,

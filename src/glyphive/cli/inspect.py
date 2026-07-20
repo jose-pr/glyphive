@@ -59,7 +59,7 @@ class Inspect(LoggingArgs):
     def __call__(self) -> int:
         from .. import layout as _layout
         from ..codec import get as _get_codec
-        from ..codec.base16c import BASE16G, describe_line_stream
+        from ..codec.engine import BASE16G, describe_line_stream
 
         source = Path(self.file)
         lines = (
