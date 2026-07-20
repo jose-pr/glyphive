@@ -1097,9 +1097,24 @@ def _resolve_payload_spec(header_frames):
 
 
 def read_pages_to_spool(
-    all_text_lines: _ty.Iterable[str], sink: _ty.BinaryIO
+    all_text_lines: _ty.Iterable[str],
+    sink: _ty.BinaryIO,
+    *,
+    line_conf: "_ty.Optional[_ty.Iterable[_ty.Optional[_ty.Sequence[float]]]]" = None,
 ) -> _ty.Tuple[_ty.Dict[str, _ty.Any], int]:
-    """Parse a transcript once and spool normalized codec lines sequentially."""
+    """Parse a transcript once and spool normalized codec lines sequentially.
+
+    ``line_conf`` (plan 3, optional): raw per-character OCR confidence,
+    ONE ENTRY PER ELEMENT OF ``all_text_lines`` in the same order (``None``
+    for a line with no confidence -- e.g. plain-text input, or a shorter
+    ``line_conf`` than ``all_text_lines``, padded with ``None``). Only the
+    entries belonging to lines that survive into the ``L``/``P`` codec
+    stream matter; they are carried through page reordering/reconstruction
+    and returned, in the FINAL SPOOL'S OWN LINE ORDER, as
+    ``header_meta["_line_conf"]`` -- the shape :meth:`Base16GCodec.decode_spool`
+    expects. When ``line_conf`` is ``None`` (the default), this is a no-op
+    and behaves byte-identically to a build without this feature.
+    """
 
     # --- Pass 1: recover the authoritative protected header. ----------------
     # The unrestricted ``#!glyphive ...`` line is retained for humans and old
@@ -1124,21 +1139,37 @@ def read_pages_to_spool(
     # correct spool position -- writing straight to ``sink`` as lines are read
     # (the pre-parity-pages behavior) cannot do that, since a page might need
     # to be rebuilt only after every page has been seen.
-    page_lines: _ty.Dict[int, _ty.List[str]] = {}
-    current_page_lines: _ty.List[str] = []
+    # ``page_lines``/``current_page_lines`` carry ``(stripped_text, conf)``
+    # pairs, not bare strings, so a survivor's raw OCR confidence (plan 3)
+    # rides along through page reordering/reconstruction. ``conf`` is ``None``
+    # unless ``line_conf`` was supplied.
+    page_lines: "_ty.Dict[int, _ty.List[_ty.Tuple[str, _ty.Optional[_ty.Sequence[float]]]]]" = {}
+    current_page_lines: "_ty.List[_ty.Tuple[str, _ty.Optional[_ty.Sequence[float]]]]" = []
     # Frame-shaped lines whose index token is unreadable (findings #1/#2): buffer
     # them for the current page block and flush to that page's number on its
     # footer, so the reader gets ``{page, raw}`` detail instead of a silent drop.
     unreadable_lines: _ty.List[_ty.Dict[str, _ty.Any]] = []
     pending_unreadable: _ty.List[str] = []
     payload_spec = None  # resolved lazily from the header once H frames are seen
-    for line in all_text_lines:
+    conf_source = () if line_conf is None else line_conf
+    for line, conf in itertools.zip_longest(all_text_lines, conf_source, fillvalue=None):
+        if line is None:
+            break  # line_conf longer than all_text_lines (should not happen)
         frame = _parse_machine_frame(line, _MACHINE_HEADER_KIND)
         if frame is not None:
             header_frames.append(frame)
         stripped = line.strip()
         if not stripped:
             continue
+        # Trim ``conf`` (aligned to the RAW, unstripped ``line``) by the same
+        # leading/trailing whitespace ``.strip()`` just removed, so it stays
+        # char-for-char aligned to ``stripped`` -- the text actually spooled
+        # and later re-read by the codec. A length mismatch (unexpected
+        # input) degrades to "no confidence" rather than guessing.
+        line_conf_value = None
+        if conf is not None and len(conf) == len(line):
+            lead = len(line) - len(line.lstrip())
+            line_conf_value = conf[lead:lead + len(stripped)]
         footer = _parse_footer(line)
         if footer is not None:
             expected = block_hash.hexdigest()[:PAGE_HASH_CHARS]
@@ -1169,7 +1200,7 @@ def read_pages_to_spool(
             payload_spec = _resolve_payload_spec(header_frames)
         if _looks_like_encoded(line, payload_spec):
             encoded = stripped.encode("utf-8")
-            current_page_lines.append(stripped)
+            current_page_lines.append((stripped, line_conf_value))
             if block_count:
                 block_hash.update(b"\n")
             block_hash.update(encoded)
@@ -1221,9 +1252,9 @@ def read_pages_to_spool(
         from .codec import pagers as _pagers
         from .codec.base16c import decode_index, nibble_decode, split_frame
 
-        def _q_block(lines: _ty.List[str]) -> _ty.Optional[bytes]:
+        def _q_block(lines: "_ty.List[_ty.Tuple[str, _ty.Any]]") -> _ty.Optional[bytes]:
             chunks: _ty.List[str] = []
-            for line in lines:
+            for line, _conf in lines:
                 split = split_frame(line)
                 if split is None:
                     return None
@@ -1246,7 +1277,9 @@ def read_pages_to_spool(
                 blocks.append(None)
                 continue
             if n <= data_total:
-                block = "\n".join(page_lines.get(n, [])).encode("utf-8")
+                block = "\n".join(
+                    text for text, _conf in page_lines.get(n, [])
+                ).encode("utf-8")
                 blocks.append(block.ljust(block_bytes, b"\x00")[:block_bytes] if block_bytes else block)
             else:
                 q_block = _q_block(page_lines.get(n, []))
@@ -1267,7 +1300,12 @@ def read_pages_to_spool(
                     block = rebuilt[n - 1]
                     text = block.rstrip(b"\x00").decode("utf-8")
                     lines = text.split("\n") if text else []
-                    page_lines[n] = lines
+                    # Reconstructed lines carry no OCR confidence of their
+                    # own (they came from page-parity, not a printed
+                    # character) -- decode falls back to whole-line erasure
+                    # marking for any of these that still fail CRC, exactly
+                    # as it always has.
+                    page_lines[n] = [(ln, None) for ln in lines]
                     reconstructed_pages.add(n)
                 warnings.append(
                     "reconstructed missing data page(s) "
@@ -1296,10 +1334,15 @@ def read_pages_to_spool(
     # interior/last page's lines land at the correct position in the spool,
     # which downstream RS-parameter recovery depends on (a missing *last*
     # page otherwise truncates the stream shape -- see Phase 0 findings).
+    # ``spool_conf`` mirrors the written lines 1:1 -- this is the shape
+    # :meth:`Base16GCodec.decode_spool` expects for its own ``char_conf``
+    # (keyed by PHYSICAL LINE ORDER within the spool it reads).
     encoded_count = 0
+    spool_conf: "_ty.List[_ty.Optional[_ty.Sequence[float]]]" = []
     for n in range(1, data_total + 1):
-        for stripped in page_lines.get(n, []):
+        for stripped, conf in page_lines.get(n, []):
             sink.write(stripped.encode("utf-8") + b"\n")
+            spool_conf.append(conf)
             encoded_count += 1
 
     if encoded_count == 0 and still_missing_data:
@@ -1318,4 +1361,5 @@ def read_pages_to_spool(
     header_meta["_unreadable_lines"] = unreadable_lines
     header_meta["_missing_pages"] = missing
     header_meta["_reconstructed_pages"] = sorted(reconstructed_pages)
+    header_meta["_line_conf"] = spool_conf if line_conf is not None else None
     return header_meta, encoded_count

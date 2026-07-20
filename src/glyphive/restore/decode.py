@@ -90,6 +90,10 @@ def _resolve_codec(name: str) -> codec.Codec:
 
 def decode_document(
     text_lines: _ty.Iterable[str],
+    *,
+    char_conf: "_ty.Optional[_ty.Sequence[_ty.Optional[_ty.Sequence[float]]]]" = None,
+    conf_threshold: float = 0.6,
+    max_suspects: int = 6,
 ) -> _ty.Tuple[_ty.Dict[str, _ty.Any], bytes]:
     """Turn a full page transcript back into ``(meta, raw_archive_bytes)``.
 
@@ -110,6 +114,13 @@ def decode_document(
        expected and observed digests and returns nothing — corrupt bytes are
        never handed back — no silent corruption.
 
+    ``char_conf`` (plan 3, optional): per-line RAW OCR character confidence,
+    one entry per element of ``text_lines`` in the same order (``None`` for
+    a line with no confidence) -- see :func:`decode_document_to_spool` and
+    the module docstring's "OCR-confidence erasure hint" section in
+    :mod:`glyphive.codec.base16c`. Absent (the default), decode is byte-
+    identical to a build without this feature.
+
     Returns
     -------
     ``(meta, raw)`` where ``raw`` is the archive byte stream ready for
@@ -129,7 +140,13 @@ def decode_document(
         The decompressed archive's SHA-256 does not match the header's.
     """
     sink = io.BytesIO()
-    meta = decode_document_to_spool(text_lines, sink)
+    meta = decode_document_to_spool(
+        text_lines,
+        sink,
+        char_conf=char_conf,
+        conf_threshold=conf_threshold,
+        max_suspects=max_suspects,
+    )
     return meta, sink.getvalue()
 
 
@@ -140,14 +157,34 @@ def decode_document_to_spool(
     max_output_bytes: _ty.Optional[int] = None,
     chunk_size: int = 1024 * 1024,
     temp_dir: _ty.Optional[str] = None,
+    char_conf: "_ty.Optional[_ty.Sequence[_ty.Optional[_ty.Sequence[float]]]]" = None,
+    conf_threshold: float = 0.6,
+    max_suspects: int = 6,
 ) -> _ty.Dict[str, _ty.Any]:
-    """Decode and stream-decompress a document into a seekable quarantine spool."""
+    """Decode and stream-decompress a document into a seekable quarantine spool.
+
+    ``char_conf`` (plan 3, optional): raw per-character OCR confidence, one
+    entry per element of ``text_lines`` in the same order (``None`` for a
+    line with no confidence, e.g. plain-text/DOCX input -- see
+    :class:`glyphive.restore.ocr.OcrLine`). Threaded through
+    :func:`glyphive.layout.read_pages_to_spool` (which re-orders it to match
+    the codec-line spool's own order, surviving page reordering/
+    reconstruction) down to the codec's ``decode_spool``, which uses it only
+    to choose ERASURE POSITIONS for a CRC-failed line -- never to accept
+    anything; see :mod:`glyphive.codec.base16c`'s "OCR-confidence erasure
+    hint" section. Absent (the default) or when the selected codec has no
+    ``decode_spool`` support for it, decode is unaffected -- byte-identical
+    to a build without this feature.
+    """
     # 1) transcript -> (header meta, framed codec lines). read_pages raises
     #    MissingPageError (naming pages) / LayoutError (no header) — let it.
     with tempfile.TemporaryFile(dir=temp_dir) as encoded_spool, tempfile.TemporaryFile(
         dir=temp_dir
     ) as compressed_spool:
-        meta, _encoded_count = layout.read_pages_to_spool(text_lines, encoded_spool)
+        meta, _encoded_count = layout.read_pages_to_spool(
+            text_lines, encoded_spool, line_conf=char_conf
+        )
+        spool_conf = meta.pop("_line_conf", None)
 
         # Surface unreadable-index diagnostics NOW, before decode can fail on an
         # RS-budget error -- otherwise finding #5's whole point (tell the reader
@@ -172,7 +209,12 @@ def decode_document_to_spool(
         encoded_spool.seek(0)
         if hasattr(selected_codec, "decode_spool") and selected_codec.name == "base16g-crc16-rs":
             selected_codec.decode_spool(
-                encoded_spool, compressed_spool, temp_dir=temp_dir
+                encoded_spool,
+                compressed_spool,
+                temp_dir=temp_dir,
+                char_conf=spool_conf,
+                conf_threshold=conf_threshold,
+                max_suspects=max_suspects,
             )
         else:
             lines = (

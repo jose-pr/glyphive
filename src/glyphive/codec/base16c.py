@@ -137,6 +137,30 @@ is deliberately no "try confusable substitutions and keep whatever decompresses
 further" search anywhere in this module. If a line's CRC fails AND RS cannot
 correct the resulting erasures, ``decode`` RAISES a clear exception naming the
 exact failing line label. It never guesses or mutates data to make it "work".
+
+OCR-confidence erasure hint (``char_conf``, does NOT weaken the above)
+------------------------------------------------------------------------
+:meth:`Base16GCodec.decode_spool` optionally accepts ``char_conf``: per-line
+OCR character confidence, keyed by PHYSICAL LINE ORDER within the encoded
+spool (not by the printed index, which may itself be corrupt on a CRC-failed
+line). Today, a CRC-failed line contributes its ENTIRE byte span as document-
+level Reed-Solomon erasures, even though the typical cause is one or two
+misread characters -- wasting the erasure budget ~line-width-fold. When
+``char_conf`` names specific low-confidence character positions within an
+otherwise CRC-failed line (fewer than ``max_suspects``), only the bytes those
+characters map to are marked as erasures; the line's other ("soft") bytes
+enter the RS stream as ordinary, unverified data instead of being zeroed.
+
+This is a HINT about WHERE to erase, never about WHAT the bytes are or
+whether a line is accepted -- it changes erasure *positions* only.
+Acceptance is unchanged: a block still must satisfy Reed-Solomon's erasure/
+error budget, and the whole-document SHA-256 gate (``restore/decode.py``) is
+still the final oracle. A two-pass, block-local safety valve makes the
+optimization strictly no-worse than today: if a block still fails RS with
+the narrower char-level erasures, that block alone is retried with the
+CRC-failed line(s) it touches erased across their FULL span (today's
+behaviour) before the block is given up as uncorrectable. See
+``_assemble_to_spool`` and ``Base16GCodec._decode_hardened_spool``.
 """
 
 import collections as _collections
@@ -158,7 +182,22 @@ __all__ = [
     "encoded_line_count",
     "describe_line_stream",
     "StreamShape",
+    "align_payload_char_conf",
+    "DEFAULT_CONF_THRESHOLD",
+    "DEFAULT_MAX_SUSPECTS",
 ]
+
+#: Default OCR confidence threshold (plan 3): a payload character below this
+#: is treated as suspect. Chosen conservatively pending a calibration run
+#: (see ``tools/conf_calibration.py``); it only affects which bytes decode
+#: marks as erasures, never whether a correction is accepted.
+DEFAULT_CONF_THRESHOLD: _ty.Final[float] = 0.6
+
+#: Default cap on the number of suspect characters a CRC-failed line may have
+#: before decode gives up on char-level erasure marking and falls back to
+#: erasing the line's whole span (today's behaviour) -- a line with more
+#: suspects than this is not "mostly right with a couple of typos" anymore.
+DEFAULT_MAX_SUSPECTS: _ty.Final[int] = 6
 
 # ---------------------------------------------------------------------------
 # The measured-safe 16-character alphabet (4 bits/char)
@@ -791,6 +830,86 @@ def split_frame_with_parity(
         payload = middle
         line_parity = ""
     return label, payload, line_parity, check
+
+
+def align_payload_char_conf(
+    line: str,
+    char_conf: _ty.Sequence[_ty.Optional[float]],
+    spec: "_RadixSpec" = BASE16G,
+    *,
+    line_parity_chars: int = 0,
+) -> _ty.Optional[_ty.List[_ty.Optional[float]]]:
+    """Slice a raw line's per-character OCR confidence down to its payload.
+
+    ``char_conf`` must be the same length as ``line`` (one confidence value
+    per printed character, spaces included -- providers give whitespace a
+    confidence of ``1.0``). This mirrors :func:`split_frame_with_parity`'s
+    POSITIONAL "compact" derivation: label (``spec.index_width + 1`` chars)
+    then payload+line-parity (everything up to the ``spec.delimiter``) then
+    ``#check``. Both branches of ``split_frame_with_parity`` reduce to this
+    same shape once interior OCR whitespace is stripped, so applying it
+    uniformly here (rather than re-running the token-based branch) recovers
+    the same payload boundary for any line that actually has the frame
+    shape. Keep this in sync with :func:`split_frame_with_parity` if that
+    function's positional math changes.
+
+    Returns ``None`` (never guesses) if ``char_conf`` is the wrong length,
+    the line does not have the frame shape, or the recovered payload region
+    doesn't have a sane width -- callers must treat that as "no confidence
+    available" and fall back to whole-line erasure marking.
+    """
+    if len(char_conf) != len(line):
+        return None
+    compact_chars: _ty.List[str] = []
+    compact_conf: _ty.List[_ty.Optional[float]] = []
+    for ch, cf in zip(line, char_conf):
+        if not ch.isspace():
+            compact_chars.append(ch)
+            compact_conf.append(cf)
+    compact = "".join(compact_chars)
+    label_width = spec.index_width + 1
+    if len(compact) < label_width + 1 + spec.check_width:
+        return None
+    delim = spec.delimiter
+    remainder = compact[label_width:]
+    if remainder.count(delim) != 1:
+        return None
+    marker = remainder.index(delim)
+    check_end = marker + 1 + spec.check_width
+    if marker == 0 or check_end > len(remainder):
+        return None
+    middle_conf = compact_conf[label_width:label_width + marker]
+    if line_parity_chars:
+        if len(middle_conf) < line_parity_chars:
+            return None
+        return middle_conf[:-line_parity_chars]
+    return middle_conf
+
+
+def _suspect_byte_offsets(
+    positions: _ty.Iterable[int], span: int, spec: "_RadixSpec"
+) -> _ty.Set[int]:
+    """Map low-confidence PAYLOAD CHARACTER positions to byte offsets.
+
+    Bit-packing: character ``pos`` lives in byte ``pos * spec.bits // 8``
+    (floor -- ``spec.bits`` bits/char, ``8 // spec.bits`` chars/byte).
+    Group-packing: a byte is only determined jointly with the rest of its
+    ``group_bytes``-byte group, so any suspect character inside a group
+    marks the WHOLE group. Offsets beyond ``span`` (e.g. a suspect pad
+    character the payload's own width doesn't carry a byte for) are
+    dropped, not clamped -- there is no byte there to erase.
+    """
+    offsets: _ty.Set[int] = set()
+    if spec.packing == "group":
+        for pos in positions:
+            start = (pos // spec.group_chars) * spec.group_bytes
+            offsets.update(b for b in range(start, start + spec.group_bytes) if b < span)
+    else:
+        for pos in positions:
+            offset = (pos * spec.bits) // 8
+            if offset < span:
+                offsets.add(offset)
+    return offsets
 
 
 def _parse_line(
@@ -1453,7 +1572,15 @@ def _frame_stream(kind: str, source, length: int, bytes_per_line: int,
         raise ValueError(f"{kind} spool has trailing bytes")
 
 
-def _preprocess_spool(source, sink, spec: "_RadixSpec") -> bool:
+def _preprocess_spool(
+    source,
+    sink,
+    spec: "_RadixSpec",
+    *,
+    char_conf: _ty.Optional[
+        _ty.Sequence[_ty.Optional[_ty.Sequence[float]]]
+    ] = None,
+) -> _ty.Tuple[bool, _ty.Optional[_ty.List[_ty.Optional[_ty.Sequence[float]]]]]:
     """Decode-hardening pre-pass (plans 1 & 2). Streams ``source`` -> ``sink``
     applying, to CRC-*failed* L/P lines only:
 
@@ -1528,10 +1655,30 @@ def _preprocess_spool(source, sink, spec: "_RadixSpec") -> bool:
         if parsed is not None and parsed.ok:
             max_ok[parsed.kind] = max(max_ok[parsed.kind], parsed.idx)
 
+    # ``out_conf[i]`` carries the ORIGINAL (raw, per-physical-input-line)
+    # confidence for ``out[i]`` forward unchanged -- a positionally-reassigned
+    # line's payload/line-parity/check characters are untouched (only the
+    # index token's VALUE, never its WIDTH, changes), and a still-CRC-failed
+    # line that survives verbatim obviously keeps its own confidence. A
+    # dropped line's confidence is dropped with it. ``_assemble_to_spool``
+    # re-validates the length against the actual on-disk text before trusting
+    # it, so a case where reassignment changed the printed spacing (and thus
+    # the char-for-char alignment) safely degrades to "no confidence" rather
+    # than mis-aligning -- never a correctness risk, only a missed hint.
+    conf_in = list(char_conf) if char_conf is not None else None
     out: _ty.List[str] = []
+    out_conf: _ty.Optional[_ty.List[_ty.Optional[_ty.Sequence[float]]]] = (
+        [] if conf_in is not None else None
+    )
+
+    def _emit(line: str, i: int) -> None:
+        out.append(line)
+        if out_conf is not None:
+            out_conf.append(conf_in[i] if i < len(conf_in) else None)
+
     for i, (parsed, text) in enumerate(entries):
         if parsed is None or parsed.ok:
-            out.append(text)
+            _emit(text, i)
             continue
         # CRC-failed line still.
         if max_ok[parsed.kind] < 0 or parsed.idx <= max_ok[parsed.kind]:
@@ -1540,7 +1687,7 @@ def _preprocess_spool(source, sink, spec: "_RadixSpec") -> bool:
             # no trusted geometry to violate, so keep the line as an erasure
             # candidate rather than dropping it (dropping guarantees "no data
             # lines"; keeping lets RS/length bookkeeping still try).
-            out.append(text)
+            _emit(text, i)
             continue
         # Implausible index: try positional reassignment from CRC-valid neighbors.
         prev = nxt = None
@@ -1566,7 +1713,7 @@ def _preprocess_spool(source, sink, spec: "_RadixSpec") -> bool:
                 # erasure, but now in its true positional slot instead of a
                 # poisoned index.
                 parity_field = f" {line_parity}" if line_parity_chars else ""
-                out.append(f"{parsed.kind}{token} {payload}{parity_field} {check}")
+                _emit(f"{parsed.kind}{token} {payload}{parity_field} {check}", i)
                 changed = True
                 continue
         # Otherwise drop the geometry-poisoning claim entirely.
@@ -1574,7 +1721,7 @@ def _preprocess_spool(source, sink, spec: "_RadixSpec") -> bool:
 
     for line in out:
         sink.write(line.encode("utf-8") + b"\n")
-    return changed
+    return changed, out_conf
 
 
 def _read_spooled_line(
@@ -1591,11 +1738,56 @@ def _read_spooled_line(
     return parsed
 
 
-def _assemble_to_spool(source, index, sink, bytes_per_line: int,
-                       spec: "_RadixSpec" = BASE16G, *, line_parity_chars: int = 0):
-    erasures = []
+def _read_spooled_text(source, offset: int) -> str:
+    """Re-read the exact stripped text of a spooled line (for conf alignment).
+
+    Only called for the rare CRC-failed line that also has OCR confidence
+    data -- an extra seek+read here is cheap relative to the RS work it may
+    save.
+    """
+    source.seek(offset)
+    return source.readline().decode("utf-8").rstrip("\r\n").strip()
+
+
+def _assemble_to_spool(
+    source,
+    index,
+    sink,
+    bytes_per_line: int,
+    spec: "_RadixSpec" = BASE16G,
+    *,
+    line_parity_chars: int = 0,
+    line_conf: _ty.Optional[_ty.Mapping[int, _ty.Sequence[float]]] = None,
+    conf_threshold: float = DEFAULT_CONF_THRESHOLD,
+    max_suspects: int = DEFAULT_MAX_SUSPECTS,
+):
+    """Assemble one kind's (data or parity) byte stream, marking erasures.
+
+    ``line_conf`` (optional): maps a line's spool file OFFSET (the same
+    ``entry[0]`` this function reads lines at) to that line's RAW per-
+    character OCR confidence (one value per PRINTED character of the line,
+    spaces included -- see :func:`align_payload_char_conf`, which this calls
+    to recover the PAYLOAD-aligned slice). For a CRC-failed line with
+    confidence data, when the number of payload characters below
+    ``conf_threshold`` is in ``1..max_suspects``, only the byte offsets those
+    characters map to (:func:`_suspect_byte_offsets`) are added to
+    ``erasures`` -- the line's other bytes are decoded and written through as
+    ordinary ("soft", unverified) data instead of being zeroed. Any line that
+    still falls back to whole-span erasure (no confidence, ambiguous
+    alignment, too many/zero suspects, or an undecodable payload) behaves
+    exactly as before.
+
+    Returns ``(written, erasures, soft_spans)``: ``soft_spans`` is the list
+    of ``(start, end)`` byte spans (within THIS stream) that got char-level
+    marking instead of a whole-line erasure -- the caller's two-pass safety
+    valve promotes a span back to full erasure, block-locally, if RS still
+    fails to correct the block (see the module docstring's "OCR-confidence
+    erasure hint" section).
+    """
+    erasures: _ty.List[int] = []
+    soft_spans: _ty.List[_ty.Tuple[int, int]] = []
     if not index:
-        return 0, erasures
+        return 0, erasures, soft_spans
     max_idx = max(index)
     written = 0
     for idx in range(max_idx + 1):
@@ -1623,11 +1815,42 @@ def _assemble_to_spool(source, index, sink, bytes_per_line: int,
                 chunk = b"\x00" * span
                 erasures.extend(range(written, written + span))
         else:
-            chunk = b"\x00" * span
-            erasures.extend(range(written, written + span))
+            chunk = None
+            raw_conf = (
+                line_conf.get(entry[0])
+                if (line_conf and entry is not None)
+                else None
+            )
+            if raw_conf is not None and parsed is not None:
+                raw_text = _read_spooled_text(source, entry[0])
+                payload_conf = align_payload_char_conf(
+                    raw_text, raw_conf, spec, line_parity_chars=line_parity_chars
+                )
+                if payload_conf is not None and len(payload_conf) == len(parsed.payload):
+                    suspects = [
+                        i
+                        for i, c in enumerate(payload_conf)
+                        if c is not None and c < conf_threshold
+                    ]
+                    if 1 <= len(suspects) <= max_suspects:
+                        try:
+                            candidate = radix_decode(parsed.payload, span, spec)
+                        except ValueError:
+                            candidate = None
+                        if candidate is not None:
+                            suspect_bytes = _suspect_byte_offsets(suspects, span, spec)
+                            if suspect_bytes:
+                                chunk = candidate
+                                erasures.extend(
+                                    sorted(written + b for b in suspect_bytes)
+                                )
+                                soft_spans.append((written, written + span))
+            if chunk is None:
+                chunk = b"\x00" * span
+                erasures.extend(range(written, written + span))
         sink.write(chunk)
         written += span
-    return written, erasures
+    return written, erasures, soft_spans
 
 
 def _copy_stream(source, sink, chunk_size=1024 * 1024):
@@ -1865,25 +2088,65 @@ class Base16GCodec(Codec):
         encoded_source: _ty.BinaryIO,
         payload_sink: _ty.BinaryIO,
         *,
+        char_conf: _ty.Optional[
+            _ty.Sequence[_ty.Optional[_ty.Sequence[float]]]
+        ] = None,
+        conf_threshold: float = DEFAULT_CONF_THRESHOLD,
+        max_suspects: int = DEFAULT_MAX_SUSPECTS,
         temp_dir: _ty.Optional[str] = None,
     ) -> None:
-        """Decode an encoded-line spool with only offsets and RS blocks in RAM."""
+        """Decode an encoded-line spool with only offsets and RS blocks in RAM.
+
+        ``char_conf`` (plan 3, optional): per-line OCR character confidence,
+        keyed by PHYSICAL LINE ORDER within ``encoded_source`` (``char_conf[i]``
+        is the raw per-character confidence of the i-th line as read from the
+        spool, or ``None``) -- never by printed index, which may itself be
+        corrupt on a CRC-failed line. When absent (the default), decode is
+        byte-identical to a build without this feature. See the module
+        docstring's "OCR-confidence erasure hint" section for exactly what
+        this does and does not change about acceptance.
+        """
         # Plan-1 decode-hardening pre-pass: repair single-char errors, and stop
         # CRC-failed lines with poisoned index tokens from destroying the stream
         # geometry. Runs into a temp spool only when it actually changes lines;
         # a clean transcript pays one streaming scan and reuses the original.
+        # ``char_conf`` (raw, per-physical-line) rides along unchanged for kept
+        # lines and is dropped along with any line the hardening pass drops --
+        # see ``_preprocess_spool``.
         with _tempfile.TemporaryFile(dir=temp_dir) as _hardened:
-            if _preprocess_spool(encoded_source, _hardened, self._spec):
+            changed, hardened_conf = _preprocess_spool(
+                encoded_source, _hardened, self._spec, char_conf=char_conf
+            )
+            if changed:
                 _hardened.seek(0)
-                self._decode_hardened_spool(_hardened, payload_sink, temp_dir=temp_dir)
+                self._decode_hardened_spool(
+                    _hardened,
+                    payload_sink,
+                    temp_dir=temp_dir,
+                    char_conf=hardened_conf,
+                    conf_threshold=conf_threshold,
+                    max_suspects=max_suspects,
+                )
                 return
-        self._decode_hardened_spool(encoded_source, payload_sink, temp_dir=temp_dir)
+        self._decode_hardened_spool(
+            encoded_source,
+            payload_sink,
+            temp_dir=temp_dir,
+            char_conf=char_conf,
+            conf_threshold=conf_threshold,
+            max_suspects=max_suspects,
+        )
 
     def _decode_hardened_spool(
         self,
         encoded_source: _ty.BinaryIO,
         payload_sink: _ty.BinaryIO,
         *,
+        char_conf: _ty.Optional[
+            _ty.Sequence[_ty.Optional[_ty.Sequence[float]]]
+        ] = None,
+        conf_threshold: float = DEFAULT_CONF_THRESHOLD,
+        max_suspects: int = DEFAULT_MAX_SUSPECTS,
         temp_dir: _ty.Optional[str] = None,
     ) -> None:
         data_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
@@ -1908,11 +2171,24 @@ class Base16GCodec(Codec):
             (raw.decode("utf-8", "replace") for raw in encoded_source), self._spec
         )
         encoded_source.seek(0)
+        # ``char_conf`` is indexed by PHYSICAL LINE ORDER (see decode_spool's
+        # docstring) -- resolve it here, once, into an offset-keyed lookup so
+        # ``_assemble_to_spool`` can find a line's confidence the same way it
+        # already finds everything else about that line: by spool offset.
+        line_conf_by_offset: _ty.Dict[int, _ty.Sequence[float]] = {}
+        phys_index = 0
         while True:
             offset = encoded_source.tell()
             raw = encoded_source.readline()
             if not raw:
                 break
+            if (
+                char_conf is not None
+                and phys_index < len(char_conf)
+                and char_conf[phys_index] is not None
+            ):
+                line_conf_by_offset[offset] = char_conf[phys_index]
+            phys_index += 1
             parsed = _parse_line(
                 raw.decode("utf-8").rstrip("\r\n"),
                 self._spec,
@@ -1986,21 +2262,27 @@ class Base16GCodec(Codec):
         with _tempfile.TemporaryFile(dir=temp_dir) as data_spool, _tempfile.TemporaryFile(
             dir=temp_dir
         ) as parity_spool:
-            data_len, data_erasures = _assemble_to_spool(
+            data_len, data_erasures, data_soft_spans = _assemble_to_spool(
                 encoded_source,
                 data_lines,
                 data_spool,
                 bytes_per_line,
                 self._spec,
                 line_parity_chars=line_parity_chars,
+                line_conf=line_conf_by_offset or None,
+                conf_threshold=conf_threshold,
+                max_suspects=max_suspects,
             )
-            parity_len, parity_erasures = _assemble_to_spool(
+            parity_len, parity_erasures, parity_soft_spans = _assemble_to_spool(
                 encoded_source,
                 parity_lines,
                 parity_spool,
                 bytes_per_line,
                 self._spec,
                 line_parity_chars=line_parity_chars,
+                line_conf=line_conf_by_offset or None,
+                conf_threshold=conf_threshold,
+                max_suspects=max_suspects,
             )
             if data_len < _HEADER_LEN:
                 raise ValueError("data stream shorter than the group header")
@@ -2074,6 +2356,27 @@ class Base16GCodec(Codec):
                 for nsym in candidates:
                     nblocks = _num_blocks(data_len, nsym)
                     expected_parity_len = nblocks * nsym
+                    # Two-pass safety valve bookkeeping (plan 3): which
+                    # interleaved block(s) each char-level-marked ("soft") line
+                    # span touches, FOR THIS nblocks -- a block whose erasures
+                    # are all char-level and still fails RS is retried once
+                    # with every byte of the soft line(s) it touches erased
+                    # across their full span (today's behaviour), before the
+                    # block is given up as uncorrectable. Cheap: proportional
+                    # to total soft bytes, which is bounded by the (small)
+                    # number of CRC-failed lines with usable confidence.
+                    soft_by_block_data: _ty.Dict[int, _ty.Set[int]] = (
+                        _collections.defaultdict(set)
+                    )
+                    for start, end in data_soft_spans:
+                        for pos in range(start, end):
+                            soft_by_block_data[pos % nblocks].add(pos)
+                    soft_by_block_parity: _ty.Dict[int, _ty.Set[int]] = (
+                        _collections.defaultdict(set)
+                    )
+                    for start, end in parity_soft_spans:
+                        for pos in range(start, end):
+                            soft_by_block_parity[pos % nblocks].add(pos)
                     with _tempfile.TemporaryFile(dir=temp_dir) as corrected:
                         _copy_stream(data_spool, corrected)
                         rs = _reedsolo.RSCodec(nsym)
@@ -2115,9 +2418,38 @@ class Base16GCodec(Codec):
                                     erase_pos=erase_pos or None,
                                 )[0]
                             except _reedsolo.ReedSolomonError:
-                                rs_budget_exceeded = True
-                                failed = True
-                                break
+                                # Pass 2 of the safety valve: promote any soft
+                                # line touching this block to a full-span
+                                # erasure and retry ONCE, block-locally.
+                                retry_pos = set(erase_pos)
+                                soft_data_here = soft_by_block_data.get(block_index)
+                                if soft_data_here:
+                                    retry_pos.update(
+                                        (pos - block_index) // nblocks
+                                        for pos in soft_data_here
+                                        if pos not in data_erasure_set
+                                    )
+                                soft_parity_here = soft_by_block_parity.get(block_index)
+                                if soft_parity_here:
+                                    retry_pos.update(
+                                        len(positions) + (pos - block_index) // nblocks
+                                        for pos in soft_parity_here
+                                        if pos not in parity_erasure_set
+                                    )
+                                rescued = False
+                                if len(retry_pos) > len(erase_pos):
+                                    try:
+                                        decoded = rs.decode(
+                                            bytearray(block_data + block_parity),
+                                            erase_pos=sorted(retry_pos),
+                                        )[0]
+                                        rescued = True
+                                    except _reedsolo.ReedSolomonError:
+                                        rescued = False
+                                if not rescued:
+                                    rs_budget_exceeded = True
+                                    failed = True
+                                    break
                             for local, pos in enumerate(positions):
                                 if decoded[local] != data_map[pos]:
                                     corrected.seek(pos)
