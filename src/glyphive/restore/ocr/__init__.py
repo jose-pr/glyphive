@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import Iterable, Optional
+from typing import Iterable, List, Optional
 
-from ._base import OcrProvider
+from ._base import OcrLine, OcrProvider
 from .providers import (
     EasyOcrProvider,
     PaddleProvider,
@@ -28,6 +28,7 @@ _INSTALL_HINT = (
 )
 
 __all__ = [
+    "OcrLine",
     "OcrProvider",
     "available",
     "available_engines",
@@ -86,37 +87,42 @@ def _select_engine(engine: Optional[str]) -> str:
     return engine
 
 
-def ocr_image(image_path, *, engine: Optional[str] = None) -> list[str]:
+def ocr_image(image_path, *, engine: Optional[str] = None) -> List[OcrLine]:
     """OCR one image with a selected or highest-preference provider."""
     return get(_select_engine(engine)).ocr_image(image_path)
 
 
 def ocr_pages(
     image_paths: Iterable, *, engine: Optional[str] = None
-) -> list[list[str]]:
+) -> List[List[OcrLine]]:
     """OCR several images, resolving one provider before any page work."""
     provider = get(_select_engine(engine))
     return [provider.ocr_image(path) for path in image_paths]
 
 
-def ocr_vote(image_path, *, engines: list[str]) -> list[str]:
-    """Return a majority-vote hint; CRC/RS remains the correctness oracle."""
+def ocr_vote(image_path, *, engines: List[str]) -> List[OcrLine]:
+    """Return a majority-vote hint; CRC/RS remains the correctness oracle.
+
+    Votes on each line's TEXT only; the winning line's ``char_conf`` (from
+    whichever engine's reading was chosen) is carried through unchanged --
+    voting picks which text wins, it never blends or discards confidence.
+    """
     if not engines:
         raise ValueError("ocr_vote requires at least one engine")
     providers = [get(_select_engine(name)) for name in engines]
     per_engine = [provider.ocr_image(image_path) for provider in providers]
     base = per_engine[0]
-    voted: list[str] = []
+    voted: List[OcrLine] = []
     for index, base_line in enumerate(base):
         votes: Counter[str] = Counter(
-            lines[index] for lines in per_engine if index < len(lines)
+            lines[index].text for lines in per_engine if index < len(lines)
         )
         if not votes:
             voted.append(base_line)
             continue
         top = max(votes.values())
         for lines in per_engine:
-            if index < len(lines) and votes[lines[index]] == top:
+            if index < len(lines) and votes[lines[index].text] == top:
                 voted.append(lines[index])
                 break
     return voted

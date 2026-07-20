@@ -7,6 +7,26 @@ import re
 import typing as _ty
 
 
+class OcrLine(_ty.NamedTuple):
+    """One OCR-read line: its text plus optional per-character confidence.
+
+    ``char_conf`` is ``None`` when the provider (or a non-OCR text/QR path)
+    has no per-character confidence to offer -- callers MUST keep tolerating
+    that (plan 3: OCR-confidence-assisted char-level erasures is an
+    optimization, never a requirement). When present, ``char_conf`` has
+    exactly ``len(text)`` entries, one per character of ``text`` (spaces
+    included -- a provider gives whitespace a confidence of ``1.0``), each
+    in ``0.0..1.0`` (or ``None`` for a single character the provider itself
+    could not score). It is deliberately RAW: aligned to the full printed
+    line as read, not yet sliced down to the codec's payload region -- see
+    :func:`glyphive.codec.base16c.align_payload_char_conf`, which does that
+    alignment once the codec's frame shape is known.
+    """
+
+    text: str
+    char_conf: _ty.Optional[_ty.List[_ty.Optional[float]]] = None
+
+
 class OcrProvider(ABC):
     """Base class for stateless, no-argument image OCR providers."""
 
@@ -78,5 +98,5 @@ class OcrProvider(ABC):
         OcrProvider._external.clear()
 
     @abstractmethod
-    def ocr_image(self, image_path: _ty.Any) -> _ty.List[str]:
-        """Return candidate text lines from one image."""
+    def ocr_image(self, image_path: _ty.Any) -> _ty.List[OcrLine]:
+        """Return candidate lines (text + optional per-char confidence) from one image."""

@@ -197,5 +197,56 @@ def test_real_ocr_gate_restores_byte_for_byte(tmp_path, engine, compression):
     )
     assert rc == 0
 
+
+# --------------------------------------------------------------------------- #
+# Layer 3 (plan 3): real Tesseract per-character confidence
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("engine", ["tesseract", "tesseract-glyphive"])
+def test_real_tesseract_ocr_image_returns_per_character_confidence(tmp_path, engine):
+    """Real Tesseract binary: ``ocr_image`` returns ``OcrLine`` with a
+    ``char_conf`` list of the right length and plausible (0..1) values for
+    at least one recognized line. Skips cleanly when Tesseract is not
+    installed on this runner (same pattern as the layer-2 gate above) --
+    the plan explicitly does not require this test to run everywhere.
+    """
+    if not _engine_available(engine):
+        pytest.skip(f"OCR engine {engine!r} is not installed on this runner")
+    try:
+        import pypdfium2  # noqa: F401
+    except ImportError:
+        pytest.skip("pypdfium2 is not installed (glyphive[document-input])")
+
+    from glyphive import cli as _cli
+
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "a.txt").write_text("hello glyphive confidence test\n" * 50, encoding="utf-8")
+    pdf_path = tmp_path / "conf.pdf"
+    assert _cli.run(
+        ["create", "-f", str(pdf_path), "--format", "pdf", "--none", "-C", str(src), "."]
+    ) == 0
+
+    import pypdfium2
+
+    image_path = tmp_path / "conf-page1.png"
+    doc = pypdfium2.PdfDocument(str(pdf_path))
+    try:
+        image = doc[0].render(scale=300 / 72).to_pil().convert("L")
+        image.save(str(image_path))
+    finally:
+        doc.close()
+
+    lines = _ocr.get(engine).ocr_image(image_path)
+    assert lines, "expected at least one OCR'd line"
+    scored = [
+        line for line in lines
+        if line.char_conf is not None and any(c is not None for c in line.char_conf)
+    ]
+    assert scored, "expected at least one line with real per-character confidence"
+    for line in scored:
+        assert len(line.char_conf) == len(line.text)
+        for value in line.char_conf:
+            assert value is None or 0.0 <= value <= 1.0
+
     restored_text = (out_dir / "a.txt").read_text(encoding="utf-8")
     assert restored_text == (src / "a.txt").read_text(encoding="utf-8")
