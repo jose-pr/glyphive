@@ -8,7 +8,7 @@ import pytest
 from glyphive import codec, layout
 
 
-def _document(data=b"protected metadata"):
+def _document(data=b"protected metadata", *, nsym_line=2):
     meta = {
         "codec": "base16g-crc16-rs",
         "comp": "none",
@@ -18,7 +18,9 @@ def _document(data=b"protected metadata"):
         "sha256": hashlib.sha256(data).hexdigest(),
     }
     pages = layout.paginate(
-        codec.get("base16g-crc16-rs").encode(data), meta, lines_per_page=13
+        codec.get("base16g-crc16-rs").encode(data, nsym_line=nsym_line),
+        meta,
+        lines_per_page=13,
     )
     return data, [line for page in pages for line in page.text_lines]
 
@@ -203,7 +205,12 @@ def test_real_ocr_damage_to_human_metadata_is_display_only():
 
 
 def test_compact_machine_and_payload_frames_restore_full_transcript():
-    data, lines = _document()
+    # nsym_line=0: an L/P line with all whitespace removed has exactly one
+    # token, which is inherently ambiguous for the (separately tested)
+    # structural line-parity detection -- see _detect_line_parity_chars's
+    # docstring. This test isolates the compact-frame (all-spaces-removed)
+    # OCR-robustness path it actually targets.
+    data, lines = _document(nsym_line=0)
     compact = []
     for line in lines:
         if line[:1] in {"H", "L", "P"}:
@@ -352,11 +359,17 @@ def test_unreadable_index_token_is_surfaced_not_silently_dropped():
     )
     lines = [line for page in pages for line in page.text_lines]
 
+    from glyphive.codec.base16c import _detect_line_parity_chars, split_frame_with_parity
+
     li = next(i for i, line in enumerate(lines) if line.startswith("L"))
-    label, payload, check = lines[li].split()
+    line_parity_chars = _detect_line_parity_chars(lines, codec.get("base16g-crc16-rs")._spec)
+    label, payload, line_parity, check = split_frame_with_parity(
+        lines[li], line_parity_chars=line_parity_chars
+    )
     # Insert a stray alphabet char into the label so decode_index rejects it.
     corrupted_label = "L" + label[1] + "K" + label[2:]
-    lines[li] = f"{corrupted_label} {payload} {check}"
+    parity_field = f" {line_parity}" if line_parity_chars else ""
+    lines[li] = f"{corrupted_label} {payload}{parity_field} {check}"
 
     meta, _encoded = layout.read_pages(lines)
     unreadable = meta["_unreadable_lines"]
@@ -376,7 +389,12 @@ def test_conflicting_index_collision_degrades_to_erasure_not_fatal():
     one index is squarely inside the default parity budget. Only if the resulting
     erasure load exceeds the budget does decode fail, via the budget path.
     """
-    from glyphive.codec.base16c import CodecError, _check_chars
+    from glyphive.codec.base16c import (
+        CodecError,
+        _check_chars,
+        _detect_line_parity_chars,
+        split_frame_with_parity,
+    )
 
     data = bytes(range(256)) * 4
     c = codec.get("base16g-crc16-rs")
@@ -384,9 +402,21 @@ def test_conflicting_index_collision_degrades_to_erasure_not_fatal():
 
     data_positions = [i for i, line in enumerate(lines) if line.startswith("L")]
     assert len(data_positions) >= 2
-    idx0_token = lines[data_positions[0]].split()[0][1:]
-    payload_from_line1 = lines[data_positions[1]].split()[1]
-    forged = f"L{idx0_token} {payload_from_line1} #{_check_chars(idx0_token, payload_from_line1)}"
+    line_parity_chars = _detect_line_parity_chars(lines, c._spec)
+    idx0_token = split_frame_with_parity(
+        lines[data_positions[0]], line_parity_chars=line_parity_chars
+    )[0][1:]
+    _label1, payload_from_line1, line_parity1, _check1 = split_frame_with_parity(
+        lines[data_positions[1]], line_parity_chars=line_parity_chars
+    )
+    # The line-parity field (if any) is NOT covered by the check field, so
+    # reusing line1's own field verbatim keeps the forged line CRC-valid --
+    # it does not need to be internally RS-consistent for this test.
+    parity_field = f" {line_parity1}" if line_parity_chars else ""
+    forged = (
+        f"L{idx0_token} {payload_from_line1}{parity_field} "
+        f"#{_check_chars('L', idx0_token, payload_from_line1)}"
+    )
     lines[data_positions[1]] = forged
 
     # No fatal "conflicting duplicate" abort; RS rebuilds the degraded slot.

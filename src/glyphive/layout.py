@@ -246,11 +246,20 @@ class _ParsedMachineFrame(_ty.NamedTuple):
     ok: bool
 
 
-def _machine_check(idx_token: str, payload: str) -> str:
-    """Return a safe-alphabet CRC-16 for a machine metadata frame."""
+def _machine_check(kind: str, idx_token: str, payload: str) -> str:
+    """Return a safe-alphabet CRC-16 for a machine metadata frame.
+
+    Covers ``kind`` (``H``/``T``/``Q``) as well as the index token and payload
+    -- matching ``codec.base16c``'s kind-covered per-line CRC (v2 wire
+    format). Without this, an OCR misread that flips one machine-frame kind
+    letter into another (e.g. ``T``->``H``) produces a CRC-VALID phantom frame
+    of the wrong kind at the same index, since a kind-blind CRC cannot tell
+    the two apart; covering ``kind`` makes such a flip fail the check like any
+    other single-character error.
+    """
     from .codec.base16c import nibble_encode
 
-    canonical = idx_token.upper().encode() + payload.upper().encode()
+    canonical = kind.upper().encode() + idx_token.upper().encode() + payload.upper().encode()
     crc = binascii.crc_hqx(canonical, 0xFFFF)
     return nibble_encode(crc.to_bytes(2, "big"))
 
@@ -263,7 +272,7 @@ def _format_machine_frame(kind: str, idx: int, payload: str) -> str:
     if any(char not in ALPHABET for char in payload):
         raise ValueError("machine metadata payload contains an unsafe character")
     token = encode_index(idx)
-    return f"{kind}{token} {payload} #{_machine_check(token, payload)}"
+    return f"{kind}{token} {payload} #{_machine_check(kind, token, payload)}"
 
 
 def _parse_machine_frame(
@@ -296,7 +305,7 @@ def _parse_machine_frame(
 
     payload = payload.upper()
     check = check_field[1:].upper()
-    expected = _machine_check(idx_token, payload)
+    expected = _machine_check(kind, idx_token, payload)
     return _ParsedMachineFrame(idx=idx, payload=payload, ok=check == expected)
 
 
@@ -799,7 +808,7 @@ def iter_paginate(
     grand_total = data_total + parity_pages
 
     from .codec import pagers as _pagers
-    from .codec.base16c import split_frame
+    from .codec.base16c import _detect_line_parity_chars, split_frame, split_frame_with_parity
 
     if parity_pages and data_total + parity_pages > _pagers.MAX_TOTAL_BLOCKS:
         raise LayoutError(
@@ -819,6 +828,7 @@ def iter_paginate(
     # is byte-for-byte identical to the pre-parity-pages format.
     precomputed_chunks: _ty.Optional[_ty.List[_ty.List[str]]] = None
     block_bytes = 0
+    line_parity_chars = 0
     if parity_pages:
         source = iter(encoded_lines)
         remaining_n = n_encoded
@@ -833,6 +843,29 @@ def iter_paginate(
         block_bytes = max(
             (len("\n".join(chunk).encode("utf-8")) for chunk in precomputed_chunks),
             default=0,
+        )
+        # The L/P lines carry an optional per-line Reed-Solomon parity field
+        # (base16c v2) whose width is not knowable from line_width alone --
+        # detect it structurally (same heuristic codec decode uses) so the
+        # data-payload-width measurement below doesn't fold that field into
+        # what it treats as "payload" (which would inflate Q parity rows past
+        # the 60-char OCR-safe cap; see the unit-mismatch note below). Uses
+        # the SELECTED codec's own alphabet/spec (base32g etc. differ from
+        # the base16c bootstrap), falling back to base16c if the codec name
+        # is unknown (e.g. a plugin not loaded for this invocation).
+        from .codec.base16c import BASE16G as _BASE16G
+
+        payload_spec = _BASE16G
+        codec_name = meta.get("codec")
+        if codec_name:
+            try:
+                from .codec import get as _get_codec
+
+                payload_spec = getattr(_get_codec(str(codec_name)), "_spec", _BASE16G)
+            except ValueError:
+                pass
+        line_parity_chars = _detect_line_parity_chars(
+            (line for chunk in precomputed_chunks for line in chunk), payload_spec
         )
 
     meta["pages"] = data_total
@@ -868,7 +901,14 @@ def iter_paginate(
             block = "\n".join(chunk).encode("utf-8")
             data_blocks.append(block)
             for line in chunk:
-                split = split_frame(line)
+                # split_frame_with_parity (NOT split_frame) is required here:
+                # split_frame's 3-tuple form re-merges payload+line-parity for
+                # callers that don't care about the distinction, which would
+                # silently re-inflate this width measurement right back to the
+                # bug this block exists to fix.
+                split = split_frame_with_parity(
+                    line, spec=payload_spec, line_parity_chars=line_parity_chars
+                )
                 payload = split[1] if split is not None else line
                 data_payload_width = max(data_payload_width, len(payload))
 

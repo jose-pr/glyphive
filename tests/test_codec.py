@@ -24,10 +24,50 @@ from glyphive.codec.base16c import (
     nibble_decode,
     nibble_encode,
     repair_line,
+    split_frame_with_parity,
 )
 
 
 base16c = codec.get("base16g-crc16-rs")
+
+
+def _split3(line, spec=BASE16G, *, line_parity_chars=None):
+    """Split a framed ``line`` into ``(label, payload, check)``, DROPPING an
+    optional line-parity field. Only for tests that genuinely don't care about
+    the field's presence (e.g. reading the check value). Prefer
+    :func:`_split_line`/:func:`_join_line` when a test mutates and re-renders
+    a line, so the line-parity field (if any) round-trips unchanged instead of
+    silently vanishing (which would desync that one line's token count from
+    the rest of the stream's structurally-detected shape)."""
+    label, payload, _line_parity, check = _split_line(
+        line, spec, line_parity_chars=line_parity_chars
+    )
+    return label, payload, check
+
+
+def _split_line(line, spec=BASE16G, *, line_parity_chars=None):
+    """Split a framed ``line`` into ``(label, payload, line_parity, check)``.
+
+    Tolerates an optional line-parity field (default ``nsym_line=2`` since
+    v2). When ``line_parity_chars`` is not given it is detected structurally
+    (3 vs 4 whitespace tokens on THIS line), mirroring decode's own
+    per-stream detection.
+    """
+    from glyphive.codec.base16c import _detect_line_parity_chars
+
+    if line_parity_chars is None:
+        line_parity_chars = _detect_line_parity_chars([line], spec)
+    result = split_frame_with_parity(line, spec=spec, line_parity_chars=line_parity_chars)
+    assert result is not None, f"line does not parse: {line!r}"
+    return result
+
+
+def _join_line(label, payload, line_parity, check):
+    """Inverse of :func:`_split_line`: re-render preserving an empty/absent
+    line-parity field exactly (no spurious extra token when there is none)."""
+    if line_parity:
+        return f"{label} {payload} {line_parity} {check}"
+    return f"{label} {payload} {check}"
 
 
 # --------------------------------------------------------------------------- #
@@ -87,7 +127,10 @@ def test_spooled_decode_matches_one_shot_and_repairs_erasures():
         (1_000, 24, 5, 120, 38),
         (10_000, 27, 44, 1_188, 374),
         (100_000, 27, 439, 11_853, 3_730),
-        (1_000_000, 27, 4_386, 118_422, 37_282),
+        # 1,000,000-byte row: nblocks/parity_bytes/total_lines shifted slightly
+        # from the v1 baseline because the group header grew 8 -> 9 bytes
+        # (the new nsym_line field) -- expected, not a regression.
+        (1_000_000, 27, 4_387, 118_449, 37_283),
     ],
 )
 def test_default_parity_is_global_twelve_percent(
@@ -97,7 +140,7 @@ def test_default_parity_is_global_twelve_percent(
     assert shape[2:4] == (nsym, blocks)
     assert blocks * nsym == parity_bytes
     assert sum(shape[-2:]) == total_lines
-    assert abs(parity_bytes / (size + 8) - 0.12) < 0.002
+    assert abs(parity_bytes / (size + 9) - 0.12) < 0.002  # 9-byte v2 group header
 
 
 # --------------------------------------------------------------------------- #
@@ -113,23 +156,23 @@ def _first_data_line_index(lines):
 def _mutate_one_payload_char(line):
     """Return ``line`` with exactly one payload char changed to a different
     valid Crockford character."""
-    label, payload, check = line.split()
+    label, payload, line_parity, check = _split_line(line)
     # Change the first payload char to a different alphabet char.
     orig = payload[0]
     replacement = next(c for c in ALPHABET if c != orig)
     new_payload = replacement + payload[1:]
-    return f"{label} {new_payload} {check}"
+    return _join_line(label, new_payload, line_parity, check)
 
 
 def _wreck_payload(line):
     """Return ``line`` with MANY payload chars changed -- beyond the reach of the
     decode-hardening single-substitution repair, so the line is a true erasure."""
-    label, payload, check = line.split()
+    label, payload, line_parity, check = _split_line(line)
     new_payload = "".join(
         next(c for c in ALPHABET if c != ch) if i % 2 == 0 else ch
         for i, ch in enumerate(payload)
     )
-    return f"{label} {new_payload} {check}"
+    return _join_line(label, new_payload, line_parity, check)
 
 
 def test_single_char_error_self_heals():
@@ -153,11 +196,11 @@ def test_single_char_error_self_heals():
 def _corrupt_index_token(line):
     """Change one character of a line's 5-char index token (poisons geometry:
     the CRC-failed line now claims an arbitrary, likely huge, index)."""
-    label, payload, check = line.split()
+    label, payload, line_parity, check = _split_line(line)
     token = label[1:]
     orig = token[0]
     sub = next(c for c in ALPHABET if c != orig)
-    return f"{label[0]}{sub}{token[1:]} {payload} {check}"
+    return _join_line(f"{label[0]}{sub}{token[1:]}", payload, line_parity, check)
 
 
 def test_repair_line_fixes_single_char_errors():
@@ -165,15 +208,25 @@ def test_repair_line_fixes_single_char_errors():
     exact original or None (never a wrong non-None repair). It reproduces the
     original in the large majority of cases; the residual are genuine CRC
     ambiguities (a different single substitution also matches the 16-bit check),
-    which it correctly declines rather than guessing."""
+    which it correctly declines rather than guessing.
+
+    Uses ``nsym_line=0`` frames throughout: this test is specifically about
+    the CRC-guided single-substitution search over kind+token+payload, not the
+    (separately tested) in-line RS tier, so it keeps the frame shape simple.
+    """
     spec = BASE16G
-    from glyphive.codec.base16c import _frame, radix_encode
+    from glyphive.codec.base16c import _frame
 
     rng = random.Random(7)
     exact = 0
     trials = 200
     for _ in range(trials):
-        orig = _frame("L", rng.randrange(1000), radix_encode(bytes(rng.randrange(256) for _ in range(30)), spec), spec)
+        orig = _frame(
+            "L",
+            rng.randrange(1000),
+            bytes(rng.randrange(256) for _ in range(30)),
+            spec,
+        )
         label, payload, check = orig.split()
         i = rng.randrange(len(payload))
         bad_payload = payload[:i] + next(c for c in ALPHABET if c != payload[i]) + payload[i + 1:]
@@ -186,10 +239,14 @@ def test_repair_line_fixes_single_char_errors():
             if repaired == orig:
                 exact += 1
     assert exact >= int(trials * 0.85)  # measured ~94% exact
-    # A kind flip (L->P) is CRC-valid and MUST NOT be altered by repair.
+    # v2: the CRC now covers `kind`, so an L->P kind flip is a single-character
+    # error like any other -- it FAILS CRC (not "CRC blind to kind" as in v1),
+    # and repair_line's search (which now includes the kind position) either
+    # reproduces the original kind or declines.
     p_line = "P" + orig[1:]
-    assert _parse_line(p_line, spec).ok  # CRC blind to kind
-    assert repair_line(p_line, spec) is None or repair_line(p_line, spec).startswith("P")
+    assert not _parse_line(p_line, spec).ok
+    fixed = repair_line(p_line, spec)
+    assert fixed is None or fixed == orig
 
 
 def test_geometry_poisoning_index_corruption_still_decodes():
@@ -208,25 +265,133 @@ def test_geometry_poisoning_index_corruption_still_decodes():
     assert base16c.decode(damaged) == data
 
 
-def test_kind_flip_does_not_abort_with_collision_error():
-    """One L->P kind flip yields a CRC-valid phantom parity line at the same
-    index. Decode must NOT raise the fatal 'conflicting duplicate' collision
-    error -- it degrades the colliding index to an erasure. (Full data recovery
-    from a kind flip needs the v2 kind-covered CRC + interleaved parity; in v1
-    the non-interleaved parity layout can still make the specific block
-    unrecoverable, which surfaces as the honest budget error, never a collision
-    abort.)"""
+def test_kind_flip_now_fails_crc_and_still_decodes():
+    """v2 regression for Defect B: the per-line CRC now covers ``kind``, so an
+    L->P kind flip FAILS CRC (it no longer produces a CRC-valid phantom parity
+    line at the same index, unlike v1). The line becomes an ordinary single-
+    line erasure, which document-level RS (now with interleaved parity, Defect
+    A) corrects cleanly -- no collision, no budget error, just a clean
+    round-trip."""
     rng = random.Random(13)
     data = bytes(rng.randrange(256) for _ in range(4000))
     lines = base16c.encode(data)
     damaged = list(lines)
     idx = _first_data_line_index(damaged)
-    damaged[idx] = "P" + damaged[idx][1:]  # flip kind; CRC still passes
-    try:
-        assert base16c.decode(damaged) == data
-    except CodecError as exc:
-        assert "conflicting duplicate" not in str(exc)
-        assert "exceeds RS correction budget" in str(exc)
+    flipped = "P" + damaged[idx][1:]
+    assert not _parse_line(flipped).ok  # kind flip now fails its own CRC
+    damaged[idx] = flipped
+    assert base16c.decode(damaged) == data
+
+
+def test_interleaved_parity_survives_paired_line_burst_same_block(monkeypatch):
+    """v2 regression for Defect A: with parity interleaved symbol-major
+    (:func:`_parity_position`, ``j*nblocks+b``), a wrecked PARITY line plus a
+    wrecked DATA line still decodes cleanly. Proven load-bearing (not
+    incidental parity slack) by re-encoding the SAME document end-to-end with
+    the pre-v2 contiguous layout (``b*nsym+j``) monkeypatched back in and
+    applying the identical corruption pattern: that document is
+    unrecoverable, so the v2 interleave is what makes the first case work.
+
+    Uses a 1,000-byte document (``nsym=24``, ``nblocks=5`` per the header
+    docstring's size table; ``nsym < bytes_per_line`` (30) so the old
+    contiguous layout concentrates one printed parity line's damage into
+    roughly one block, exactly Defect A's failure mode) and ``nsym_line=0``
+    to isolate this from the (separately tested) in-line RS tier.
+    """
+    from glyphive.codec import base16c as _mod
+
+    rng = random.Random(2024)
+    data = bytes(rng.randrange(256) for _ in range(1000))
+    nsym = _mod._select_nsym(_mod._HEADER_LEN + len(data), 0.12)
+    assert nsym < 30  # bytes_per_line at the default line_width=60
+
+    lines = base16c.encode(data, nsym_line=0)
+    damaged = list(lines)
+    d_idx = next(i for i, l in enumerate(damaged) if l.startswith("L"))
+    p_idx = next(i for i, l in enumerate(damaged) if l.startswith("P"))
+    damaged[d_idx] = _wreck_payload(damaged[d_idx])
+    damaged[p_idx] = _wreck_payload(damaged[p_idx])
+
+    # v2 (current, interleaved parity): decodes cleanly despite the paired burst.
+    assert base16c.decode(damaged) == data
+
+    # Pre-v2 (contiguous) layout, simulated end-to-end for the SAME document
+    # and SAME corrupted line positions.
+    def _old_position(j, b, nblocks):
+        return b * nsym + j
+
+    monkeypatch.setattr(_mod, "_parity_position", _old_position)
+    old_lines = base16c.encode(data, nsym_line=0)
+    old_damaged = list(old_lines)
+    old_damaged[d_idx] = _wreck_payload(old_damaged[d_idx])
+    old_damaged[p_idx] = _wreck_payload(old_damaged[p_idx])
+    with pytest.raises(CodecError):
+        base16c.decode(old_damaged)
+
+
+def test_single_char_error_corrects_in_line_before_document_rs_sees_it():
+    """v2 regression for Defect C: at ``nsym_line=2`` (the default), a single
+    payload character error is fixed by the in-line RS tier during
+    :func:`_preprocess_spool`, so the line re-enters as CRC-valid BEFORE
+    :func:`_assemble_to_spool` ever computes document-level RS erasures for
+    it -- i.e. it consumes ZERO document-RS erasure budget (unlike a
+    ``nsym_line=0`` line, whose CRC failure becomes a full-line erasure)."""
+    import io
+
+    from glyphive.codec.base16c import _preprocess_spool
+
+    data = bytes(range(90))
+    lines = base16c.encode(data, nsym_line=2)
+    idx = _first_data_line_index(lines)
+    corrupted = list(lines)
+    label, payload, line_parity, check = _split_line(corrupted[idx])
+    orig_char = payload[5]
+    bad_char = next(c for c in ALPHABET if c != orig_char)
+    bad_payload = payload[:5] + bad_char + payload[6:]
+    corrupted[idx] = _join_line(label, bad_payload, line_parity, check)
+    assert not _parse_line(
+        corrupted[idx], BASE16G, line_parity_chars=len(line_parity)
+    ).ok
+
+    src = io.BytesIO(("\n".join(corrupted) + "\n").encode())
+    sink = io.BytesIO()
+    changed = _preprocess_spool(src, sink, BASE16G)
+    assert changed
+    healed_lines = sink.getvalue().decode().splitlines()
+    assert healed_lines[idx] == lines[idx]  # exact original line, via in-line RS
+    healed_parsed = _parse_line(
+        healed_lines[idx], BASE16G, line_parity_chars=len(line_parity)
+    )
+    assert healed_parsed.ok  # CRC-valid -> zero erasures at the document-RS tier
+
+    # The full pipeline also decodes correctly via this same in-line tier.
+    assert base16c.decode(corrupted) == data
+
+
+@pytest.mark.parametrize("nsym_line", [0, 2, 4])
+@pytest.mark.parametrize("size", [0, 1, 60, 61, 1000, 30000])
+def test_roundtrip_every_nsym_line_variant(size, nsym_line):
+    """Round-trip byte-identical at every supported ``nsym_line`` (0/2/4)
+    across the acceptance-gate size matrix, including ``nsym_line=0``
+    (the line-parity field is fully optional)."""
+    rng = random.Random(9000 + size + nsym_line)
+    data = bytes(rng.randrange(256) for _ in range(size))
+    lines = base16c.encode(data, nsym_line=nsym_line)
+    assert base16c.decode(lines) == data
+
+
+@pytest.mark.parametrize("nsym_line", [0, 2, 4])
+@pytest.mark.parametrize("size", [0, 1, 60, 1000, 30000])
+def test_encoded_line_count_matches_actual_emitted_lines(size, nsym_line):
+    """Page-count planning (:func:`encoded_line_count`, what ``create`` uses
+    to plan pages ahead of encoding on the streaming/compressed path) must
+    match the actual number of lines :meth:`Base16GCodec.encode` emits, for
+    every ``nsym_line`` -- the line-parity field changes each line's printed
+    WIDTH, never the line COUNT."""
+    rng = random.Random(4000 + size + nsym_line)
+    data = bytes(rng.randrange(256) for _ in range(size))
+    lines = base16c.encode(data, nsym_line=nsym_line)
+    assert encoded_line_count(size, nsym_line=nsym_line) == len(lines)
 
 
 def _find_non_last_data_line(lines):
@@ -243,14 +408,14 @@ def _pad_payload(line, extra):
     matches) breaks its CRC -- exactly the OCR class where a substitution also
     merged/duplicated a character (real-recovery finding #4).
     """
-    label, payload, check = line.split()
-    return f"{label} {payload + ALPHABET[0] * extra} {check}"
+    label, payload, line_parity, check = _split_line(line)
+    return _join_line(label, payload + ALPHABET[0] * extra, line_parity, check)
 
 
 def _truncate_payload(line, fewer):
     """Return ``line`` with ``fewer`` chars removed from its payload."""
-    label, payload, check = line.split()
-    return f"{label} {payload[:-fewer]} {check}"
+    label, payload, line_parity, check = _split_line(line)
+    return _join_line(label, payload[:-fewer], line_parity, check)
 
 
 def test_wrong_length_line_does_not_poison_global_byte_width():
@@ -286,20 +451,28 @@ def test_wrong_width_line_with_valid_crc_still_decodes(monkeypatch):
     RS as an uncorrected blind error. This exercises the honored-flag path: with
     ``_assemble_to_spool`` consulting the stored flag, the wrong-width line is an
     erasure and RS repairs the document.
+
+    Uses ``nsym_line=0`` throughout: the corrupted line's own recomputed CRC
+    must unambiguously pass against a bare (no line-parity field) 3-token
+    shape, which is exactly what this test is isolating -- mixing in the
+    (separately tested) line-parity field would make the structural
+    modal-shape detection, not the modal-WIDTH check this test targets, the
+    thing that turns the line into an erasure.
     """
     from glyphive.codec.base16c import _check_chars
 
     rng = random.Random(99)
     data = bytes(rng.randrange(256) for _ in range(500))
-    lines = base16c.encode(data)
+    lines = base16c.encode(data, nsym_line=0)
 
     idx = _find_non_last_data_line(lines)
     corrupted = list(lines)
     label, payload, _check = corrupted[idx].split()
     idx_token = label[1:]
+    kind = label[:1]
     wider = payload + ALPHABET[0] * 2  # 2 chars too wide, off the modal width
     # Recompute the CRC so this wrong-width line PASSES its own check.
-    corrupted[idx] = f"{label} {wider} #{_check_chars(idx_token, wider)}"
+    corrupted[idx] = f"{label} {wider} #{_check_chars(kind, idx_token, wider)}"
 
     # It decodes byte-for-byte: the wrong-width line is treated as an erasure
     # (via the stored ok=False the modal-width check set) and RS repairs it.
@@ -379,8 +552,10 @@ def test_parse_line_tolerates_two_interior_spaces():
     # Build a real line, then punch two spurious interior spaces into its
     # payload the way Tesseract does, and confirm it still parses and its CRC
     # still validates (the CRC is recomputed over the rejoined payload).
+    # nsym_line=0: isolates this from the (separately tested) line-parity
+    # field so the line has an unambiguous bare 3-token shape.
     data = bytes(range(40))
-    lines = base16c.encode(data)
+    lines = base16c.encode(data, nsym_line=0)
     line = next(l for l in lines if l.startswith("L"))
     label, payload, check = line.split()
     noisy_payload = payload[:10] + " " + payload[10:20] + " " + payload[20:]
@@ -394,7 +569,13 @@ def test_parse_line_tolerates_two_interior_spaces():
 
 
 def test_parse_line_accepts_compact_frame_with_valid_crc():
-    line = next(line for line in base16c.encode(b"compact frame") if line.startswith("L"))
+    # nsym_line=0: a compact (no-spaces) frame is only unambiguous without the
+    # line-parity field mixed into the same glyph run (see split_frame's
+    # compact-shape fallback, which assumes label+payload+check only).
+    line = next(
+        line for line in base16c.encode(b"compact frame", nsym_line=0)
+        if line.startswith("L")
+    )
     compact = line.replace(" ", "")
 
     parsed = _parse_line(compact)
@@ -404,7 +585,10 @@ def test_parse_line_accepts_compact_frame_with_valid_crc():
 
 
 def test_parse_line_keeps_corrupted_compact_frame_as_crc_erasure():
-    line = next(line for line in base16c.encode(b"compact frame") if line.startswith("L"))
+    line = next(
+        line for line in base16c.encode(b"compact frame", nsym_line=0)
+        if line.startswith("L")
+    )
     compact = line.replace(" ", "")
     payload_start = 6
     replacement = "A" if compact[payload_start] != "A" else "B"
@@ -508,11 +692,11 @@ def test_excluded_confusable_in_framed_line_repairs_via_rs():
     lines = base16c.encode(data)
 
     idx = _first_data_line_index(lines)
-    label, payload, check = lines[idx].split()
+    label, payload, line_parity, check = _split_line(lines[idx])
     assert "0" not in ALPHABET
     noisy_payload = "0" + payload[1:]
     corrupted = list(lines)
-    corrupted[idx] = f"{label} {noisy_payload} {check}"
+    corrupted[idx] = _join_line(label, noisy_payload, line_parity, check)
 
     assert base16c.decode(corrupted) == data
 
@@ -637,11 +821,17 @@ def test_crc_false_positive_is_caught_by_the_sha_gate(tmp_path):
     # Flip one payload char on the LAST data line (past the group header, so it
     # corrupts real payload bytes not the header) and RECOMPUTE its CRC so it
     # "passes" -- a CRC false positive the zero-erasure fast path won't catch.
+    # The line-parity field (if any) is preserved unchanged so the line stays
+    # CRC-valid under the stream's own structural shape (a genuine zero-erasure
+    # stream, which is what the fast path requires).
     data_positions = [i for i, l in enumerate(lines) if l.startswith("L")]
     li = data_positions[-1]
-    label, payload, _check = lines[li].split()
+    label, payload, line_parity, _check = _split_line(lines[li])
+    kind = label[:1]
     flipped = (ALPHABET[1] if payload[0] == ALPHABET[0] else ALPHABET[0]) + payload[1:]
-    lines[li] = f"{label} {flipped} #{_check_chars(label[1:], flipped)}"
+    lines[li] = _join_line(
+        label, flipped, line_parity, f"#{_check_chars(kind, label[1:], flipped)}"
+    )
 
     spool = tmp_path / "raw.bin"
     with pytest.raises((_decode.RestoreError, ValueError)) as excinfo:

@@ -350,11 +350,21 @@ def test_unreadable_line_is_logged_even_when_decode_subsequently_fails(
     survive losing that line) must still log which raw line was unreadable and
     on which page, before the eventual CodecError propagates.
     """
+    from glyphive.codec.base16c import (
+        BASE16G,
+        _detect_line_parity_chars,
+        split_frame_with_parity,
+    )
+
     raw = _raw_tree(tmp_path, content=b"unreadable line diagnostic ordering")
     lines = _transcript(raw)
     idx = next(i for i, line in enumerate(lines) if line.startswith("L"))
-    label, payload, check = lines[idx].split()
-    lines[idx] = f"L{label[1]}K{label[2:]} {payload} {check}"
+    line_parity_chars = _detect_line_parity_chars(lines, BASE16G)
+    label, payload, line_parity, check = split_frame_with_parity(
+        lines[idx], line_parity_chars=line_parity_chars
+    )
+    parity_field = f" {line_parity}" if line_parity_chars else ""
+    lines[idx] = f"L{label[1]}K{label[2:]} {payload}{parity_field} {check}"
 
     with caplog.at_level("WARNING", logger="glyphive.restore"):
         with pytest.raises(Exception):

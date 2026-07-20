@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Wire format hardened: interleaved parity, kind-covered CRC, optional
+  per-line Reed-Solomon (breaking, pre-release — no compat shim).** The
+  ``base16g-crc16-rs`` codec (and every denser radix codec sharing its
+  engine) fixes three defects found while measuring recovery under a
+  substitution-error channel, at zero size cost for the first two:
+  (1) **parity byte interleave** — the document-level Reed-Solomon parity
+  stream is now written symbol-major (parity byte *j* of block *b* at
+  ``j*nblocks+b`` instead of ``b*nsym+j``), so one corrupted parity LINE
+  spreads its damage across every block instead of wiping one block's entire
+  parity budget outright; (2) **kind-covered CRC** — the per-line check field
+  (and the H/T/Q machine frames in ``layout.py``) now covers the leading
+  ``L``/``P``/``H``/``T``/``Q`` kind letter, so a misread that flips one kind
+  into another now fails its own CRC instead of silently producing a
+  CRC-valid phantom line; (3) **optional per-line Reed-Solomon** — each
+  printed line may now carry ``nsym_line`` (0, 2, or 4; default 2, exposed as
+  ``create --line-parity``) extra parity bytes over its own index token and
+  payload, self-healing many single/double-character OCR errors in place
+  before they ever touch the document-level RS erasure budget. The group
+  header grew one byte (``B1 | version | nsym | nsym_line | orig_len``,
+  8 → 9 bytes) to record the new field; existing documents from before this
+  change do not decode. Measured effect: the recovery cliff (channel_sim,
+  30 KB docs, 12% document parity) moves from failing at 0.1% substitution
+  error to succeeding at 0.5% at the ``nsym_line=2`` default.
+
 ### Fixed
 
 - **Decode hardening (rescues documents that previously hard-failed).** A

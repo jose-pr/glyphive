@@ -9,7 +9,7 @@ def _make_frame(codec, kind, idx, payload):
 
     token = encode_index(idx)
     body = nibble_encode(payload)
-    return f"{kind}{token} {body} #{_check_chars(token, body)}"
+    return f"{kind}{token} {body} #{_check_chars(kind, token, body)}"
 
 
 def test_merge_ocr_lines_unions_valid_frames_across_passes():
