@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import importlib.util
+import typing as _ty
 
-from .._base import OcrProvider
+from .._base import OcrLine, OcrProvider
 from ._image import load_image
 
 
@@ -18,7 +19,7 @@ class PaddleProvider(OcrProvider):
         except Exception:
             return False
 
-    def ocr_image(self, image_path) -> list[str]:
+    def ocr_image(self, image_path) -> _ty.List[OcrLine]:
         import numpy as np
         from paddleocr import PaddleOCR
 
@@ -30,11 +31,22 @@ class PaddleProvider(OcrProvider):
             lang="en",
             enable_mkldnn=False,
         )
-        lines = []
+        lines: _ty.List[OcrLine] = []
         for result in ocr.predict(arr):
             try:
                 texts = result.get("rec_texts", [])
+                scores = result.get("rec_scores", [])
             except AttributeError:
-                texts = []
-            lines.extend(str(text) for text in texts if text)
+                texts, scores = [], []
+            # ``rec_scores`` is the parallel per-LINE confidence array Paddle
+            # already computes and the prior implementation discarded; only
+            # line-level (not per-character) granularity is available, so
+            # broadcast each line's own score across its characters.
+            for index, text in enumerate(texts):
+                if not text:
+                    continue
+                text = str(text)
+                score = float(scores[index]) if index < len(scores) else None
+                conf = [score] * len(text) if score is not None else None
+                lines.append(OcrLine(text, conf))
         return lines
