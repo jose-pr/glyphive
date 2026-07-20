@@ -58,12 +58,18 @@ def _noisy_none_transcript(tmp_path):
             )
             continue
         if line.startswith("L") and not injected:
-            # Inject one OCR interior space into the payload.
+            # Inject one OCR interior space into the payload. The line may
+            # carry an optional trailing line-parity token (default
+            # nsym_line=2) before the "#check" field -- everything from the
+            # payload up to (but not including) the check field is joined
+            # back with the split inserted, so the check field itself is
+            # never mistaken for the noise target.
             parts = line.split()
             if len(parts) >= 3:
                 payload = parts[1]
                 mid = len(payload) // 2
-                line = f"{parts[0]} {payload[:mid]} {payload[mid:]} {parts[2]}"
+                tail = " ".join(parts[2:])
+                line = f"{parts[0]} {payload[:mid]} {payload[mid:]} {tail}"
                 injected = True
         noisy.append(line)
     assert injected, "expected at least one L line to inject noise into"
