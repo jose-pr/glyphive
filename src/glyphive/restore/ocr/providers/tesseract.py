@@ -6,15 +6,33 @@ import importlib.util
 import shutil
 import typing as _ty
 
+from ....codec.base16c import BASE16G
 from .._base import OcrLine, OcrProvider
 from ._image import load_image
 
-_GLYPHIVE_CONFIG = (
-    "--psm 6 "
-    "-c tessedit_char_whitelist=ABCDHKLMPRTVXY34# "
-    "-c load_system_dawg=0 "
-    "-c load_freq_dawg=0"
-)
+#: Frame kind letters that appear at the start of every printed line.
+_FRAME_KINDS = "LPHTQ"
+
+
+def _glyphive_whitelist(spec=BASE16G) -> str:
+    """Tesseract character whitelist for a Glyphive document in ``spec``'s codec.
+
+    Derived from the codec spec (alphabet + check-field delimiter + frame kind
+    letters) rather than a hardcoded ``ABCDHKLMPRTVXY34#`` literal, which
+    filtered out every glyph of the denser codecs and so silently broke their
+    OCR. De-duplicated and order-preserving.
+    """
+    chars = spec.alphabet + spec.delimiter + _FRAME_KINDS
+    return "".join(dict.fromkeys(chars))
+
+
+def _glyphive_config(spec=BASE16G) -> str:
+    return (
+        "--psm 6 "
+        f"-c tessedit_char_whitelist={_glyphive_whitelist(spec)} "
+        "-c load_system_dawg=0 "
+        "-c load_freq_dawg=0"
+    )
 
 
 def _is_available() -> bool:
@@ -111,6 +129,6 @@ class TesseractGlyphiveProvider(OcrProvider):
         import pytesseract
 
         data = pytesseract.image_to_data(
-            load_image(image_path), config=_GLYPHIVE_CONFIG, output_type=pytesseract.Output.DICT
+            load_image(image_path), config=_glyphive_config(), output_type=pytesseract.Output.DICT
         )
         return _lines_from_tsv(data)
