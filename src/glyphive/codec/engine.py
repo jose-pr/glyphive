@@ -140,7 +140,7 @@ exact failing line label. It never guesses or mutates data to make it "work".
 
 OCR-confidence erasure hint (``char_conf``, does NOT weaken the above)
 ------------------------------------------------------------------------
-:meth:`Base16GCodec.decode_spool` optionally accepts ``char_conf``: per-line
+:meth:`RadixCodec.decode_spool` optionally accepts ``char_conf``: per-line
 OCR character confidence, keyed by PHYSICAL LINE ORDER within the encoded
 spool (not by the printed index, which may itself be corrupt on a CRC-failed
 line). Today, a CRC-failed line contributes its ENTIRE byte span as document-
@@ -160,7 +160,7 @@ optimization strictly no-worse than today: if a block still fails RS with
 the narrower char-level erasures, that block alone is retried with the
 CRC-failed line(s) it touches erased across their FULL span (today's
 behaviour) before the block is given up as uncorrectable. See
-``_assemble_to_spool`` and ``Base16GCodec._decode_hardened_spool``.
+``_assemble_to_spool`` and ``RadixCodec._decode_hardened_spool``.
 """
 
 import collections as _collections
@@ -176,7 +176,7 @@ from ._base import Codec
 __all__ = [
     "ALPHABET",
     "CodecError",
-    "Base16GCodec",
+    "RadixCodec",
     "nibble_encode",
     "nibble_decode",
     "encoded_line_count",
@@ -232,7 +232,7 @@ del _i, _ch
 # ---------------------------------------------------------------------------
 # Radix specification — the ONLY bits/char-dependent parameters. Everything else
 # in this module (RS coding, header, spooling) is byte-level and radix-agnostic.
-# A codec is one _RadixSpec + the shared pipeline. base16c is the spec below;
+# A codec is one _RadixSpec + the shared pipeline. base16g is the spec below;
 # denser codecs (base32g/base64) are other specs (see codec/radix.py).
 # ---------------------------------------------------------------------------
 
@@ -327,8 +327,8 @@ class _RadixSpec:
         self.case_fold = len({c.lower() for c in _letters}) == len(_letters)
 
 
-#: The shipped base16c spec. Its constants reproduce the historical values
-#: exactly, so every base16c-bound wrapper below is byte-for-byte unchanged.
+#: The shipped base16g spec. Its constants reproduce the historical values
+#: exactly, so every base16g-bound wrapper below is byte-for-byte unchanged.
 BASE16G: _ty.Final["_RadixSpec"] = _RadixSpec(
     name="base16g-crc16-rs",
     alphabet=ALPHABET,
@@ -466,12 +466,12 @@ def radix_decode(text: str, byte_len: int, spec: "_RadixSpec" = BASE16G) -> byte
 
 # Base16c-bound public aliases (layout.py + tests import these names).
 def nibble_encode(data: bytes) -> str:
-    """base16c-bound :func:`radix_encode` (4 bits/char). Public API."""
+    """base16g-bound :func:`radix_encode` (4 bits/char). Public API."""
     return radix_encode(data, BASE16G)
 
 
 def nibble_decode(text: str, byte_len: int) -> bytes:
-    """base16c-bound :func:`radix_decode` (4 bits/char). Public API."""
+    """base16g-bound :func:`radix_decode` (4 bits/char). Public API."""
     return radix_decode(text, byte_len, BASE16G)
 
 
@@ -629,7 +629,7 @@ def _decode_index(token: str, spec: "_RadixSpec") -> _ty.Optional[int]:
 
 
 def encode_index(idx: int) -> str:
-    """base16c-bound :func:`_encode_index`. Public API.
+    """base16g-bound :func:`_encode_index`. Public API.
 
     ``0`` -> ``MYCVH``, ``1`` -> ``MYCVK``, ``1048575`` -> ``PCYHV``.
     """
@@ -637,7 +637,7 @@ def encode_index(idx: int) -> str:
 
 
 def decode_index(token: str) -> _ty.Optional[int]:
-    """base16c-bound :func:`_decode_index`. Public API."""
+    """base16g-bound :func:`_decode_index`. Public API."""
     return _decode_index(token, BASE16G)
 
 
@@ -660,7 +660,7 @@ def _line_rs_codeword(token: str, chunk: bytes) -> bytes:
 def _nsym_line_for_chars(line_parity_chars: int, spec: "_RadixSpec") -> int:
     """Invert :func:`_line_parity_chars`: the printed width -> ``nsym_line`` bytes.
 
-    Only 0, 2, and 4 are ever encoded (:meth:`Base16GCodec.encode` validates
+    Only 0, 2, and 4 are ever encoded (:meth:`RadixCodec.encode` validates
     this), so this maps a detected width back to whichever of those three
     values would have produced it, defaulting to 0 (no line-parity field) for
     a width that matches none -- decode's header cross-check is the actual
@@ -1450,7 +1450,7 @@ def encoded_line_count(
 ) -> int:
     """Return the exact number of lines without reading or encoding payload data.
 
-    ``nsym_line`` (default 2, matching :meth:`Base16GCodec.encode`'s default)
+    ``nsym_line`` (default 2, matching :meth:`RadixCodec.encode`'s default)
     does not change the returned COUNT (see :func:`_encoding_shape`); it is
     accepted and validated here so callers pass the same value they encode
     with, and so an invalid ``nsym_line`` is caught at the same call site a
@@ -1490,7 +1490,7 @@ def describe_line_stream(
 ) -> StreamShape:
     """Report the realized RS shape of an encoded line stream, read-only.
 
-    Mirrors :meth:`Base16GCodec.decode_spool`'s modal-width bookkeeping (widest
+    Mirrors :meth:`RadixCodec.decode_spool`'s modal-width bookkeeping (widest
     payload among non-last lines sets ``bytes_per_line``) to compute the data
     and parity byte totals, then derives ``nsym``/``nblocks`` from
     :func:`_candidate_nsym`/:func:`_num_blocks`. It never corrects, decodes, or
@@ -1904,18 +1904,24 @@ def _first_failed_label(
     return "L00000"
 
 
-class Base16GCodec(Codec):
-    """The ``base16g-crc16-rs`` codec: 16-char OCR-safe alphabet / CRC-16-CCITT / Reed-Solomon.
+class RadixCodec(Codec):
+    """Shared codec engine: CRC-16-CCITT per line / Reed-Solomon / spooled I/O.
 
-    This is also the shared base for the denser radix codecs (``base8``/``base32g``/
-    ``base64``): they subclass it, overriding only ``name`` and ``_spec``. All the
-    RS/header/spool machinery is radix-agnostic and driven by ``self._spec``.
+    This is the base every concrete radix codec subclasses (``base16g`` and the
+    denser ``base8``/``base32g``/``base64``/... in :mod:`glyphive.codec.radix`),
+    overriding only ``name`` and ``_spec``. All the framing/RS/header/spool
+    machinery is radix-agnostic and driven by ``self._spec``. It is not itself a
+    selectable codec (``abstract = True``); ``_spec`` defaults to
+    :data:`BASE16G` so the machine-frame bootstrap and internal helpers have a
+    concrete spec to work with.
     """
 
-    name = "base16g-crc16-rs"
+    #: Opt out of codec registration -- this is the shared engine, not a
+    #: selectable codec (see ``Codec.__init_subclass__``).
+    abstract = True
 
-    #: The radix parameters this codec frames with. Subclasses override this
-    #: (and ``name``) to get a denser alphabet; everything else is inherited.
+    #: The radix parameters this codec frames with. Concrete subclasses override
+    #: this (and ``name``) to get a denser alphabet; everything else is inherited.
     _spec: _ty.ClassVar["_RadixSpec"] = BASE16G
 
     def encode(

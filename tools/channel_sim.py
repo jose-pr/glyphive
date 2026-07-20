@@ -41,7 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from glyphive.codec import get as get_codec  # noqa: E402
-from glyphive.codec.base16c import (  # noqa: E402
+from glyphive.codec.engine import (  # noqa: E402
     _RadixSpec,
     _detect_line_parity_chars,
     _parse_line,
@@ -65,7 +65,7 @@ def crc_guided_repair(
 ) -> _ty.Optional[str]:
     """Return the repaired line, or ``None`` (no hit / ambiguous / unframed).
 
-    Thin wrapper over the shipped :func:`glyphive.codec.base16c.repair_line`.
+    Thin wrapper over the shipped :func:`glyphive.codec.engine.repair_line`.
     This tool used to carry its own copy of the CRC-guided repair, written
     against the old three-token frame; the repair tier now ships in the codec
     itself (and is applied automatically inside ``decode``), so re-implementing

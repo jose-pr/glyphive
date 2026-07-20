@@ -19,7 +19,7 @@ class OcrLine(_ty.NamedTuple):
     in ``0.0..1.0`` (or ``None`` for a single character the provider itself
     could not score). It is deliberately RAW: aligned to the full printed
     line as read, not yet sliced down to the codec's payload region -- see
-    :func:`glyphive.codec.base16c.align_payload_char_conf`, which does that
+    :func:`glyphive.codec.engine.align_payload_char_conf`, which does that
     alignment once the codec's frame shape is known.
     """
 

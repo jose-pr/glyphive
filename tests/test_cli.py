@@ -1016,7 +1016,7 @@ def test_denser_codecs_full_cli_roundtrip(tmp_path, codec_name):
     """create --codec <radix> then extract must restore byte-identical.
 
     Guards the layout classification path: L/P frames use the SELECTED codec's
-    alphabet (base32g/base64 add symbols), which base16c's frame parser would
+    alphabet (base32g/base64 add symbols), which base16g's frame parser would
     reject -- read_pages must resolve the payload spec from the header. Unit
     codec tests call decode() directly and miss this; only the full CLI path
     (create -> read_pages -> decode) exercises it.

@@ -15,7 +15,7 @@ import pytest
 from glyphive import codec, layout
 
 
-base16c = codec.get("base16g-crc16-rs")
+base16g_codec = codec.get("base16g-crc16-rs")
 from glyphive import render as render_mod
 from glyphive.render import lines_per_page_for, render
 from glyphive.render.formats.text import FORM_FEED
@@ -26,7 +26,7 @@ from glyphive.render.formats.pdf import PdfRenderFormat
 def _make_pages(nbytes=800, seed=5):
     rng = random.Random(seed)
     data = bytes(rng.randrange(256) for _ in range(nbytes))
-    encoded = base16c.encode(data)
+    encoded = base16g_codec.encode(data)
     meta = {
         "codec": "base16g-crc16-rs",
         "comp": "none",
@@ -70,7 +70,7 @@ def test_text_render_roundtrips(tmp_path):
     text_lines = text.replace(FORM_FEED, "\n").splitlines()
 
     meta, encoded_lines = layout.read_pages(text_lines)
-    assert base16c.decode(encoded_lines) == data
+    assert base16g_codec.decode(encoded_lines) == data
     # sha of decoded matches the header's recorded digest.
     assert hashlib.sha256(data).hexdigest() == meta["sha256"]
 
@@ -142,7 +142,7 @@ def test_pdf_parity_document_renders_and_q_frame_overflow_fails_loud(tmp_path):
         "bytes": len(data),
         "sha256": hashlib.sha256(data).hexdigest(),
     }
-    encoded = base16c.encode(data)
+    encoded = base16g_codec.encode(data)
     parity_pages = layout.paginate(
         encoded, meta, lines_per_page=lines_per_page_for(11.0), parity_pages=2
     )
@@ -374,7 +374,7 @@ def test_qr_pdf_renderers_when_extra_is_installed(tmp_path, fmt):
 
 # --------------------------------------------------------------------------- #
 # Structural frame parsing: layout._looks_like_encoded must agree
-# with codec.base16c._parse_line's tolerance for OCR-inserted interior spaces.
+# with codec.engine._parse_line's tolerance for OCR-inserted interior spaces.
 # --------------------------------------------------------------------------- #
 def test_looks_like_encoded_tolerates_captured_ocr_transcript_line():
     # Re-pinned for the new 5-char index token (INDEX_WIDTH 4 -> 5 alongside
@@ -391,7 +391,7 @@ def test_looks_like_encoded_tolerates_two_interior_spaces():
     # field so the encoded line has an unambiguous bare 3-token shape --
     # _looks_like_encoded's own line_parity_chars default is 0.
     data = bytes(range(40))
-    lines = base16c.encode(data, nsym_line=0)
+    lines = base16g_codec.encode(data, nsym_line=0)
     line = next(l for l in lines if l.startswith("L"))
     label, payload, check = line.split()
     noisy_payload = payload[:10] + " " + payload[10:20] + " " + payload[20:]

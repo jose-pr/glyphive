@@ -173,7 +173,7 @@ def _merge_ocr_lines(
     strings -- see that function for the OCR-confidence-preserving version
     used by the conf-aware loaders.
     """
-    from ..codec.base16c import _parse_line
+    from ..codec.engine import _parse_line
 
     passes = [list(lines) for lines in line_lists]
     if len(passes) <= 1:
@@ -234,7 +234,7 @@ def _merge_ocr_conf_lines(
     survives the merge attached to whichever pass's reading won -- voting/
     merging never blends confidences, it only picks which LINE wins.
     """
-    from ..codec.base16c import _parse_line
+    from ..codec.engine import _parse_line
 
     passes = [[_as_ocr_line(line) for line in lines] for lines in line_lists]
     if len(passes) <= 1:
@@ -319,7 +319,7 @@ def load_image_lines_with_conf(
     Returns ``(lines, char_conf)`` where ``char_conf[i]`` is the RAW per-
     character confidence of ``lines[i]`` (same length as that line's text,
     spaces included, or ``None`` if unavailable) -- see
-    :mod:`glyphive.codec.base16c`'s "OCR-confidence erasure hint" section
+    :mod:`glyphive.codec.engine`'s "OCR-confidence erasure hint" section
     for how a downstream decode uses it (plan 3). Shares the exact OCR/merge
     pipeline with :func:`load_image_lines` (:func:`_image_ocr_passes`), so
     ``load_image_lines_with_conf(...)[0] == load_image_lines(...)`` always.

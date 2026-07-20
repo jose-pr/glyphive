@@ -120,7 +120,7 @@ class Extract(LoggingArgs):
         and the user did not pass an explicit --descan.
         """
         from .. import layout as _layout
-        from ..codec.base16c import CodecError
+        from ..codec.engine import CodecError
         from ._common import AUTO_DESCAN_RETRY_RADII, input_is_image_or_pdf
 
         retryable = (_layout.LayoutError, CodecError)

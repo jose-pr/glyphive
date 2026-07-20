@@ -5,7 +5,7 @@ import pytest
 
 def _make_frame(codec, kind, idx, payload):
     """Build a single CRC-valid L/P frame line for the given index/payload."""
-    from glyphive.codec.base16c import _check_chars, encode_index, nibble_encode
+    from glyphive.codec.engine import _check_chars, encode_index, nibble_encode
 
     token = encode_index(idx)
     body = nibble_encode(payload)

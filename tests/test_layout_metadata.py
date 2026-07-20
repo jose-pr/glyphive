@@ -221,7 +221,7 @@ def test_parity_row_payload_never_wider_than_data_or_safe_cap():
     printed ~72-char payloads -- wider than the 60-char OCR-safe cap, on the
     very redundancy data meant to recover a lost page.
     """
-    from glyphive.codec.base16c import split_frame
+    from glyphive.codec.engine import split_frame
 
     data = b"parity width invariant payload " * 40
     encoded = codec.get("base16g-crc16-rs").encode(data)
@@ -430,7 +430,7 @@ def test_unreadable_index_token_is_surfaced_not_silently_dropped():
     )
     lines = [line for page in pages for line in page.text_lines]
 
-    from glyphive.codec.base16c import _detect_line_parity_chars, split_frame_with_parity
+    from glyphive.codec.engine import _detect_line_parity_chars, split_frame_with_parity
 
     li = next(i for i, line in enumerate(lines) if line.startswith("L"))
     line_parity_chars = _detect_line_parity_chars(lines, codec.get("base16g-crc16-rs")._spec)
@@ -460,7 +460,7 @@ def test_conflicting_index_collision_degrades_to_erasure_not_fatal():
     one index is squarely inside the default parity budget. Only if the resulting
     erasure load exceeds the budget does decode fail, via the budget path.
     """
-    from glyphive.codec.base16c import (
+    from glyphive.codec.engine import (
         CodecError,
         _check_chars,
         _detect_line_parity_chars,

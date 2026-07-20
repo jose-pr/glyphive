@@ -118,7 +118,7 @@ def decode_document(
     one entry per element of ``text_lines`` in the same order (``None`` for
     a line with no confidence) -- see :func:`decode_document_to_spool` and
     the module docstring's "OCR-confidence erasure hint" section in
-    :mod:`glyphive.codec.base16c`. Absent (the default), decode is byte-
+    :mod:`glyphive.codec.engine`. Absent (the default), decode is byte-
     identical to a build without this feature.
 
     Returns
@@ -134,7 +134,7 @@ def decode_document(
     ------
     glyphive.layout.LayoutError / MissingPageError:
         No parseable header, or a whole page absent from the transcript.
-    glyphive.codec.base16c.CodecError:
+    glyphive.codec.engine.CodecError:
         A framed line failed CRC and RS could not correct it (line named).
     RestoreError:
         The decompressed archive's SHA-256 does not match the header's.
@@ -171,7 +171,7 @@ def decode_document_to_spool(
     the codec-line spool's own order, surviving page reordering/
     reconstruction) down to the codec's ``decode_spool``, which uses it only
     to choose ERASURE POSITIONS for a CRC-failed line -- never to accept
-    anything; see :mod:`glyphive.codec.base16c`'s "OCR-confidence erasure
+    anything; see :mod:`glyphive.codec.engine`'s "OCR-confidence erasure
     hint" section. Absent (the default) or when the selected codec has no
     ``decode_spool`` support for it, decode is unaffected -- byte-identical
     to a build without this feature.

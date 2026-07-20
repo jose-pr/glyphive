@@ -26,6 +26,12 @@ class Codec(ABC):
             for method in ("encode", "decode")
         ):
             return
+        # An intermediate base that implements the codec protocol but is not
+        # itself a selectable codec (e.g. the shared RadixCodec engine) opts out
+        # by setting ``abstract = True`` in its OWN body. Checked on the class
+        # dict, not via inheritance, so concrete subclasses still register.
+        if cls.__dict__.get("abstract", False):
+            return
         name = getattr(cls, "name", None)
         if not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9_-]*", name):
             raise ValueError(
