@@ -657,6 +657,80 @@ def _parse_line(line: str, spec: "_RadixSpec" = BASE16G) -> _ty.Optional[_Parsed
     return _ParsedLine(kind=kind, idx=idx, payload=payload, ok=ok)
 
 
+def repair_line(line: str, spec: "_RadixSpec" = BASE16G) -> _ty.Optional[str]:
+    """Attempt to repair a single misread character in a CRC-failed line.
+
+    The per-line CRC is the *oracle*: we try every single-character
+    substitution of the printed ``index_token + payload`` body (and the case
+    where the printed check field itself is the corrupted character), recompute
+    the CRC for each candidate, and accept a repair **only if exactly one
+    candidate reproduces the printed check** (or, for a corrupted check field,
+    the recomputed check is within one character of the printed one). Ambiguity
+    or zero hits leaves the line untouched (the caller keeps it as an erasure).
+
+    This does not violate the decode-discipline doctrine ("never mutate a
+    character merely because more compressed bytes become readable"): acceptance
+    is CRC-verified, not decompressibility-driven. A false unique candidate
+    requires a >=2-error line, a spurious CRC match (~2**-16), and no colliding
+    true candidate; such a line enters as a blind error which document RS still
+    corrects within budget, and the whole-document SHA-256 gate backstops it.
+
+    Returns the repaired printed line (which re-parses as CRC-ok), or ``None``.
+    Works for both bit-packed and group-packed specs -- the CRC covers the
+    printed characters, so the procedure is alphabet-agnostic.
+    """
+    split = split_frame(line.strip(), spec=spec)
+    if split is None:
+        return None
+    label, payload, check = split
+    kind = label[:1]
+    if kind not in ("L", "P"):
+        return None
+    token = label[1:]
+    if len(token) != spec.index_width or not check.startswith(spec.delimiter):
+        return None
+    want = check[len(spec.delimiter):]
+    if len(want) != spec.check_width:
+        return None
+    fold = spec.case_fold
+    want_cmp = want.upper() if fold else want
+    body = token + payload
+    alphabet = spec.alphabet
+    hits: _ty.List[str] = []
+    for pos in range(len(body)):
+        original = body[pos]
+        for sub in alphabet:
+            if sub == original:
+                continue
+            cand = body[:pos] + sub + body[pos + 1:]
+            cand_token = cand[:len(token)]
+            cand_payload = cand[len(token):]
+            token_for_crc = cand_token.upper() if fold else cand_token
+            if _check_chars(token_for_crc, cand_payload, spec) == want_cmp:
+                hits.append(cand)
+                if len(hits) > 1:
+                    return None  # ambiguous -- refuse to guess
+    # Case: the check FIELD was the corrupted character (body is already right).
+    token_for_crc = token.upper() if fold else token
+    expected = _check_chars(token_for_crc, payload, spec)
+    if not hits and expected != want_cmp and _hamming1(expected, want_cmp):
+        # Payload/token are intact; only the printed check drifted. Re-render it.
+        return f"{kind}{token} {payload} {spec.delimiter}{expected}"
+    if len(hits) == 1:
+        cand = hits[0]
+        cand_token = cand[:len(token)]
+        cand_payload = cand[len(token):]
+        return f"{kind}{cand_token} {cand_payload} {spec.delimiter}{want}"
+    return None
+
+
+def _hamming1(a: str, b: str) -> bool:
+    """True iff strings of equal length differ in exactly one position."""
+    if len(a) != len(b):
+        return False
+    return sum(x != y for x, y in zip(a, b)) == 1
+
+
 # ---------------------------------------------------------------------------
 # Group header (carries exact original length + RS params)
 # ---------------------------------------------------------------------------
@@ -977,6 +1051,95 @@ def _frame_stream(kind: str, source, length: int, bytes_per_line: int,
         raise ValueError(f"{kind} spool has trailing bytes")
 
 
+def _preprocess_spool(source, sink, spec: "_RadixSpec") -> bool:
+    """Decode-hardening pre-pass (plan 1). Streams ``source`` -> ``sink`` applying,
+    to CRC-*failed* L/P lines only:
+
+      1. CRC-guided single-substitution repair (:func:`repair_line`) -- a repaired
+         line re-enters as CRC-valid and restores true geometry;
+      2. trusted-geometry filtering -- a still-failed line whose claimed index
+         exceeds the max CRC-valid index of its kind is not allowed to extend the
+         stream: it is positionally reassigned when it sits in a unit gap between
+         two CRC-valid same-kind neighbors (still a CRC-failed erasure candidate),
+         otherwise dropped (its true slot stays a missing-line erasure).
+
+    Clean and structurally-foreign lines pass through verbatim. Returns True if it
+    changed anything (so the caller can keep the original spool on the fast path).
+    Buffers only small per-line metadata (kind/idx/ok/text), never payloads-at-scale.
+    """
+    source.seek(0)
+    entries: _ty.List[_ty.Tuple[_ty.Optional[_ParsedLine], str]] = []
+    changed = False
+    while True:
+        raw = source.readline()
+        if not raw:
+            break
+        text = raw.decode("utf-8").rstrip("\r\n")
+        parsed = _parse_line(text, spec)
+        entries.append((parsed, text))
+
+    # Tier 3 first: repair CRC-failed lines (a repaired index restores geometry
+    # before the trusted-geometry rule measures max_ok).
+    for i, (parsed, text) in enumerate(entries):
+        if parsed is not None and not parsed.ok:
+            repaired = repair_line(text, spec)
+            if repaired is not None:
+                reparsed = _parse_line(repaired, spec)
+                if reparsed is not None and reparsed.ok:
+                    entries[i] = (reparsed, repaired)
+                    changed = True
+
+    # Max CRC-valid index per kind, computed from CRC-valid lines only.
+    max_ok = {"L": -1, "P": -1}
+    for parsed, _text in entries:
+        if parsed is not None and parsed.ok:
+            max_ok[parsed.kind] = max(max_ok[parsed.kind], parsed.idx)
+
+    out: _ty.List[str] = []
+    for i, (parsed, text) in enumerate(entries):
+        if parsed is None or parsed.ok:
+            out.append(text)
+            continue
+        # CRC-failed line still.
+        if max_ok[parsed.kind] < 0 or parsed.idx <= max_ok[parsed.kind]:
+            # Either the index is within the CRC-valid extent (plausible), or no
+            # line of this kind passed CRC at all -- in the latter case there is
+            # no trusted geometry to violate, so keep the line as an erasure
+            # candidate rather than dropping it (dropping guarantees "no data
+            # lines"; keeping lets RS/length bookkeeping still try).
+            out.append(text)
+            continue
+        # Implausible index: try positional reassignment from CRC-valid neighbors.
+        prev = nxt = None
+        for j in range(i - 1, -1, -1):
+            q = entries[j][0]
+            if q is not None and q.ok and q.kind == parsed.kind:
+                prev = q.idx
+                break
+        for j in range(i + 1, len(entries)):
+            q = entries[j][0]
+            if q is not None and q.ok and q.kind == parsed.kind:
+                nxt = q.idx
+                break
+        if prev is not None and nxt is not None and nxt - prev == 2:
+            fixed_idx = prev + 1
+            token = _encode_index(fixed_idx, spec)
+            split = split_frame(text, spec=spec)
+            if split is not None:
+                _label, payload, check = split
+                # Keep payload/check; CRC still fails -> stays an erasure, but now
+                # in its true positional slot instead of a poisoned index.
+                out.append(f"{parsed.kind}{token} {payload} {check}")
+                changed = True
+                continue
+        # Otherwise drop the geometry-poisoning claim entirely.
+        changed = True
+
+    for line in out:
+        sink.write(line.encode("utf-8") + b"\n")
+    return changed
+
+
 def _read_spooled_line(source, offset: int, spec: "_RadixSpec" = BASE16G) -> _ParsedLine:
     source.seek(offset)
     parsed = _parse_line(source.readline().decode("utf-8").rstrip("\r\n"), spec)
@@ -1215,6 +1378,24 @@ class Base16GCodec(Codec):
         temp_dir: _ty.Optional[str] = None,
     ) -> None:
         """Decode an encoded-line spool with only offsets and RS blocks in RAM."""
+        # Plan-1 decode-hardening pre-pass: repair single-char errors, and stop
+        # CRC-failed lines with poisoned index tokens from destroying the stream
+        # geometry. Runs into a temp spool only when it actually changes lines;
+        # a clean transcript pays one streaming scan and reuses the original.
+        with _tempfile.TemporaryFile(dir=temp_dir) as _hardened:
+            if _preprocess_spool(encoded_source, _hardened, self._spec):
+                _hardened.seek(0)
+                self._decode_hardened_spool(_hardened, payload_sink, temp_dir=temp_dir)
+                return
+        self._decode_hardened_spool(encoded_source, payload_sink, temp_dir=temp_dir)
+
+    def _decode_hardened_spool(
+        self,
+        encoded_source: _ty.BinaryIO,
+        payload_sink: _ty.BinaryIO,
+        *,
+        temp_dir: _ty.Optional[str] = None,
+    ) -> None:
         data_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
         parity_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
         # Per-index payload seen for a CRC-passing line, to detect a *conflicting*
@@ -1224,6 +1405,7 @@ class Base16GCodec(Codec):
         # duplicate (same bytes re-read) from a true conflict.
         ok_payload: _ty.Dict[_ty.Tuple[str, int], str] = {}
         collisions: _ty.List[str] = []
+        collided: _ty.Set[_ty.Tuple[str, int]] = set()
         length_counts: _ty.Counter[int] = _collections.Counter()
         encoded_source.seek(0)
         while True:
@@ -1239,7 +1421,15 @@ class Base16GCodec(Codec):
                 key = (parsed.kind, parsed.idx)
                 prior = ok_payload.get(key)
                 if prior is not None and prior != parsed.payload:
+                    # Two CRC-valid lines claim the same index with different
+                    # payloads (a corrupted label landing on a real index with a
+                    # spurious CRC match, or an L<->P kind-flip). Degrade to an
+                    # erasure (drop both) instead of aborting -- RS very likely
+                    # rebuilds that slot, and the SHA-256 gate backstops it. Only
+                    # if the resulting erasure load then exceeds the RS budget does
+                    # decode fail, via the existing budget-exceeded path.
                     collisions.append(f"{parsed.kind}{parsed.idx:05d}")
+                    collided.add(key)
                 else:
                     ok_payload[key] = parsed.payload
             existing = target.get(parsed.idx)
@@ -1249,15 +1439,14 @@ class Base16GCodec(Codec):
             if existing is None or parsed.ok or not existing[1]:
                 target[parsed.idx] = (offset, parsed.ok, len(parsed.payload))
             length_counts[len(parsed.payload)] += 1
-        if collisions:
-            unique = sorted(set(collisions))
-            raise CodecError(
-                "conflicting duplicate line index(es) "
-                + ", ".join(unique)
-                + ": two CRC-valid lines claim the same index with different "
-                "payloads (likely an OCR-corrupted label decoding to a real but "
-                "wrong index); refusing to silently discard one"
-            )
+        # Fix 3: force every collided index into an erasure (drop both payloads)
+        # instead of raising. The index becomes a missing-line erasure that RS can
+        # rebuild within budget; if it cannot, the budget-exceeded path reports it.
+        for kind, idx in collided:
+            target = data_lines if kind == "L" else parity_lines
+            entry = target.get(idx)
+            if entry is not None:
+                target[idx] = (entry[0], False, entry[2])
 
         if not data_lines:
             raise ValueError("no data lines found to decode")
