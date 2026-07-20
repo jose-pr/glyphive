@@ -73,11 +73,16 @@ class RenderFormat(ABC):
         font_size: float = 11.0,
         page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
         character_spacing_pt: float = 0.0,
+        nsym_line: int = 2,
     ) -> _ty.Optional[int]:
         """Return the largest fitting codec payload width, if measurable.
 
         Formats without reliable physical font metrics return ``None`` and
-        creation retains the conservative 60-character wire row.
+        creation retains the conservative 60-character wire row. ``nsym_line``
+        (default 2, matching ``create``'s default) is the per-line Reed-
+        Solomon parity budget being encoded with -- a format with physical
+        font metrics must reserve room for that optional field's extra
+        printed characters.
         """
         return None
 
@@ -88,6 +93,7 @@ class RenderFormat(ABC):
         font_size: float = 11.0,
         page_margin_pt: float = DEFAULT_PAGE_MARGIN_PT,
         character_spacing_pt: float = 0.0,
+        nsym_line: int = 2,
     ) -> _ty.Optional[int]:
         """Largest payload width that *physically* fits, ignoring the safety cap.
 
@@ -95,6 +101,7 @@ class RenderFormat(ABC):
         width), this reports the uncapped geometric fit — used by
         ``create --line-width max``. Formats without physical font metrics
         (text/docx/qr) return ``None``, so ``max`` is rejected for them.
+        ``nsym_line`` is documented on :meth:`payload_capacity`.
         """
         return None
 
