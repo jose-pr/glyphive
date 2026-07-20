@@ -125,7 +125,6 @@ def _shallow_match(
         if stem == target or stem.replace(" ", "") == target_nospace:
             return entry
     return None
-_SAFE_ALPHABET = "ABCDHKLMPRTVXY34"
 
 #: Every published OCR-safety measurement in this project (see Known Facts in
 #: .agents/plans/codec_naming_and_ocr_safe_index.md) was taken at a 60-character
@@ -296,10 +295,13 @@ class PdfRenderFormat(RenderFormat):
         if nsym_line not in (0, 2, 4):
             raise ValueError("nsym_line must be 0, 2, or 4")
         line_parity_chars = _line_parity_chars(nsym_line, BASE16G)
+        # Derived from the codec spec, not a re-typed literal, so glyph-width
+        # sizing can never drift from the alphabet the codec actually emits.
+        safe_alphabet = BASE16G.alphabet
         pdf = fpdf.FPDF(orientation="P", unit="pt", format="Letter")
         with registered_pdf_font(pdf, font) as family:
             pdf.set_font(family, size=font_size)
-            widest_safe = max(pdf.get_string_width(char) for char in _SAFE_ALPHABET)
+            widest_safe = max(pdf.get_string_width(char) for char in safe_alphabet)
             widest_kind = max(pdf.get_string_width(char) for char in _FRAME_KINDS)
             extra_spaces = 1 if line_parity_chars else 0
             fixed_width = (

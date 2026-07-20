@@ -1,4 +1,5 @@
-"""Named printable codecs and the built-in ``base16g-crc16-rs`` registry entry."""
+"""Named printable codecs. Importing this package registers the whole built-in
+family (``base16g-crc16-rs`` and the other radix codecs) via the shared engine."""
 
 from __future__ import annotations
 

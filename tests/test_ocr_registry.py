@@ -78,10 +78,14 @@ def test_tesseract_glyphive_uses_exact_constrained_config(monkeypatch):
     lines = ocr.get("tesseract-glyphive").ocr_image("page.png")
 
     assert [line.text for line in lines] == ["HAAAAA ABCD #ABCD"]
+    # The whitelist is now derived from the codec spec (alphabet + delimiter +
+    # frame kinds) rather than a re-typed literal, so it also admits the `Q`
+    # parity-page frame kind the old literal omitted. Still base16g's alphabet
+    # plus `#`; still psm 6 and dictionaries disabled.
     assert calls == [
         (
             ("loaded", "page.png"),
-            "--psm 6 -c tessedit_char_whitelist=ABCDHKLMPRTVXY34# "
+            "--psm 6 -c tessedit_char_whitelist=ABCDHKLMPRTVXY34#Q "
             "-c load_system_dawg=0 -c load_freq_dawg=0",
             "dict",
         )
