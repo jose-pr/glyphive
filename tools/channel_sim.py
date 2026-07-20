@@ -43,8 +43,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from glyphive.codec import get as get_codec  # noqa: E402
 from glyphive.codec.base16c import (  # noqa: E402
     _RadixSpec,
-    _check_chars,
+    _detect_line_parity_chars,
     _parse_line,
+    repair_line,
 )
 
 
@@ -59,41 +60,19 @@ def corrupt_line(rng: random.Random, line: str, cer: float, spec: _RadixSpec) ->
     return "".join(out)
 
 
-def crc_guided_repair(line: str, spec: _RadixSpec) -> _ty.Optional[str]:
-    """Return the repaired line, or ``None`` (no hit / ambiguous / unframed)."""
-    parts = line.split()
-    if len(parts) != 3 or not parts[2].startswith(spec.delimiter):
-        return None
-    label, payload, check = parts
-    kind, token, want = label[:1], label[1:], check[1:]
-    if len(token) != spec.index_width or len(want) != spec.check_width:
-        return None
-    body = token + payload
-    hits: _ty.List[str] = []
-    for pos in range(len(body)):
-        for sub in spec.alphabet:
-            if sub == body[pos]:
-                continue
-            cand = body[:pos] + sub + body[pos + 1:]
-            if _check_chars(cand[: len(token)], cand[len(token):], spec) == want:
-                hits.append(cand)
-                if len(hits) > 1:
-                    return None
-    expected = _check_chars(token, payload, spec)
-    if expected != want:
-        # The corruption may be inside the printed check field itself: accept
-        # iff the recomputed check is within Hamming distance 1 of the printed
-        # one, and emit the RECOMPUTED check so the line re-parses as valid.
-        if sum(a != b for a, b in zip(expected, want)) == 1:
-            hits.append(body)
-            if len(hits) > 1:
-                return None
-    if len(hits) != 1:
-        return None
-    cand = hits[0]
-    token2, payload2 = cand[: len(token)], cand[len(token):]
-    check2 = _check_chars(token2, payload2, spec)
-    return f"{kind}{token2} {payload2} {spec.delimiter}{check2}"
+def crc_guided_repair(
+    line: str, spec: _RadixSpec, line_parity_chars: int = 0
+) -> _ty.Optional[str]:
+    """Return the repaired line, or ``None`` (no hit / ambiguous / unframed).
+
+    Thin wrapper over the shipped :func:`glyphive.codec.base16c.repair_line`.
+    This tool used to carry its own copy of the CRC-guided repair, written
+    against the old three-token frame; the repair tier now ships in the codec
+    itself (and is applied automatically inside ``decode``), so re-implementing
+    it here only risks the two drifting apart -- as they did when the frame
+    grew its optional line-parity field.
+    """
+    return repair_line(line, spec, line_parity_chars=line_parity_chars)
 
 
 def run_cell(
@@ -117,16 +96,23 @@ def run_cell(
             kind: sum(1 for l in lines if l.startswith(kind)) - 1
             for kind in ("L", "P")
         }
+        # The frame carries an optional line-parity field, so every raw-line
+        # parse below MUST use the stream's detected width. Parsing such a line
+        # with the default 0 reads the parity field as payload and reports a CRC
+        # failure for EVERY line, which silently turns the diagnostic columns
+        # into noise. Detect once from the clean lines (the corrupted copies
+        # have the same token shape).
+        line_parity_chars = _detect_line_parity_chars(lines, spec)
         noisy = [corrupt_line(rng, l, cer, spec) for l in lines]
         feed = []
         for line in noisy:
-            parsed = _parse_line(line, spec)
+            parsed = _parse_line(line, spec, line_parity_chars=line_parity_chars)
             if parsed is not None and not parsed.ok:
                 bad_lines += 1
                 if parsed.idx > true_max.get(parsed.kind, -1):
                     geometry_poisoned += 1
                 if repair:
-                    fixed = crc_guided_repair(line, spec)
+                    fixed = crc_guided_repair(line, spec, line_parity_chars)
                     if fixed is not None:
                         feed.append(fixed)
                         continue
