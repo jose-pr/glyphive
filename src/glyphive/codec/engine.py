@@ -177,6 +177,13 @@ __all__ = [
     "ALPHABET",
     "CodecError",
     "RadixCodec",
+    "MACHINE_SPEC",
+    "ParsedMachineFrame",
+    "machine_frame",
+    "parse_machine_frame",
+    "machine_check",
+    "rs_protect",
+    "rs_recover",
     "crc16_ccitt",
     "nibble_encode",
     "nibble_decode",
@@ -1357,6 +1364,104 @@ def _rs_decode(
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
+
+#: The bootstrap spec every H/T/Q machine frame is framed in.
+MACHINE_SPEC: _ty.Final["_RadixSpec"] = BASE16G
+
+
+class ParsedMachineFrame(_ty.NamedTuple):
+    """One parsed machine frame: ``idx`` (``None`` if the label is unreadable),
+    the normalized safe-alphabet ``payload``, and ``ok`` (the kind-covered CRC
+    matched). A structurally-broken but index-readable frame is returned with
+    ``ok=False`` so the caller can localize it; a wholly unreadable one is
+    ``None``."""
+
+    idx: _ty.Optional[int]
+    payload: str
+    ok: bool
+
+
+def machine_check(kind: str, idx_token: str, payload: str) -> str:
+    """Return the safe-alphabet CRC-16 check field for a machine frame.
+
+    Covers ``kind`` (``H``/``T``/``Q``) as well as the index token and payload --
+    the same kind-covered CRC as the per-line check -- so an OCR misread that
+    flips one machine-frame kind letter into another fails the check instead of
+    producing a CRC-valid phantom frame of the wrong kind at the same index.
+    """
+    crc = crc16_ccitt(
+        kind.upper().encode() + idx_token.upper().encode() + payload.upper().encode()
+    )
+    return nibble_encode(crc.to_bytes(2, "big"))
+
+
+def machine_frame(kind: str, idx: int, payload: str) -> str:
+    """Build one machine frame ``<kind><token> <payload> #<check>``.
+
+    ``payload`` must be MACHINE_SPEC safe-alphabet characters (the caller has
+    already :func:`nibble_encode`-d its bytes). The CRC covers the kind char.
+    """
+    if len(kind) != 1 or not kind.isalpha():
+        raise ValueError(f"invalid machine frame kind {kind!r}")
+    if any(char not in MACHINE_SPEC.alphabet for char in payload):
+        raise ValueError("machine metadata payload contains an unsafe character")
+    token = encode_index(idx)
+    return f"{kind}{token} {payload} #{machine_check(kind, token, payload)}"
+
+
+def parse_machine_frame(
+    line: str, kind: str, *, allow_trailing: bool = False
+) -> _ty.Optional[ParsedMachineFrame]:
+    """Parse one machine frame of ``kind`` without trusting surrounding text.
+
+    ``allow_trailing`` permits display-only text after the protected frame (a
+    footer's ``PAGE n/total`` hint). Interior whitespace in the safe-alphabet
+    payload is stripped, exactly as for payload frames; the kind-covered CRC is
+    the acceptance oracle.
+    """
+    split = split_frame(line, allow_trailing=allow_trailing)
+    if split is None:
+        return None
+    label, payload, check_field = split
+    if label[:1].upper() != kind:
+        return None
+    if len(label) != INDEX_WIDTH + 1:
+        return ParsedMachineFrame(idx=None, payload="", ok=False)
+    idx_token = label[1:]
+    idx = decode_index(idx_token)
+    if idx is None:
+        return ParsedMachineFrame(idx=None, payload="", ok=False)
+    payload = payload.upper()
+    check = check_field[1:].upper()
+    expected = machine_check(kind, idx_token, payload)
+    return ParsedMachineFrame(idx=idx, payload=payload, ok=check == expected)
+
+
+def rs_protect(data: bytes, nsym: int) -> _ty.Tuple[bytes, bytes, int]:
+    """Reed-Solomon-protect ``data``: return ``(data, parity, nblocks)``.
+
+    Public wrapper over the interleaved symbol-major block encoder, so callers
+    outside the codec (the machine-header framing in :mod:`glyphive.layout`)
+    depend on a stable contract rather than a private helper.
+    """
+    return _rs_encode(data, nsym)
+
+
+def rs_recover(
+    data: bytearray,
+    data_erasures: _ty.List[int],
+    parity: bytearray,
+    parity_erasures: _ty.List[int],
+    nsym: int,
+    nblocks: int,
+) -> bytes:
+    """Erasure-recover ``data`` from ``parity``; return the corrected bytes.
+
+    Public wrapper over the interleaved block decoder (see :func:`rs_protect`).
+    ``*_erasures`` are byte positions whose source frame failed its CRC.
+    """
+    return _rs_decode(data, data_erasures, parity, parity_erasures, nsym, nblocks)
 
 
 def _bytes_per_line(line_width: int, spec: "_RadixSpec") -> int:
