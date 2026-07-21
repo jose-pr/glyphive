@@ -3,13 +3,13 @@
   "question": "Why does 4pt/max (142 cols) fail restore where 3pt/max (194 cols) succeeds on the same corpus?",
   "environment": {
     "host": "rocky9-vm 10.7.19.75",
-    "glyphive_commit": "c145a2a",
+    "glyphive_commit": "dc6ecb9",
     "tesseract": "5.4.1 (source build, /usr/local/bin), stock eng, whitelist-constrained, --psm 6",
     "font": "ocr-b",
     "dpi": 300,
     "codec": "base16g-crc16-rs",
     "line_parity": 0,
-    "harness": "fourpt_cell.py (isolated copy of e2e_hardened2.py) + fable diag.py/repro.py"
+    "harness": "fourpt_cell.py (isolated single-cell copy of the earlier VM harness) + diag.py/repro.py"
   },
   "repeat_data": {
     "4pt_max_real_corpus": {"reps": 5, "restored": 0, "detail": "deterministic; identical failure every rep: 'decode failed: corrected stream did not yield a valid group header'"},
