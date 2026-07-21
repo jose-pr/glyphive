@@ -63,12 +63,12 @@ class List(LoggingArgs):
         source = Path(self.file)
         blur_radii, auto_retry = resolve_descan(self.descan)
 
-        def _load(radii):
+        def _load(radii, *, spine=None):
             return (
                 load_qr_lines(source)
                 if self.from_qr
                 else load_input_lines(
-                    source, engine=self.ocr_engine, blur=radii
+                    source, engine=self.ocr_engine, blur=radii, spine=spine
                 )
             )
 
@@ -98,7 +98,7 @@ class List(LoggingArgs):
                 AUTO_DESCAN_RETRY_RADII,
             )
             try:
-                _list(_load(AUTO_DESCAN_RETRY_RADII))
+                _list(_load(AUTO_DESCAN_RETRY_RADII, spine=lines))
             except retryable as retry_error:
                 self._logger_.debug(
                     "de-scan blur retry did not recover the document (%s); "
