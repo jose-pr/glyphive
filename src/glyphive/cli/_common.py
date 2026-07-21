@@ -96,13 +96,15 @@ def _normalize_blur(blur: "_ty.Union[float, _ty.Sequence[float]]") -> _ty.List[f
     return seen
 
 
-#: The blur ladder the auto-retry sweeps after a failed sharp pass. The sharp
-#: [0.0] pass runs first; on failure this whole ladder is OCR'd and its
-#: CRC-valid lines merged in one retry. 0.6 recovers most real phone scans, but
-#: wider glyphs (e.g. Courier 12pt) can need ~0.8 -- a real archive that decoded
-#: only at 0.8 motivated adding it (2026-07-17 scan recovery). The merge is
-#: per-line CRC-safe, so extra radii can only recover more lines, never corrupt.
-AUTO_DESCAN_RETRY_RADII: _ty.Final[_ty.List[float]] = [0.0, 0.6, 0.8]
+#: The ADDITIONAL blur ladder the auto-retry sweeps after a failed sharp pass.
+#: The sharp [0.0] pass already ran once (its OCR'd lines become the retry's
+#: ``spine``, see :func:`_image_ocr_passes`/:func:`_input_ocr_passes`), so the
+#: retry only OCRs these extra radii and merges them onto that spine -- it
+#: never re-OCRs 0.0. 0.6 recovers most real phone scans, but wider glyphs
+#: (e.g. Courier 12pt) can need ~0.8 -- a real archive that decoded only at
+#: 0.8 motivated adding it (2026-07-17 scan recovery). The merge is per-line
+#: CRC-safe, so extra radii can only recover more lines, never corrupt.
+AUTO_DESCAN_RETRY_RADII: _ty.Final[_ty.List[float]] = [0.6, 0.8]
 
 
 def resolve_descan(value: str) -> "_ty.Tuple[_ty.List[float], bool]":
@@ -267,6 +269,7 @@ def _image_ocr_passes(
     *,
     engine: _ty.Optional[str] = None,
     blur: "_ty.Union[float, _ty.Sequence[float]]" = 0.0,
+    spine: "_ty.Optional[_ty.Sequence[_ty.Any]]" = None,
 ) -> "_ty.List[_ty.Any]":
     """Shared OCR+merge core of :func:`load_image_lines` /
     :func:`load_image_lines_with_conf`: OCR every image at every blur radius
@@ -274,6 +277,12 @@ def _image_ocr_passes(
     public functions read the same merged :class:`~glyphive.restore.ocr.OcrLine`
     list -- one only reads ``.text``, the other reads both -- so they can
     never disagree on which lines survive.
+
+    ``spine``, if given, is an already-computed OCR pass (e.g. the sharp 0.0
+    pass a caller ran earlier) that is merged in FIRST -- ahead of the passes
+    OCR'd here over ``blur`` -- so it wins the ordered-spine slot in
+    :func:`_merge_ocr_conf_lines` and none of its radii are re-OCR'd. Used by
+    the auto-descan retry to avoid repeating the sharp pass.
     """
     from tempfile import TemporaryDirectory
 
@@ -281,7 +290,9 @@ def _image_ocr_passes(
 
     images = _input_files(source)
     radii = _normalize_blur(blur)
-    per_pass: "_ty.List[_ty.List[_ty.Any]]" = []
+    per_pass: "_ty.List[_ty.List[_ty.Any]]" = (
+        [[_as_ocr_line(line) for line in spine]] if spine is not None else []
+    )
     with TemporaryDirectory(prefix="glyphive-descan-") as temp:
         for radius in radii:
             candidates = _blur_images(images, radius, temp) if radius > 0 else images
@@ -297,6 +308,7 @@ def load_image_lines(
     *,
     engine: _ty.Optional[str] = None,
     blur: "_ty.Union[float, _ty.Sequence[float]]" = 0.0,
+    spine: "_ty.Optional[_ty.Sequence[_ty.Any]]" = None,
 ) -> _ty.List[str]:
     """OCR one image or a directory of images through one provider instance.
 
@@ -304,8 +316,13 @@ def load_image_lines(
     several radii are given, each image is OCR'd at every radius and the
     CRC-valid lines are merged (see :func:`_merge_ocr_conf_lines`) -- different
     blurs recover different lines. ``0`` (the default) leaves images untouched.
+    ``spine``, if given, is merged in ahead of ``blur``'s passes without being
+    re-OCR'd -- see :func:`_image_ocr_passes`.
     """
-    return [line.text for line in _image_ocr_passes(source, engine=engine, blur=blur)]
+    return [
+        line.text
+        for line in _image_ocr_passes(source, engine=engine, blur=blur, spine=spine)
+    ]
 
 
 def load_image_lines_with_conf(
@@ -313,6 +330,7 @@ def load_image_lines_with_conf(
     *,
     engine: _ty.Optional[str] = None,
     blur: "_ty.Union[float, _ty.Sequence[float]]" = 0.0,
+    spine: "_ty.Optional[_ty.Sequence[_ty.Any]]" = None,
 ) -> "_ty.Tuple[_ty.List[str], _ty.List[_ty.Optional[_ty.Sequence[float]]]]":
     """Like :func:`load_image_lines`, but also returns per-line OCR confidence.
 
@@ -323,8 +341,10 @@ def load_image_lines_with_conf(
     for how a downstream decode uses it (plan 3). Shares the exact OCR/merge
     pipeline with :func:`load_image_lines` (:func:`_image_ocr_passes`), so
     ``load_image_lines_with_conf(...)[0] == load_image_lines(...)`` always.
+    ``spine``, if given, is merged in ahead of ``blur``'s passes without being
+    re-OCR'd -- see :func:`_image_ocr_passes`.
     """
-    merged = _image_ocr_passes(source, engine=engine, blur=blur)
+    merged = _image_ocr_passes(source, engine=engine, blur=blur, spine=spine)
     return [line.text for line in merged], [line.char_conf for line in merged]
 
 
@@ -348,6 +368,7 @@ def _input_ocr_passes(
     *,
     engine: _ty.Optional[str] = None,
     blur: "_ty.Union[float, _ty.Sequence[float]]" = 0.0,
+    spine: "_ty.Optional[_ty.Sequence[_ty.Any]]" = None,
 ) -> "_ty.List[_ty.Any]":
     """Shared dispatch+OCR+merge core of :func:`load_input_lines` /
     :func:`load_input_lines_with_conf`. Returns one flat
@@ -355,6 +376,15 @@ def _input_ocr_passes(
     text/DOCX line is wrapped ``OcrLine(text, None)`` (no confidence for a
     non-OCR source, per the plan-3 design note), an OCR'd line keeps
     whatever confidence :func:`_merge_ocr_conf_lines` chose for it.
+
+    ``spine``, if given, is an already-computed pass (e.g. the sharp 0.0 pass
+    a caller ran earlier) that is merged in ahead of everything OCR'd here
+    over ``blur`` at the OUTER (whole-document) level -- so it wins the
+    ordered-spine slot in :func:`_merge_ocr_conf_lines` and none of its radii
+    are re-OCR'd. This function itself may still mix per-file passes over
+    ``blur`` internally (each file's own blur ladder is merged per-file, as
+    before); ``spine`` only affects the final outer merge. Used by the
+    auto-descan retry to avoid repeating the sharp pass.
     """
     from tempfile import TemporaryDirectory
 
@@ -418,6 +448,9 @@ def _input_ocr_passes(
                 lines.extend(
                     _as_ocr_line(t) for t in text.replace("\f", "\n").splitlines()
                 )
+    if spine is not None:
+        spine_lines = [_as_ocr_line(line) for line in spine]
+        return _merge_ocr_conf_lines([spine_lines, lines])
     return lines
 
 
@@ -426,6 +459,7 @@ def load_input_lines(
     *,
     engine: _ty.Optional[str] = None,
     blur: "_ty.Union[float, _ty.Sequence[float]]" = 0.0,
+    spine: "_ty.Optional[_ty.Sequence[_ty.Any]]" = None,
 ) -> _ty.List[str]:
     """Read transcripts and OCR images/PDFs/DOCX files based on extension.
 
@@ -433,9 +467,13 @@ def load_input_lines(
     and rasterized-PDF page is OCR'd at every radius and the CRC-valid lines
     are merged across passes (different blurs recover different lines). It
     never affects text transcripts or DOCX. ``0`` (the default) is a single
-    no-blur pass.
+    no-blur pass. ``spine``, if given, is merged in ahead of ``blur``'s passes
+    without being re-OCR'd -- see :func:`_input_ocr_passes`.
     """
-    return [line.text for line in _input_ocr_passes(source, engine=engine, blur=blur)]
+    return [
+        line.text
+        for line in _input_ocr_passes(source, engine=engine, blur=blur, spine=spine)
+    ]
 
 
 def load_input_lines_with_conf(
@@ -443,6 +481,7 @@ def load_input_lines_with_conf(
     *,
     engine: _ty.Optional[str] = None,
     blur: "_ty.Union[float, _ty.Sequence[float]]" = 0.0,
+    spine: "_ty.Optional[_ty.Sequence[_ty.Any]]" = None,
 ) -> "_ty.Tuple[_ty.List[str], _ty.List[_ty.Optional[_ty.Sequence[float]]]]":
     """Like :func:`load_input_lines`, but also returns per-line OCR confidence.
 
@@ -451,8 +490,10 @@ def load_input_lines_with_conf(
     ``None`` (no OCR was involved). Shares the exact dispatch/OCR/merge
     pipeline with :func:`load_input_lines` (:func:`_input_ocr_passes`), so
     ``load_input_lines_with_conf(...)[0] == load_input_lines(...)`` always.
+    ``spine``, if given, is merged in ahead of ``blur``'s passes without being
+    re-OCR'd -- see :func:`_input_ocr_passes`.
     """
-    merged = _input_ocr_passes(source, engine=engine, blur=blur)
+    merged = _input_ocr_passes(source, engine=engine, blur=blur, spine=spine)
     return [line.text for line in merged], [line.char_conf for line in merged]
 
 
