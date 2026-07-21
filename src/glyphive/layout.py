@@ -311,7 +311,7 @@ def _machine_header_bytes(meta: _ty.Mapping[str, _ty.Any]) -> bytes:
     else:
         body.append(0xFF)
     body.extend(struct.pack(
-        ">QQIIIB",
+        ">QQIIIBB",
         _machine_uint(meta, "files", 64),
         _machine_uint(meta, "bytes", 64),
         _machine_uint(meta, "pages", 32),
@@ -321,6 +321,19 @@ def _machine_header_bytes(meta: _ty.Mapping[str, _ty.Any]) -> bytes:
         # meaningful when pgpar > 0; 8 is the byte-identical-with-the-past
         # default when page parity is unused.
         _machine_uint(meta, "pgpar_field", 8) if "pgpar_field" in meta else 8,
+        # Per-line Reed-Solomon parity byte count (0, 2, or 4; see
+        # codec.engine's ``nsym_line``). AUTHORITATIVE: the printed
+        # line-parity field has no delimiter separating it from the payload,
+        # so a transcript whose interior spaces were stripped (a constrained
+        # OCR whitelist -- the normal scan path) cannot have this width
+        # recovered by counting whitespace tokens per line. Defaults to 2 (NOT
+        # 0) when absent from ``meta`` -- matching ``RadixCodec.encode``'s own
+        # default -- so a caller that lets ``codec.encode()`` default its
+        # ``nsym_line`` and doesn't separately mirror the value into ``meta``
+        # still gets a header that matches what was actually encoded. The
+        # reader prefers this header field over that structural heuristic; see
+        # read_pages_to_spool.
+        _machine_uint(meta, "nsym_line", 8) if "nsym_line" in meta else 2,
     ))
     body.extend(sha_bytes)
     if len(body) > 0xFFFF:
@@ -497,19 +510,29 @@ def _decode_machine_header(
     else:
         profile, cursor = _take_machine_text(body, cursor, "meta")
 
-    fixed_size = struct.calcsize(">QQIIIB") + 32
+    fixed_size = struct.calcsize(">QQIIIBB") + 32
     if len(body) - cursor != fixed_size:
         raise LayoutError("machine header fixed fields have an invalid length")
-    files, byte_count, pages, parity_pages, page_block_bytes, pgpar_field = struct.unpack_from(
-        ">QQIIIB", body, cursor
-    )
-    cursor += struct.calcsize(">QQIIIB")
+    (
+        files,
+        byte_count,
+        pages,
+        parity_pages,
+        page_block_bytes,
+        pgpar_field,
+        nsym_line,
+    ) = struct.unpack_from(">QQIIIBB", body, cursor)
+    cursor += struct.calcsize(">QQIIIBB")
     sha256 = body[cursor:cursor + 32].hex()
     if pages == 0:
         raise LayoutError("machine header page count must be positive")
     if pgpar_field not in (8, 16):
         raise LayoutError(
             f"machine header page-parity field width must be 8 or 16, got {pgpar_field}"
+        )
+    if nsym_line not in (0, 2, 4):
+        raise LayoutError(
+            f"machine header per-line parity byte count must be 0, 2, or 4, got {nsym_line}"
         )
 
     meta: _ty.Dict[str, _ty.Any] = {
@@ -522,6 +545,7 @@ def _decode_machine_header(
         "pgpar": parity_pages,
         "page_block_bytes": page_block_bytes,
         "pgpar_field": pgpar_field,
+        "nsym_line": nsym_line,
         "sha256": sha256,
     }
     if profile is not None:

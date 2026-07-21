@@ -403,6 +403,7 @@ class Create(LoggingArgs):
                 "files": len(paths),
                 "bytes": measured_raw.count,
                 "sha256": measured_raw.digest.hexdigest(),
+                "nsym_line": self.line_parity,
             }
             raw_spool.seek(0)
             with _tempfile.TemporaryFile(dir=self.temp_dir) as compressed_spool:

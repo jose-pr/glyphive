@@ -17,6 +17,7 @@ def _document(data=b"protected metadata", *, nsym_line=2):
         "files": 1,
         "bytes": len(data),
         "sha256": hashlib.sha256(data).hexdigest(),
+        "nsym_line": nsym_line,
     }
     pages = layout.paginate(
         codec.get("base16g-crc16-rs").encode(data, nsym_line=nsym_line),
@@ -535,4 +536,87 @@ def test_footer_hash_mismatch_is_advisory_not_a_page_warning():
     meta, encoded_lines = layout.read_pages(lines)
     assert len(meta["_footer_hash_notes"]) >= 1
     assert not meta["_page_warnings"]  # advisory, not a real warning
+    assert codec.get(meta["codec"]).decode(encoded_lines) == data
+
+
+# ---------------------------------------------------------------------------
+# nsym_line authoritative-header regression (compact/OCR-whitelist restore)
+# ---------------------------------------------------------------------------
+
+
+def _strip_all_interior_spaces(line):
+    """Simulate a constrained Tesseract whitelist: every frame line arrives
+    as one token, with no interior spaces at all."""
+    return "".join(line.split())
+
+
+@pytest.mark.parametrize("nsym_line", [0, 2, 4])
+def test_compact_transcript_round_trips_for_every_nsym_line(nsym_line):
+    """Regression: with every line's interior spaces stripped (the normal
+    constrained-OCR-whitelist restore path), ``_detect_line_parity_chars``
+    cannot vote (every line is exactly one token) and used to silently
+    return 0, corrupting the payload/line-parity boundary for every line at
+    nsym_line=2/4 and dying with a Reed-Solomon geometry error. The
+    protected machine header now carries ``nsym_line`` authoritatively and
+    the reader prefers it over that heuristic, so this must round-trip
+    byte-identical at every supported nsym_line, including 0.
+
+    Before the fix this failed at nsym_line=2 with:
+        codec.CodecError: line L00000 failed CRC and exceeds RS correction budget
+    (or, on a larger fixture, layout.LayoutError / ValueError:
+        "cannot recover RS parameters: data/parity line counts are
+        inconsistent (missing or spurious lines)"
+    -- both symptoms of the same misdetected line-parity width.)
+    """
+    data, lines = _document(
+        b"compact OCR whitelist restore path check " * 20, nsym_line=nsym_line
+    )
+    compact_lines = [_strip_all_interior_spaces(line) for line in lines]
+
+    spool = io.BytesIO()
+    header_meta, _count = layout.read_pages_to_spool(iter(compact_lines), spool)
+    spool.seek(0)
+    assert header_meta["nsym_line"] == nsym_line
+
+    output = io.BytesIO()
+    codec.get(header_meta["codec"]).decode_spool(
+        spool, output, nsym_line=header_meta.get("nsym_line")
+    )
+    assert output.getvalue() == data
+
+
+def test_machine_header_carries_nsym_line():
+    """The protected machine header round-trips the exact --line-parity value."""
+    data = b"nsym_line header field check"
+    meta_in = {
+        "codec": "base16g-crc16-rs",
+        "comp": "none",
+        "meta": "none",
+        "files": 1,
+        "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "nsym_line": 4,
+    }
+    pages = layout.paginate(
+        codec.get("base16g-crc16-rs").encode(data, nsym_line=4),
+        meta_in,
+        lines_per_page=13,
+    )
+    lines = [line for page in pages for line in page.text_lines]
+
+    meta, encoded_lines = layout.read_pages(lines)
+    assert meta["nsym_line"] == 4
+    encoded_spool = io.BytesIO(("\n".join(encoded_lines) + "\n").encode("utf-8"))
+    output = io.BytesIO()
+    codec.get(meta["codec"]).decode_spool(
+        encoded_spool, output, nsym_line=meta["nsym_line"]
+    )
+    assert output.getvalue() == data
+
+
+def test_nsym_line_zero_documents_still_round_trip():
+    """No regression: the pre-existing nsym_line=0 path is unaffected."""
+    data, lines = _document(b"nsym_line zero still round trips" * 10, nsym_line=0)
+    meta, encoded_lines = layout.read_pages(lines)
+    assert meta["nsym_line"] == 0
     assert codec.get(meta["codec"]).decode(encoded_lines) == data

@@ -211,6 +211,15 @@ def decode_document_to_spool(
         # streaming, confidence-aware decode_spool, so all of them (not only
         # base16g) get the memory-bounded path and char-level erasure marking.
         if hasattr(selected_codec, "decode_spool"):
+            # ``nsym_line`` (optional): when the protected machine header
+            # carried it (glyphive.layout, v1 wire format), pass it straight
+            # through instead of letting decode_spool re-derive it from raw
+            # line shape -- that structural heuristic is ambiguous/wrong on a
+            # transcript whose interior spaces were stripped by a constrained
+            # OCR whitelist (every line looks like one token, so no line can
+            # vote and the heuristic silently returns 0). Absent on an older
+            # or headerless meta dict, this is None and decode_spool falls
+            # back to the heuristic exactly as before.
             selected_codec.decode_spool(
                 encoded_spool,
                 compressed_spool,
@@ -218,6 +227,7 @@ def decode_document_to_spool(
                 char_conf=spool_conf,
                 conf_threshold=conf_threshold,
                 max_suspects=max_suspects,
+                nsym_line=meta.get("nsym_line"),
             )
         else:
             lines = (
