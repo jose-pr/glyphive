@@ -1,0 +1,18 @@
+Glyphive E2E benchmark fixture note-002.
+A second small synthetic document, distinct from note-001, so a --repeat run
+exercises more than one document per cell without ever downloading or
+copying live project documentation into the benchmark at run time.
+
+Roses are red, violets are blue, Reed-Solomon parity recovers a scan or two.
+Every printed line carries its own CRC; every page its own footer digest;
+every document its own whole-file SHA-256 -- so a bad restore is refused
+loudly rather than silently accepted as correct.
+
+9876543210 9876543210 9876543210 9876543210 9876543210 9876543210 9876543210
+The five boxing wizards jump quickly. Sphinx of black quartz, judge my vow.
+Jackdaws love my big sphinx of quartz. Amazingly few discotheques provide
+jukeboxes. Waltz, bad nymph, for quick jigs vex.
+
+This fixture is pinned and checked into the repository; do not regenerate it
+at benchmark run time -- corpus stability is required for cross-run and
+cross-commit comparability of benchmarks/results/*.json.

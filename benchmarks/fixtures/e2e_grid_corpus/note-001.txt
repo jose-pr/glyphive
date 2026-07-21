@@ -1,0 +1,18 @@
+Glyphive E2E benchmark fixture note-001.
+This is a small, deterministic, synthetic document used only to exercise the
+create -> rasterize -> OCR -> extract round trip. It is intentionally boring:
+plain ASCII prose repeated with minor variation so the payload compresses
+moderately and is long enough to give Reed-Solomon a real multi-line parity
+budget, matching how the format is meant to be used in practice.
+
+Alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike
+november oscar papa quebec romeo sierra tango uniform victor whiskey xray
+yankee zulu. The quick brown fox jumps over the lazy dog. Pack my box with
+five dozen liquor jugs. How vexingly quick daft zebras jump.
+
+0123456789 0123456789 0123456789 0123456789 0123456789 0123456789 0123456789
+ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 !?.,;:-_
+
+This fixture is pinned and checked into the repository so the E2E grid
+benchmark (benchmarks/e2e_grid.py) is reproducible across machines and
+commits; it must never be regenerated at benchmark run time.
