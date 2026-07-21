@@ -1,5 +1,9 @@
-# Agent config must never be committed (global rule)
+# Agent config must never be committed (global rule).
+# .agents has no trailing slash on purpose: `dotagents link` makes it a symlink,
+# which git treats as a file, so a directory-only `.agents/` would not ignore it.
+# *.local.md is the unshared override (machine- or user-specific), never committed.
 .agents
+*.local.md
 CLAUDE*
 .claude
 
@@ -29,4 +33,3 @@ Thumbs.db
 .idea/
 .vscode/
 *.traineddata
-/AGENTS.md
