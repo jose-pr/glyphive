@@ -1,0 +1,53 @@
+{
+  "name": "page-rastered-training-20260721",
+  "question": "Does training on page-rastered rows (real 300 DPI page renders sliced into lines) beat training on text2image single-line images (psm 7 synthetic), so that reported eval error and real byte-restore finally agree in direction?",
+  "verdict": "NO — the page-rastered model is WORSE. It fails the byte-restore gate in both cells while the psm-7 synthetic control and stock Tesseract both restore byte-identical. Recorded as a negative result; the plan's hypothesis is refuted as executed.",
+  "environment": {
+    "host": "rocky9-vm 10.7.19.75",
+    "tesseract": "5.4.1 (source build, /usr/local/bin)",
+    "base_model": "tessdata_best/eng",
+    "font": "courier (Nimbus Mono PS on the VM)",
+    "pt": 8,
+    "line_width": 60,
+    "line_parity": 2,
+    "dpi": 300,
+    "codec": "base32g-crc16-rs",
+    "codec_verified_in_document_header": "#!glyphive v1 base32g-crc16-rs files=2 bytes=21658 pages=10"
+  },
+  "training": {
+    "method": "page-rastered: create --format pdf -> rasterize 300 DPI (pypdfium2) -> slice rows by known line geometry -> one .lstmf per row (tesseract --psm 6 lstm.train)",
+    "ground_truth": "the PDF's own printed line list (framed: kind prefix, index token, payload, delimiter, check)",
+    "train_rows": 1664,
+    "train_docs": 40,
+    "train_doc_seeds": "1-40",
+    "eval_rows": 329,
+    "eval_doc_seeds": "5001-5009 (disjoint from training)",
+    "iterations": 10000,
+    "bcer_train_start_pct": 1.387,
+    "bcer_train_best_pct": 0.493,
+    "best_checkpoint": "pageraster32_0.493_3236_9700.checkpoint",
+    "model_bytes": 15400601
+  },
+  "gate": {
+    "definition": "byte-identical restore: create -> rasterize 300 DPI -> OCR per page (whitelist = codec spec.alphabet + delimiter, --psm 6) -> extract -> byte-diff the tree",
+    "corpus": "2 real markdown guides, 21658 bytes, 10 pages",
+    "results": [
+      {"arm": "pageraster", "blur": 0.0, "result": "FAIL", "detail": "CodecError: line L00001 failed CRC and exceeds RS correction budget"},
+      {"arm": "pageraster", "blur": 0.6, "result": "FAIL", "detail": "CodecError: line L00001 failed CRC and exceeds RS correction budget"},
+      {"arm": "synthetic", "blur": 0.0, "result": "OK"},
+      {"arm": "synthetic", "blur": 0.6, "result": "OK"},
+      {"arm": "stock", "blur": 0.0, "result": "OK"},
+      {"arm": "stock", "blur": 0.6, "result": "OK"}
+    ]
+  },
+  "why_it_failed": {
+    "mechanism": "INSERTIONS AND DROPS, not substitutions. On one page (75 printed lines) the page-rastered model produced 22 length-mismatched lines vs the synthetic control's 2 (and those 2 are the display-only human banner, which carries no data). Example: truth ...L3L4L3LK... read as ...L3L4AL3LK... — a spurious 'A' inserted. A length change shifts the whole line, so the fixed-width frame parse desynchronizes and the per-line CRC fails; Reed-Solomon cannot absorb it the way it absorbs an in-place substitution.",
+    "likely_cause": "row slicing. Training rows were cut from page rasters by computed line geometry; if a crop includes a sliver of the neighbouring row's ascenders/descenders, the model learns to emit an extra glyph for that ink. That teaches exactly the failure mode (insertion) that is most lethal to this format.",
+    "note": "This is a defect of THIS execution of the idea (geometry-sliced crops), not proof that page-level training is unsound. Option (b) from the plan — training directly on full page rasters with --psm 6, no slicing — was never tried and remains open."
+  },
+  "cer_vs_restore": {
+    "finding": "The plan's acceptance criterion is NOT met, but for the opposite reason than feared. The original complaint was models reporting ~0% CER while failing restore. Here the page-rastered model reports a HIGHER train BCER (0.493%) than the old synthetic models ever did (~0.000-0.005%) and ALSO fails restore, while the synthetic model passes. So eval error still does not predict restore: a lower-CER model failed and a higher-CER model passed in the earlier comparison, and here the relationship inverts again.",
+    "reinforced_lesson": "Byte-restore remains the only acceptance gate. CER of any flavour — framed, unframed, page-rastered — is a proxy that can point the wrong way. Additionally: a per-glyph INSERTION/DROP rate is a better early predictor of restore than aggregate CER, because aggregate CER weights a length-changing error the same as a substitution when they are not remotely equivalent for this format."
+  },
+  "recommendation": "Do not ship the page-rastered model. Keep stock tesseract-glyphive as the base32g baseline (it restores unaided in this gate). If page-level training is revisited, try option (b) (train on whole page rasters, psm 6, no row slicing) and gate on insertion/drop rate before spending a full training run."
+}
