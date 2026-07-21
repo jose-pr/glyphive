@@ -1,0 +1,42 @@
+{
+  "name": "fourpt-runt-line-20260721",
+  "question": "Why does 4pt/max (142 cols) fail restore where 3pt/max (194 cols) succeeds on the same corpus?",
+  "environment": {
+    "host": "rocky9-vm 10.7.19.75",
+    "glyphive_commit": "c145a2a",
+    "tesseract": "5.4.1 (source build, /usr/local/bin), stock eng, whitelist-constrained, --psm 6",
+    "font": "ocr-b",
+    "dpi": 300,
+    "codec": "base16g-crc16-rs",
+    "line_parity": 0,
+    "harness": "fourpt_cell.py (isolated copy of e2e_hardened2.py) + fable diag.py/repro.py"
+  },
+  "repeat_data": {
+    "4pt_max_real_corpus": {"reps": 5, "restored": 0, "detail": "deterministic; identical failure every rep: 'decode failed: corrected stream did not yield a valid group header'"},
+    "3pt_max_real_corpus": {"reps": 5, "restored": 5},
+    "4pt_max_random_matched_line_count": {"reps": 3, "restored": 3, "note": "209 encoded data lines matched to real corpus; passes -> encoded length alone is NOT the driver"}
+  },
+  "line_diff_diagnostic": {
+    "method": "PDF text layer (ground truth) vs whitelist-constrained OCR transcript, space-canonicalized, per-page sequence alignment",
+    "real_corpus_failing_doc": {
+      "benign_shared_artifacts": ["human #!glyphive banner line mangled (both corpora)", "T-frame 'PAGE n/N' display suffix mangled (both corpora)"],
+      "fatal_unique_damage": {
+        "page2_line70_printed": "LMYCLH C3AT #YYDV (runt final data line, 4 payload chars)",
+        "page2_line70_ocr": "L D (line destroyed)",
+        "page2_line69": "leading frame token 'LMYCMV' read as 'L ' (payload otherwise nearly clean)"
+      }
+    },
+    "random_control_passing_doc": {"final_data_line": "near-full width; no runt; no fatal damage"}
+  },
+  "minimal_repro": {
+    "method": "same random source file, pad with N x 0x5A bytes; only the final-line remainder changes",
+    "pad_2_bytes": {"last_data_line_chars": 153, "result": "OK"},
+    "pad_3_bytes": {"last_data_line_chars": 13, "result": "FAIL: cannot recover RS parameters: data/parity line counts are inconsistent (missing or spurious lines)"}
+  },
+  "root_cause": "At small font sizes Tesseract psm-6 cannot segment/read a runt final data line (a few payload chars); it destroys that line and can corrupt the leading frame token of the line above. Whether a 4pt/max document fails is decided by encoded_length mod line_capacity - content matters only through that remainder. The two observed error messages are the two downstream symptoms of the same damage (runt read as garbage vs runt dropped entirely).",
+  "open_subquestions": [
+    "Does an engineered runt also break 3pt/max and 4pt/60? (expected yes; untested)",
+    "Exact minimum safe final-line length per font size (a threshold sweep would bound it)"
+  ],
+  "follow_up": ".agents/plans/runt_final_line_layout_fix.md - eliminate runt final data lines in layout (pad or rebalance the last two lines)"
+}
