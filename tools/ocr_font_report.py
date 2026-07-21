@@ -64,6 +64,7 @@ recompute the intersection-safe / dense / retype presets over the union:
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import math
 import os
@@ -341,6 +342,102 @@ def rasterize_and_ocr(
     return all_lines
 
 
+# --- alignment -----------------------------------------------------------------
+
+
+def align_and_tally(
+    printed: str,
+    ocr_line: str,
+    *,
+    deletion_total: Counter,
+    deletions: Counter,
+    insertion_adjacent: Counter,
+    total: Counter | None = None,
+    errors: Counter | None = None,
+    misreads: dict | None = None,
+) -> None:
+    """Tally deletion/insertion-adjacency (and optionally substitution) stats.
+
+    A naive positional zip (``printed[i]`` vs ``ocr_line[i]``) is wrong once a
+    single glyph is dropped or a spurious glyph is inserted: every position
+    after the drop/insert is then compared against the wrong printed char,
+    producing a wall of bogus "substitutions" instead of the one real error.
+    ``difflib.SequenceMatcher`` finds the actual edit script (matching common
+    subsequences first), so a single drop is reported as exactly one
+    deletion, not a cascade of fake substitutions. This is what makes it safe
+    to run on length-MISMATCHED lines too (which the pre-existing positional
+    zip in ``measure()`` can't handle at all and skips outright) -- those are
+    exactly the lines a per-glyph drop rate needs to see.
+
+    Mutates the passed-in ``Counter``/``dict`` accumulators:
+      - ``deletion_total[c]``  += 1 for every printed occurrence of ``c``
+                                   (denominator for deletion rate)
+      - ``deletions[c]``       += 1 for every occurrence of ``c`` OCR'd as
+                                   entirely absent (a drop, not a substitution)
+      - ``insertion_adjacent[c]`` += 1 for every spurious inserted glyph that
+                                   is adjacent (immediately before or after,
+                                   in the printed sequence) to an occurrence
+                                   of ``c`` -- cheap proxy for "does this
+                                   glyph provoke the OCR engine to hallucinate
+                                   a neighbor character."
+      - if ``total``/``errors``/``misreads`` are given: ``total[c]`` += 1 per
+        printed occurrence, ``errors[c]``/``misreads[c][o]`` for substitutions
+        found within a same-length "replace" span. Callers that already tally
+        substitutions themselves (the length-matched fast path in
+        ``measure()``, kept byte-for-byte to preserve existing `safe`/
+        `error_rate` semantics) should leave these ``None``.
+    """
+    track_substitutions = total is not None
+    matcher = difflib.SequenceMatcher(None, printed, ocr_line, autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            for k in range(i2 - i1):
+                c = printed[i1 + k]
+                deletion_total[c] += 1
+                if track_substitutions:
+                    total[c] += 1
+        elif tag == "replace":
+            printed_span = printed[i1:i2]
+            ocr_span = ocr_line[j1:j2]
+            n_common = min(len(printed_span), len(ocr_span))
+            # Pair the first n_common printed chars 1:1 with OCR'd chars as
+            # substitutions (best-effort local alignment within the replace
+            # block); any leftover printed chars beyond n_common have no OCR
+            # counterpart at all -- those are drops, not substitutions.
+            for k in range(n_common):
+                c = printed_span[k]
+                o = ocr_span[k]
+                deletion_total[c] += 1
+                if track_substitutions:
+                    total[c] += 1
+                    if o != c:
+                        errors[c] += 1
+                        misreads[c][o] += 1
+            for k in range(n_common, len(printed_span)):
+                c = printed_span[k]
+                deletion_total[c] += 1
+                deletions[c] += 1
+            if len(ocr_span) > n_common and printed_span:
+                # Extra OCR'd chars beyond n_common are spurious insertions
+                # adjacent to this replace block; charge the last printed
+                # char of the block (its neighbor in the printed sequence).
+                insertion_adjacent[printed_span[-1]] += len(ocr_span) - n_common
+        elif tag == "delete":
+            for k in range(i1, i2):
+                c = printed[k]
+                deletion_total[c] += 1
+                deletions[c] += 1
+        elif tag == "insert":
+            # A pure insertion with no corresponding printed span: charge the
+            # printed char immediately preceding it (its left neighbor),
+            # falling back to the following char if the insertion is at the
+            # very start of the line.
+            if i1 > 0:
+                insertion_adjacent[printed[i1 - 1]] += j2 - j1
+            elif i2 < len(printed):
+                insertion_adjacent[printed[i2]] += j2 - j1
+
+
 # --- measurement ---------------------------------------------------------------
 
 
@@ -413,6 +510,7 @@ def measure(
                 "nominal_bits": math.log2(len(alphabet)) if alphabet else 0.0,
                 "efficiency": 0.0,
                 "corrupting_pairs": [],
+                "drop_pairs": [],
                 "chars_per_page": min(line_length, chars_per_line) * lines_per_page,
                 "bytes_per_page": None,
                 "usable_bytes_per_page": None,
@@ -441,6 +539,9 @@ def measure(
     total: Counter[str] = Counter()
     errors: Counter[str] = Counter()
     misreads: dict[str, Counter[str]] = defaultdict(Counter)
+    deletion_total: Counter[str] = Counter()
+    deletions: Counter[str] = Counter()
+    insertion_adjacent: Counter[str] = Counter()
     length_mismatches = 0
 
     for i, printed in enumerate(printed_rows):
@@ -455,13 +556,44 @@ def measure(
         ocr_line = ocr_line_raw.replace(" ", "")
         if len(ocr_line) != len(printed):
             length_mismatches += 1
+            # A length mismatch means SOME drop/insertion happened on this
+            # line. The pre-existing positional-zip substitution stats
+            # (below, for the matched branch) can't handle this -- one drop
+            # desyncs every position after it -- so this tool has always
+            # excluded these lines from `total`/`errors`/`safe`/`error_rate`;
+            # that scoping is preserved here UNCHANGED (existing values, not
+            # just shape, stay backward-compatible). But these are exactly
+            # the lines a per-glyph DROP rate needs: run the aligned diff in
+            # deletion-only mode so a real drop is tallied as exactly one
+            # deletion instead of being dropped from the report entirely.
+            align_and_tally(
+                printed,
+                ocr_line,
+                deletion_total=deletion_total,
+                deletions=deletions,
+                insertion_adjacent=insertion_adjacent,
+            )
             continue
+        # Length-matched line: keep the ORIGINAL positional-zip substitution
+        # accounting byte-for-byte (guarantees `total`/`errors`/`misreads`/
+        # `safe`/`error_rate` are bit-identical to every prior report), then
+        # separately run the aligned diff in deletion-only mode to pick up
+        # same-length deletion+insertion pairs (e.g. a genuine drop masked by
+        # a coincidental spurious insertion elsewhere on the same line, which
+        # a bare length check can't distinguish from "nothing happened").
         for pos, pc in enumerate(printed):
             oc = ocr_line[pos]
             total[pc] += 1
             if oc != pc:
                 errors[pc] += 1
                 misreads[pc][oc] += 1
+        align_and_tally(
+            printed,
+            ocr_line,
+            deletion_total=deletion_total,
+            deletions=deletions,
+            insertion_adjacent=insertion_adjacent,
+        )
 
     line_insert_rate = length_mismatches / rows if rows else 0.0
 
@@ -479,7 +611,21 @@ def measure(
             if corrupting:
                 corrupting_targets.add(target)
             classified.append({"target": target, "count": count, "corrupting": corrupting})
-        per_char[c] = {"samples": n, "errors": err, "error_rate": rate, "misreads": classified}
+        del_n = deletion_total[c]
+        del_count = deletions[c]
+        deletion_rate = (del_count / del_n) if del_n else None
+        per_char[c] = {
+            "samples": n,
+            "errors": err,
+            "error_rate": rate,
+            "misreads": classified,
+            # New fields (additive; existing keys/shapes above are unchanged
+            # for backward compatibility with prior JSON reports).
+            "deletion_samples": del_n,
+            "deletions": del_count,
+            "deletion_rate": deletion_rate,
+            "insertion_adjacent": insertion_adjacent[c],
+        }
 
     safe = [
         c for c in alphabet if total[c] > 0 and errors[c] == 0 and c not in corrupting_targets
@@ -500,6 +646,16 @@ def measure(
             if m["corrupting"]:
                 corrupting_pairs.append((c, m["target"], m["count"]))
 
+    # Drop-rate highlight list (mirrors corrupting_pairs' role for
+    # substitutions): every alphabet glyph with at least one measured drop,
+    # sorted worst-first, purely a convenience projection of per_char.
+    drop_pairs = [
+        (c, info["deletions"], info["deletion_rate"])
+        for c, info in per_char.items()
+        if info["deletions"]
+    ]
+    drop_pairs.sort(key=lambda t: -t[2])
+
     result_base.update(
         {
             "line_insert_rate": line_insert_rate,
@@ -512,6 +668,7 @@ def measure(
             "nominal_bits": nominal_bits,
             "efficiency": efficiency,
             "corrupting_pairs": corrupting_pairs,
+            "drop_pairs": drop_pairs,
             "chars_per_page": chars_per_page,
             "bytes_per_page": bytes_per_page,
             "usable_bytes_per_page": usable_bytes_per_page,
@@ -685,6 +842,13 @@ def print_report(results: list[dict]) -> None:
                 print(f"    {c!r} -> {target!r}  x{count}")
         else:
             print("  CORRUPTING confusions: none")
+        drop_pairs = r.get("drop_pairs") or []
+        if drop_pairs:
+            print("  DROP rates (glyph, deletions, rate) -- a drop desyncs the whole line:")
+            for c, count, rate in drop_pairs:
+                print(f"    {c!r}  x{count}  ({rate * 100:.1f}%)")
+        else:
+            print("  DROP rates: none measured")
         print()
 
 
