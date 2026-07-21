@@ -293,11 +293,11 @@ def _write_manifest(
         "earlier \"measured safe\" claims were based on) -- re-running this "
         "generator after `docs/guides/create.md` changed by a few bytes flipped "
         "which combinations passed and which didn't, including the documented "
-        "\"safe\" 8pt Courier default. This is real, open follow-up work "
-        "(`.agents/plans/ocr_restore_robustness.md` Phases 4/5): either raise "
-        "the default parity ratio, re-measure per-font safety against varied "
-        "real content instead of synthetic grids, or both. `EXTRACT ERROR` "
-        "rows below are exactly this -- not a bug in this script.",
+        "\"safe\" 8pt Courier default. This is real, open follow-up work: "
+        "either raise the default parity ratio, re-measure per-font safety "
+        "against varied real content instead of synthetic grids, or both. "
+        "`EXTRACT ERROR` rows below are exactly this -- not a bug in this "
+        "script.",
         "",
         "| combination | status | format | font | size | compression | bytes | pages | vs raw print |",
         "| --- | --- | --- | --- | --- | --- | ---: | ---: | ---: |",
