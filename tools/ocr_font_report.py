@@ -326,11 +326,24 @@ def rasterize_and_ocr(
             png_path = scratch / f"page{i:03d}.png"
             image.save(png_path)
             if engine == "tesseract" and tesseract_constrained:
+                import shlex
+
                 import pytesseract
 
+                # pytesseract.run_tesseract always re-tokenizes this config
+                # string with shlex.split (posix mode on non-Windows), so an
+                # alphabet containing a shell-special char -- e.g. the
+                # clean-52 candidate set's embedded `"` -- must be quoted,
+                # not interpolated raw, or shlex raises "No closing
+                # quotation" (or silently mis-tokenizes) before tesseract
+                # ever runs. shlex.quote's posix-mode output isn't valid
+                # under shlex's own windows-mode parser, so match whichever
+                # mode pytesseract will actually use.
+                not_windows = sys.platform != "win32"
+                quoted_alphabet = shlex.quote(alphabet) if not_windows else alphabet
                 config = (
                     "--psm 6 "
-                    f"-c tessedit_char_whitelist={alphabet} "
+                    f"-c tessedit_char_whitelist={quoted_alphabet} "
                     "-c load_system_dawg=0 -c load_freq_dawg=0"
                 )
                 text = pytesseract.image_to_string(image, config=config)
