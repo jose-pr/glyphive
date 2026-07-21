@@ -1,7 +1,7 @@
 [
   {
     "run": 1,
-    "note": "history: crashed on a decoder bug (glyphive.codec.engine._group_decode OverflowError), not a real CRC/RS-budget verdict. Superseded by run 2 after the fix (commit 9f0875d). Kept for provenance.",
+    "note": "history: crashed on a decoder bug (glyphive.codec.engine._group_decode OverflowError), not a real CRC/RS-budget verdict. Superseded by run 2 after the fix (commit abe1dd1). Kept for provenance.",
     "codec": "basemaxg-crc16-rs",
     "glyphs": 43,
     "packing": "group",
@@ -20,7 +20,7 @@
   },
   {
     "run": 1,
-    "note": "history: crashed on a decoder bug (glyphive.codec.engine._group_decode OverflowError), not a real CRC/RS-budget verdict. Superseded by run 2 after the fix (commit 9f0875d). Kept for provenance.",
+    "note": "history: crashed on a decoder bug (glyphive.codec.engine._group_decode OverflowError), not a real CRC/RS-budget verdict. Superseded by run 2 after the fix (commit abe1dd1). Kept for provenance.",
     "codec": "basemaxg-crc16-rs",
     "glyphs": 43,
     "packing": "group",
@@ -75,7 +75,7 @@
   },
   {
     "run": 2,
-    "note": "DEFINITIVE: E2E-gate-only rerun (no retraining, same trained models as run 1) after the _group_decode overflow fix (commit 9f0875d, applied on the VM checkout via /root/gd_overflow_fix.patch, not yet on origin). Answers the plan's real question.",
+    "note": "DEFINITIVE: E2E-gate-only rerun (no retraining, same trained models as run 1) after the _group_decode overflow fix (commit abe1dd1, applied on the VM checkout via /root/gd_overflow_fix.patch, not yet on origin). Answers the plan's real question.",
     "codec": "basemaxg-crc16-rs",
     "glyphs": 43,
     "packing": "group",
@@ -91,7 +91,7 @@
   },
   {
     "run": 2,
-    "note": "DEFINITIVE: E2E-gate-only rerun (no retraining, same trained models as run 1) after the _group_decode overflow fix (commit 9f0875d, applied on the VM checkout via /root/gd_overflow_fix.patch, not yet on origin). Answers the plan's real question.",
+    "note": "DEFINITIVE: E2E-gate-only rerun (no retraining, same trained models as run 1) after the _group_decode overflow fix (commit abe1dd1, applied on the VM checkout via /root/gd_overflow_fix.patch, not yet on origin). Answers the plan's real question.",
     "codec": "basemaxg-crc16-rs",
     "glyphs": 43,
     "packing": "group",
