@@ -1,6 +1,6 @@
 {
   "date": "2026-07-21",
-  "purpose": "Per-glyph OCR drop (deletion) and corrupting-substitution rates for the base52g clean-52 candidate alphabet from .agents/plans/alphabet_confusion_ceiling.md, with basemaxg's 43-glyph set as a calibration control (known thin-glyph drops: backtick, ;, |). Measured with tools/ocr_font_report.py's new per-glyph deletion stats (aligned diff via difflib.SequenceMatcher, not naive positional zip).",
+  "purpose": "Per-glyph OCR drop (deletion) and corrupting-substitution rates for the base52g clean-52 candidate alphabet (the 52-glyph max-independent-set candidate from the confusion-ceiling analysis), with basemaxg's 43-glyph set as a calibration control (known thin-glyph drops: backtick, ;, |). Measured with tools/ocr_font_report.py's new per-glyph deletion stats (aligned diff via difflib.SequenceMatcher, not naive positional zip).",
   "method": {
     "instrument": "tools/ocr_font_report.py (measure(), tesseract_constrained whitelist mode)",
     "engine": "tesseract 5.4.1 (source build), stock eng.traineddata (/root/gtrain32/tessdata_best), no fine-tuning",

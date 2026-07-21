@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Reproducible E2E OCR benchmark grid: create -> rasterize -> OCR -> extract.
 
-Replaces the VM-only ``/root/e2e_hardened2.py`` script (unreachable, and
-carrying a correctness defect -- see
-``.agents/plans/benchmark_harness_correctness.md``). The defect: a
+Replaces an earlier VM-only harness script that carried a correctness
+defect: a
 configuration where ``create`` itself refuses to build the document (e.g. the
 selected font/size/width/line-parity combination does not leave room for the
 protected header/footer frames) was counted as a restore *failure*. That

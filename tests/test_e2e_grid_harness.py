@@ -3,7 +3,7 @@
 Deliberately runs without Tesseract (or any OCR engine): every test injects a
 fake ``restore_trial`` callable matching :class:`benchmarks.e2e_grid.RestoreProvider`
 instead of driving the real pipeline, so this file exercises exactly the
-correctness fix from ``.agents/plans/benchmark_harness_correctness.md`` --
+harness's correctness contract --
 never counting a build refusal as a restore failure, honest denominators, and
 loud UNTESTED reporting -- independent of any installed OCR binary.
 """

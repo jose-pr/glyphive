@@ -72,6 +72,18 @@ missing feature is actually used. All filesystem access goes through
   repairs scattered erasures. Decode never mutates data to make more of it
   decode — correctness rests only on per-line CRC/RS plus the caller's
   whole-document SHA-256 gate (`glyphive.restore.decode`).
+- `encode` zero-pads the protected byte stream so the FINAL data line's
+  printed payload is never below half the configured line width (a very short
+  final line is destroyed by OCR page segmentation at small font sizes,
+  measured in `benchmarks/results/fourpt-runt-line-20260721.json`). The
+  header's recorded length stays unpadded, so decode truncates the pad away
+  with no decoder involvement; padding may grow the emitted line count by at
+  most one, and `encoded_line_count` reflects the padded total exactly.
+- Decode corruption contract: any malformed printed payload — bad alphabet
+  char, short group, or a group-packed digit sequence whose value exceeds the
+  group's byte range (possible for `basemaxg`/`base85`/`z85` misreads) —
+  raises `ValueError` and is absorbed as an erasure; it never escapes as
+  `OverflowError` or any non-`ValueError`.
 
 ## `glyphive.compression` — named whole-stream compression
 
@@ -93,7 +105,10 @@ missing feature is actually used. All filesystem access goes through
 
 Geometry-agnostic pagination with CRC/RS-protected machine metadata; restore
 trusts only `H` (header) and `T` (footer) frames, never the display-only
-`#!glyphive` / `PAGE n/total` human text.
+`#!glyphive` / `PAGE n/total` human text. Machine frames (`H`/`T`/`Q`) carry
+their own fixed-width per-line Reed-Solomon field (independent of the
+document's `--line-parity`, which the header itself is what communicates);
+an in-line correction is trusted only after the printed CRC re-verifies.
 
 - **`paginate(encoded_lines, meta, *, lines_per_page, parity_pages=0, emit_human_header=True) -> list[Page]`**
   / **`iter_paginate(encoded_lines, n_encoded, meta, *, lines_per_page, parity_pages=0, emit_human_header=True) -> Iterator[Page]`**
