@@ -84,20 +84,23 @@ class Extract(LoggingArgs):
             raise ValueError("--from-images and --from-qr are mutually exclusive")
         blur_radii, auto_retry = resolve_descan(self.descan)
 
-        def _load(radii):
+        def _load(radii, *, spine=None):
             # Returns (lines, char_conf). char_conf is per-line OCR character
             # confidence (aligned to lines by physical order) or None for a line
             # that had no OCR (QR / text / DOCX). The codec uses it only to
             # narrow a CRC-failed line's erasures; correctness still rests on
             # CRC/RS/SHA, so a None confidence is exactly today's behavior.
+            #
+            # ``spine`` (the already-computed sharp pass) is only meaningful
+            # for the OCR loaders -- QR decode has no blur ladder to retry.
             if self.from_qr:
                 return load_qr_lines(src), None
             if self.from_images:
                 return load_image_lines_with_conf(
-                    src, engine=self.ocr_engine, blur=radii
+                    src, engine=self.ocr_engine, blur=radii, spine=spine
                 )
             return load_input_lines_with_conf(
-                src, engine=self.ocr_engine, blur=radii
+                src, engine=self.ocr_engine, blur=radii, spine=spine
             )
 
         lines, char_conf = _load(blur_radii)
@@ -117,7 +120,9 @@ class Extract(LoggingArgs):
         can never corrupt a transcript that would already decode -- it can only
         recover more. Retry is limited to one extra sweep over the blur ladder
         (AUTO_DESCAN_RETRY_RADII) and only when the input is entirely image/PDF
-        and the user did not pass an explicit --descan.
+        and the user did not pass an explicit --descan. The already-computed
+        sharp (0.0) ``lines`` are passed back in as the retry's ``spine`` so
+        that pass is never re-OCR'd -- only the extra radii are.
         """
         from .. import layout as _layout
         from ..codec.engine import CodecError
@@ -134,7 +139,11 @@ class Extract(LoggingArgs):
                 "de-scan blur ladder %s", type(first_error).__name__,
                 AUTO_DESCAN_RETRY_RADII,
             )
-            retry_lines, retry_conf = load_fn(AUTO_DESCAN_RETRY_RADII)
+            from ..restore.ocr import OcrLine
+
+            sharp_confs = char_conf if char_conf is not None else [None] * len(lines)
+            spine = [OcrLine(text, conf) for text, conf in zip(lines, sharp_confs)]
+            retry_lines, retry_conf = load_fn(AUTO_DESCAN_RETRY_RADII, spine=spine)
             try:
                 return self._restore(_unarchive, dest, retry_lines, retry_conf)
             except retryable as retry_error:

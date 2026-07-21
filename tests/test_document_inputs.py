@@ -47,6 +47,90 @@ def test_merge_ocr_lines_single_pass_is_verbatim():
     assert _merge_ocr_lines([lines]) == lines
 
 
+def _write_real_png(path):
+    """Write a tiny but genuine PNG -- blur radii > 0 open the file via PIL,
+    so a fake magic-bytes-only stub (fine for magic-sniffing tests) fails
+    there with ``UnidentifiedImageError``."""
+    from PIL import Image
+
+    Image.new("RGB", (4, 4), color="white").save(str(path), format="PNG")
+
+
+def test_image_ocr_passes_spine_avoids_reocr_of_its_own_radius(tmp_path, monkeypatch):
+    """A ``spine`` is merged in without OCR'ing it again -- only ``blur``'s
+    radii are OCR'd. Regression for the auto-descan retry: the sharp (0.0)
+    pass must not be repeated when it is threaded back in as the spine.
+    """
+    from glyphive import codec
+    from glyphive.cli._common import _image_ocr_passes
+    from glyphive.restore import ocr
+
+    image = tmp_path / "photo.png"
+    _write_real_png(image)
+
+    c = codec.get("base16g-crc16-rs")
+    spine_frame = _make_frame(c, "L", 0, b"\x01\x02")
+    extra_frame = _make_frame(c, "L", 1, b"\x03\x04")
+
+    ocr_calls = []
+
+    def counting_ocr_pages(paths, *, engine=None):
+        ocr_calls.append(len(paths))
+        return [[extra_frame]]
+
+    monkeypatch.setattr(ocr, "ocr_pages", counting_ocr_pages)
+
+    result = _image_ocr_passes(image, blur=[0.6, 0.8], spine=[spine_frame])
+
+    # OCR ran exactly once per NEW radius (0.6, 0.8) -- never for the spine's
+    # own (0.0) pass, which was supplied pre-computed instead of re-OCR'd.
+    assert len(ocr_calls) == 2
+    texts = [line.text for line in result]
+    # Spine kept verbatim first, then the new CRC-valid frame appended.
+    assert texts == [spine_frame, extra_frame]
+
+
+def test_image_ocr_passes_spine_matches_prior_full_sweep_behavior(tmp_path, monkeypatch):
+    """The spine-based retry produces the SAME merged lines, in the SAME
+    order, as the old approach of re-OCRing radius 0.0 alongside 0.6/0.8 --
+    only the redundant extra OCR call is removed, not the recovered data.
+    """
+    from glyphive import codec
+    from glyphive.cli._common import _image_ocr_passes
+    from glyphive.restore import ocr
+
+    image = tmp_path / "photo.png"
+    _write_real_png(image)
+
+    c = codec.get("base16g-crc16-rs")
+    sharp_frame = _make_frame(c, "L", 0, b"\x01\x02")
+    blur_06_frame = _make_frame(c, "L", 1, b"\x03\x04")
+    blur_08_frame = _make_frame(c, "L", 2, b"\x05\x06")
+
+    per_radius = {0.0: [sharp_frame], 0.6: [blur_06_frame], 0.8: [blur_08_frame]}
+
+    # --- Old behavior: full sweep over [0.0, 0.6, 0.8], OCRing 0.0 again. ---
+    def ocr_by_call_order_full(paths, *, engine=None, _order=iter([0.0, 0.6, 0.8])):
+        return [[line for line in per_radius[next(_order)]]]
+
+    monkeypatch.setattr(ocr, "ocr_pages", ocr_by_call_order_full)
+    old_result = [
+        line.text for line in _image_ocr_passes(image, blur=[0.0, 0.6, 0.8])
+    ]
+
+    # --- New behavior: sharp pass precomputed, retry only OCRs 0.6/0.8. ---
+    def ocr_by_call_order_extra(paths, *, engine=None, _order=iter([0.6, 0.8])):
+        return [[line for line in per_radius[next(_order)]]]
+
+    monkeypatch.setattr(ocr, "ocr_pages", ocr_by_call_order_extra)
+    new_result = [
+        line.text
+        for line in _image_ocr_passes(image, blur=[0.6, 0.8], spine=[sharp_frame])
+    ]
+
+    assert new_result == old_result
+
+
 def test_auto_input_renders_pdf_then_ocr(tmp_path, monkeypatch):
     from glyphive.cli import _common
     from glyphive.restore import ocr
@@ -137,7 +221,9 @@ def test_list_uses_auto_input_and_forwards_ocr_engine(tmp_path, monkeypatch):
     monkeypatch.setattr(
         list_command,
         "load_input_lines",
-        lambda source, engine=None, blur=0.0: seen.update(source=source, engine=engine) or [],
+        lambda source, engine=None, blur=0.0, spine=None: seen.update(
+            source=source, engine=engine
+        ) or [],
     )
     monkeypatch.setattr(
         decode,
