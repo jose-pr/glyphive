@@ -12,10 +12,20 @@ Each ships a `.traineddata` fine-tuned for one font and registers a
 point. Users install only the model(s) they want; absence falls back to the
 core stock engine.
 
-The fine-tuned models read the base16g channel at 0.000% CER (measured; see
-the core repo's `benchmarks/results/ocr-training-sweep-20260718.json`), across
-OCR-B, Liberation Mono, DejaVu Sans Mono, and Courier (via Nimbus Mono PS). The
-LSTM model format is engine-version independent (Tesseract 4.x/5.x).
+The LSTM model format is engine-version independent (Tesseract 4.x/5.x).
+
+> **Status: experimental, and CER is not the acceptance metric.** A held-out
+> CER of 0.000% does *not* predict a successful restore: models trained on
+> unframed alphabet strings scored ~0% CER and still failed real page restore,
+> because they never saw the frame boundaries, inter-line bleed, and page-level
+> segmentation that real pages have. Worse, on the default `base16g` channel a
+> model buys nothing over stock Tesseract + the character whitelist — the
+> per-line CRC and Reed-Solomon layers already absorb stock's residual noise.
+> **The only acceptance gate is a byte-identical end-to-end restore**
+> (create → rasterize → OCR → extract → diff), recorded in
+> `benchmarks/results/`; report CER only as a labelled proxy. A model is worth
+> shipping only for a channel where it demonstrably beats that stock baseline
+> (measured: `base32g` needs one, `base16g` does not).
 
 ### Adding another font
 
@@ -34,5 +44,9 @@ bundled model and its language name differ.
 The `.traineddata` binaries are **not** in source control; they are produced by
 the reproducible VM recipe in `benchmarks/training/` and added as package data
 (`artifacts = [...]`) only at release-build time. Publishing a model wheel is a
-deliberate per-model step gated on: (a) the model came from the held-out-CER
-recipe, and (b) its base-model license/version/SHA are recorded in its README.
+deliberate per-model step gated on: (a) the model was trained on **framed**
+ground truth (real `create` output — kind prefix, spaces, delimiter — not raw
+alphabet strings), (b) it passes a byte-identical end-to-end restore gate,
+recorded in `benchmarks/results/` with provenance, and beats the stock
+`tesseract-glyphive` baseline on that gate for the channel it targets, and
+(c) its base-model license/version/SHA are recorded in its README.
