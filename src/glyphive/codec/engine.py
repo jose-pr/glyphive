@@ -403,6 +403,14 @@ def _group_decode(text: str, byte_len: int, spec: "_RadixSpec") -> bytes:
                 value = value * radix + decode_map[ch]
             except KeyError:
                 raise ValueError(f"invalid alphabet character {ch!r}") from None
+        if value >> (8 * this_bytes):
+            # A group whose digits decode past the byte range cannot come from
+            # _group_encode; it is corruption (e.g. an OCR misread). Callers
+            # uniformly catch ValueError and treat the line as an erasure --
+            # letting to_bytes raise OverflowError instead would crash decode.
+            raise ValueError(
+                f"group value out of range for {this_bytes} bytes (corrupt group)"
+            )
         out.extend(value.to_bytes(this_bytes, "big"))
     return bytes(out[:byte_len])
 
