@@ -81,6 +81,23 @@ _MACHINE_HEADER_COPIES: _ty.Final[int] = 2
 #: identically misread by a deterministic OCR engine (see Known Facts).
 _MACHINE_HEADER_PARITY_BYTES: _ty.Final[int] = 30
 
+#: Per-line Reed-Solomon parity bytes carried by EVERY machine frame (H/T).
+#:
+#: This is a fixed format constant, deliberately NOT the document's
+#: ``--line-parity``: the machine frames are what *tell* the reader the
+#: document's ``nsym_line``, so making their own framing depend on that value
+#: would be circular. A constant keeps H/T self-describing -- the reader can
+#: always frame them without knowing anything about the document first.
+#:
+#: Why it exists: machine frames used to have NO in-line correction (CRC is
+#: detect-only; the envelope RS is a fixed 30-byte budget shared across every
+#: chunk; duplicate copies do not help because a deterministic OCR engine
+#: misreads both copies identically). That made the header a LOWER ceiling than
+#: the payload it introduces -- measured at 2pt OCR-B, every document failed on
+#: the H frames while the L/P data lines were still individually recoverable.
+#: 2 bytes corrects one byte error per frame, for 4 extra printed characters.
+_MACHINE_LINE_PARITY_BYTES: _ty.Final[int] = 2
+
 #: Header keys whose values are parsed/returned as ``int``.
 _INT_KEYS: _ty.Final[_ty.FrozenSet[str]] = frozenset(
     {"v", "files", "bytes", "pages", "pgpar"}
@@ -260,7 +277,10 @@ def _parse_machine_frame(
     from .codec.engine import parse_machine_frame
 
     return parse_machine_frame(
-        line, kind, allow_trailing=kind == _MACHINE_FOOTER_KIND
+        line,
+        kind,
+        allow_trailing=kind == _MACHINE_FOOTER_KIND,
+        nsym_line=_MACHINE_LINE_PARITY_BYTES,
     )
 
 
@@ -360,7 +380,10 @@ def _format_machine_header(meta: _ty.Mapping[str, _ty.Any]) -> _ty.List[str]:
     ]
     chunks.extend(parity_chunks)
     frames = [
-        _format_machine_frame(_MACHINE_HEADER_KIND, idx, chunk)
+        _format_machine_frame(
+            _MACHINE_HEADER_KIND, idx, chunk,
+            nsym_line=_MACHINE_LINE_PARITY_BYTES,
+        )
         for idx, chunk in enumerate(chunks)
     ]
     # A single OCR-damaged H line must not make the entire document
@@ -585,7 +608,10 @@ def format_page_footer(
     payload = nibble_encode(
         _MACHINE_FOOTER_MAGIC + total.to_bytes(4, "big") + digest
     )
-    machine = _format_machine_frame(_MACHINE_FOOTER_KIND, n - 1, payload)
+    machine = _format_machine_frame(
+        _MACHINE_FOOTER_KIND, n - 1, payload,
+        nsym_line=_MACHINE_LINE_PARITY_BYTES,
+    )
     return f"{machine} {_PAGE_MARKER} {n}/{total}"
 
 

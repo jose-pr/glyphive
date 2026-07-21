@@ -28,9 +28,32 @@ def _document(data=b"protected metadata", *, nsym_line=2):
 
 
 def _mutate_safe_payload(line):
-    label, payload, check = line.split()
+    """Corrupt one payload character, preserving the frame's own token shape.
+
+    Machine frames carry an optional per-line Reed-Solomon parity field between
+    the payload and the check, so the token count is not fixed at 3: anchor on
+    the label (first) and check (last) and leave anything between untouched.
+    """
+    parts = line.split()
+    label, payload, rest = parts[0], parts[1], parts[2:]
     replacement = "A" if payload[0] != "A" else "B"
-    return f"{label} {replacement + payload[1:]} {check}"
+    return " ".join([label, replacement + payload[1:], *rest])
+
+
+def _wreck_safe_payload(line):
+    """Corrupt TWO payload characters, beyond the machine frames' per-line RS.
+
+    Machine frames now carry ``_MACHINE_LINE_PARITY_BYTES`` (2) of per-line
+    Reed-Solomon, so a SINGLE bad character self-heals in place. Tests that
+    need a frame to be genuinely unrecoverable must exceed that budget.
+    """
+    parts = line.split()
+    label, payload, rest = parts[0], parts[1], parts[2:]
+    first = "A" if payload[0] != "A" else "B"
+    mid = len(payload) // 2
+    second = "A" if payload[mid] != "A" else "B"
+    wrecked = first + payload[1:mid] + second + payload[mid + 1:]
+    return " ".join([label, wrecked, *rest])
 
 
 def test_iter_paginate_is_identical_and_checks_declared_count():
@@ -318,7 +341,9 @@ def test_machine_header_uses_fixed_width_safe_frames():
     assert len(header_frames) % 2 == 0
     assert header_frames[::2] == header_frames[1::2]
     assert all(len(line.split()[1]) <= 60 for line in header_frames)
-    assert all(len(line) <= 73 for line in header_frames)
+    # label(6) + " " + payload(<=60) + " " + line-parity(4) + " " + "#check"(5)
+    # = 78. The per-line parity field adds 5 characters over the old 73.
+    assert all(len(line) <= 78 for line in header_frames)
 
 
 def test_one_machine_header_copy_can_be_corrupted_without_guessing():
@@ -345,10 +370,13 @@ def test_two_distinct_chunks_corrupted_exceed_the_rs_budget():
     indexes = [i for i, line in enumerate(lines) if line.startswith("H")]
     # Damage both copies of two *different* chunk indices (0 and 2, i.e. the
     # first two logical H frames) -- more erasures than the single-chunk RS
-    # parity can correct, so this must fail loud rather than guess.
+    # parity can correct, so this must fail loud rather than guess. The damage
+    # must exceed the machine frames' own per-line RS budget (which repairs a
+    # single bad character in place), hence _wreck_safe_payload, not
+    # _mutate_safe_payload.
     for pair_start in (0, 2):
         for index in indexes[pair_start:pair_start + 2]:
-            lines[index] = _mutate_safe_payload(lines[index])
+            lines[index] = _wreck_safe_payload(lines[index])
 
     with pytest.raises(layout.LayoutError, match="frame copies failed"):
         layout.read_pages(lines)
@@ -375,25 +403,76 @@ def test_one_missing_machine_header_copy_is_recovered():
 def test_machine_footer_corruption_marks_page_missing_never_uses_page_hint():
     """A damaged T frame marks its page missing, never trusts the PAGE hint.
 
-    T frames carry no duplication or RS (unlike H), so a CRC-damaged footer
-    cannot be repaired -- and must never fall back to the unprotected
-    ``PAGE n/total`` prose on the same line. The page's identity is left
-    unconfirmed (recorded in ``_missing_pages``); read_pages does NOT hard-fail
-    here (2026-07-17: a missing page is an erasure the codec's RS may recover),
-    it hands the surviving lines to the codec. Its data line survived, so
-    decode is attempted rather than raising at the layout layer.
+    T frames carry no duplication and no envelope RS (unlike H), only their own
+    per-line Reed-Solomon -- so damage BEYOND that per-line budget cannot be
+    repaired, and must never fall back to the unprotected ``PAGE n/total`` prose
+    on the same line. The page's identity is left unconfirmed (recorded in
+    ``_missing_pages``); read_pages does NOT hard-fail here (2026-07-17: a
+    missing page is an erasure the codec's RS may recover), it hands the
+    surviving lines to the codec. Its data line survived, so decode is attempted
+    rather than raising at the layout layer.
     """
     _data, lines = _document()
     index = next(i for i, line in enumerate(lines) if line.startswith("T"))
-    label, payload, check, suffix, count = lines[index].split()
-    replacement = "A" if payload[0] != "A" else "B"
-    lines[index] = (
-        f"{label} {replacement + payload[1:]} {check} {suffix} {count}"
-    )
+    # Damage must exceed the footer's own per-line RS (a single bad character
+    # now self-heals), hence _wreck_safe_payload. The helper anchors on the
+    # label and preserves the trailing PAGE hint verbatim.
+    lines[index] = _wreck_safe_payload(lines[index])
 
     meta, _encoded = layout.read_pages(lines)
     assert meta["_missing_pages"] == [1]
     assert any("missing page" in w for w in meta["_page_warnings"])
+
+
+def test_machine_frames_carry_per_line_parity_and_self_heal_one_character():
+    """H/T frames get in-line RS, so one bad character per frame self-heals.
+
+    Regression for the small-font ceiling: machine frames used to have NO
+    in-line correction (CRC is detect-only; the envelope RS is a fixed budget
+    shared across all chunks; duplicate copies do not help against a
+    deterministic OCR engine that misreads both identically). That made the
+    header fail before the payload it introduces -- measured at 2pt, every
+    document died on the H frames while the L/P data lines were individually
+    fine. One character in EVERY machine frame must now restore.
+    """
+    data, lines = _document(b"machine frame in-line parity" * 8)
+    damaged = [
+        _mutate_safe_payload(line) if line[:1] in ("H", "T") else line
+        for line in lines
+    ]
+    assert damaged != lines
+    meta, encoded = layout.read_pages(damaged)
+    assert meta["sha256"] == hashlib.sha256(data).hexdigest()
+    assert codec.get("base16g-crc16-rs").decode(encoded) == data
+
+
+def test_machine_frame_in_line_repair_reverifies_the_printed_crc():
+    """An RS 'correction' is only accepted when the printed CRC re-verifies.
+
+    The parity field is deliberately outside the CRC, so a corrupted parity
+    field must not fail an otherwise-good line -- and an RS miscorrection must
+    never be trusted just because RS reported success.
+    """
+    from glyphive.codec.engine import parse_machine_frame
+
+    _data, lines = _document()
+    header = next(line for line in lines if line.startswith("H"))
+    parts = header.split()
+    assert len(parts) == 4, "machine frame should carry a line-parity field"
+
+    # A clean frame parses ok.
+    assert parse_machine_frame(header, "H", nsym_line=2).ok
+
+    # Corrupting ONLY the parity field must leave the line acceptable: the
+    # payload and its CRC are intact, so no repair is even attempted.
+    lparity = parts[2]
+    bad_parity = ("A" if lparity[0] != "A" else "B") + lparity[1:]
+    frame = " ".join([parts[0], parts[1], bad_parity, parts[3]])
+    assert parse_machine_frame(frame, "H", nsym_line=2).ok
+
+    # Payload damage beyond the per-line budget must NOT be silently accepted.
+    wrecked = _wreck_safe_payload(header)
+    assert not parse_machine_frame(wrecked, "H", nsym_line=2).ok
 
 
 def test_page_footer_verifier_rejects_damaged_protected_footer():
