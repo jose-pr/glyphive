@@ -38,5 +38,5 @@
     "Does an engineered runt also break 3pt/max and 4pt/60? (expected yes; untested)",
     "Exact minimum safe final-line length per font size (a threshold sweep would bound it)"
   ],
-  "follow_up": ".agents/plans/runt_final_line_layout_fix.md - eliminate runt final data lines in layout (pad or rebalance the last two lines)"
+  "follow_up": "eliminate runt final data lines at the encoder (implemented same day: the codec pads the protected stream so the final data line's printed payload is never below half the line width; header orig_len stays unpadded so decode truncates for free)"
 }
