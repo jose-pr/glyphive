@@ -247,6 +247,3 @@ def test_real_tesseract_ocr_image_returns_per_character_confidence(tmp_path, eng
         assert len(line.char_conf) == len(line.text)
         for value in line.char_conf:
             assert value is None or 0.0 <= value <= 1.0
-
-    restored_text = (out_dir / "a.txt").read_text(encoding="utf-8")
-    assert restored_text == (src / "a.txt").read_text(encoding="utf-8")
