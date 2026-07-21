@@ -1608,6 +1608,77 @@ def _frame_bytes(
     return lines
 
 
+def _chars_for_byte_count(nbytes: int, spec: "_RadixSpec") -> int:
+    """Printed payload width (chars) a chunk of ``nbytes`` bytes encodes to.
+
+    Mirrors the flush arithmetic :func:`radix_encode`/``_group_encode``
+    actually use, without materializing the bytes: bit-packing rounds the
+    last partial char up (``ceil(8*nbytes/bits)``); group-packing rounds up
+    to the minimum digit count a partial group needs, same formula
+    :func:`_group_encode` uses per chunk.
+    """
+    if nbytes <= 0:
+        return 0
+    if spec.packing == "group":
+        nb, nc = spec.group_bytes, spec.group_chars
+        whole, rem = divmod(nbytes, nb)
+        chars = whole * nc
+        if rem:
+            chars += _math.ceil(rem * 8 / _math.log2(spec.radix))
+        return chars
+    return -(-(nbytes * 8) // spec.bits)  # ceil(8*nbytes / bits)
+
+
+def _min_final_line_payload_chars(line_width: int, spec: "_RadixSpec") -> int:
+    """The runt-line threshold: minimum PRINTED payload width a final data
+    line may have, in this spec's alphabet characters.
+
+    Chosen conservatively (see ``.agents/plans/runt_final_line_layout_fix.md``
+    and the 2026-07-21 measurement that a 13-char final line gets destroyed,
+    with collateral damage to the line above, by Tesseract psm-6 at small
+    font sizes -- the exact safe minimum is unmeasured, so this picks HALF
+    the configured line width, capped at the width itself (a narrower
+    ``line_width`` than the threshold would otherwise demand more chars than
+    a full line can hold). Any final data line at or above this width is
+    presumed OCR-segmentable; the actual minimal-repro measurement is 13
+    chars destroyed vs. 153 chars OK, both comfortably on one side of a
+    half-width threshold for any realistic ``line_width`` (default 60).
+    """
+    return max(1, min(line_width, line_width // 2))
+
+
+def _runt_pad_bytes(
+    protected_len: int, bytes_per_line: int, line_width: int, spec: "_RadixSpec"
+) -> int:
+    """Extra pad bytes to append to the data stream so the final ``L`` line's
+    printed payload is never a runt (see :func:`_min_final_line_payload_chars`).
+
+    Returns 0 when the stream has no final-line remainder to worry about
+    (``protected_len`` is 0, or already an exact multiple of
+    ``bytes_per_line`` -- that produces one full-width final line, never a
+    runt) or when the natural remainder already clears the threshold.
+    Otherwise returns the smallest number of extra zero bytes that grows the
+    remainder's printed width to at least the threshold, capped so the final
+    line never exceeds ``bytes_per_line`` bytes (a full line needs no pad at
+    all -- it is never a runt in the first place).
+    """
+    if protected_len <= 0:
+        return 0
+    remainder = protected_len % bytes_per_line
+    if remainder == 0:
+        return 0  # exact multiple: final line is already full-width
+    threshold_chars = _min_final_line_payload_chars(line_width, spec)
+    if _chars_for_byte_count(remainder, spec) >= threshold_chars:
+        return 0
+    pad = 0
+    while (
+        remainder + pad < bytes_per_line
+        and _chars_for_byte_count(remainder + pad, spec) < threshold_chars
+    ):
+        pad += 1
+    return pad
+
+
 def _encoding_shape(
     data_len: int,
     line_width: int,
@@ -1626,6 +1697,14 @@ def _encoding_shape(
     characters/line) is what a caller needing the full PRINTED line width
     (payload + line-parity) must add on top of ``line_width`` separately;
     :func:`encoded_line_count`'s job is only the exact line COUNT.
+
+    ``protected_len`` here already includes the runt-avoidance pad bytes (see
+    :func:`_runt_pad_bytes`): the final ``L`` line's printed payload is never
+    below :func:`_min_final_line_payload_chars`. This changes ``data_lines``
+    only when padding pushes the remainder into one extra line (rare -- only
+    when the unpadded remainder is within ``bytes_per_line - threshold_bytes``
+    of a full line); :func:`encoded_line_count` reports the resulting total
+    exactly, so page planning stays consistent with what :meth:`encode` emits.
     """
     if line_width < 1:
         raise ValueError("line_width must be >= 1")
@@ -1636,7 +1715,9 @@ def _encoding_shape(
     bytes_per_line = _bytes_per_line(line_width, spec)
     if bytes_per_line < 1:
         raise ValueError("line_width too small to carry a byte")
-    protected_len = _HEADER_LEN + data_len
+    unpadded_len = _HEADER_LEN + data_len
+    pad_bytes = _runt_pad_bytes(unpadded_len, bytes_per_line, line_width, spec)
+    protected_len = unpadded_len + pad_bytes
     nsym = _select_nsym(protected_len, parity_ratio)
     nblocks = _num_blocks(protected_len, nsym)
     parity_len = nblocks * nsym
@@ -2166,10 +2247,20 @@ class RadixCodec(Codec):
             raise ValueError("nsym_line must be 0, 2, or 4")
 
         orig_len = len(data)
-        protected_len = _HEADER_LEN + orig_len
+        unpadded_len = _HEADER_LEN + orig_len
+        bytes_per_line = _bytes_per_line(line_width, self._spec)
+        pad_bytes = _runt_pad_bytes(unpadded_len, bytes_per_line, line_width, self._spec)
+        # ``orig_len`` recorded in the header is the TRUE unpadded length --
+        # decode already truncates its output to exactly this many bytes (see
+        # ``_assemble_to_spool`` callers), so trailing pad bytes appended here,
+        # after the real payload but before RS protection, are transparently
+        # dropped on decode with no decoder change: they exist purely to keep
+        # the final ``L`` line's printed payload off the runt-line trap (see
+        # ``_runt_pad_bytes`` / the 2026-07-21 fourpt-runt-line measurement).
+        protected_len = unpadded_len + pad_bytes
         nsym = _select_nsym(protected_len, parity_ratio)
         header = _make_header(nsym, orig_len, nsym_line)
-        stream = header + data
+        stream = header + data + b"\x00" * pad_bytes
         data_bytes, parity_bytes, _nblocks = _rs_encode(stream, nsym)
 
         lines: _ty.List[str] = []
@@ -2216,6 +2307,13 @@ class RadixCodec(Codec):
             _data_lines,
             _parity_lines,
         ) = _encoding_shape(data_len, line_width, parity_ratio, self._spec, nsym_line)
+        # ``protected_len`` may exceed ``_HEADER_LEN + data_len`` by a handful
+        # of runt-avoidance pad bytes (see ``_runt_pad_bytes``); the header's
+        # ``orig_len`` stays the TRUE unpadded length so decode truncates back
+        # to it unchanged. Positions at/after ``_HEADER_LEN + data_len`` read
+        # as zero bytes below (the source is never asked for more than its
+        # real ``data_len`` bytes).
+        pad_bytes = protected_len - (_HEADER_LEN + data_len)
         header = _make_header(nsym, data_len, nsym_line)
         source.seek(0, 2)
         actual_len = source.tell()
@@ -2240,6 +2338,8 @@ class RadixCodec(Codec):
                     for position in range(block_index, protected_len, nblocks):
                         if position < _HEADER_LEN:
                             block.append(header[position])
+                        elif position >= _HEADER_LEN + data_len:
+                            block.append(0)  # runt-avoidance pad byte
                         elif mapping is not None:
                             block.append(mapping[position - _HEADER_LEN])
                         else:
@@ -2254,8 +2354,9 @@ class RadixCodec(Codec):
                 source.seek(0)
                 pending = bytearray(header)
                 data_remaining = data_len
+                pad_remaining = pad_bytes
                 line_index = 0
-                while pending or data_remaining:
+                while pending or data_remaining or pad_remaining:
                     needed = bytes_per_line - len(pending)
                     if needed and data_remaining:
                         chunk = source.read(min(needed, data_remaining))
@@ -2263,7 +2364,16 @@ class RadixCodec(Codec):
                             raise ValueError("source was truncated during data framing")
                         pending.extend(chunk)
                         data_remaining -= len(chunk)
-                    if len(pending) < bytes_per_line and data_remaining:
+                        needed = bytes_per_line - len(pending)
+                    if needed and not data_remaining and pad_remaining:
+                        # Runt-avoidance pad: zero bytes appended after the real
+                        # payload, before RS (see ``_runt_pad_bytes``); decode
+                        # truncates its output back to the header's true
+                        # ``orig_len`` so these never reach the caller.
+                        take = min(needed, pad_remaining)
+                        pending.extend(b"\x00" * take)
+                        pad_remaining -= take
+                    if len(pending) < bytes_per_line and (data_remaining or pad_remaining):
                         continue
                     chunk = bytes(pending[:bytes_per_line])
                     del pending[:bytes_per_line]
