@@ -895,3 +895,37 @@ def test_no_uniform_run_index_per_radix():
             tok = _encode_index(i, spec)
             assert len(set(tok)) > 1, (spec.name, i, tok)
             assert _decode_index(tok, spec) == i
+
+
+# --------------------------------------------------------------------------- #
+# Group-packing decode: corruption must be a ValueError, never a crash
+# --------------------------------------------------------------------------- #
+def test_group_decode_out_of_range_group_raises_valueerror_not_overflow():
+    """An OCR misread can turn a printed group into digits whose value exceeds
+    the group's byte range (radix**group_chars > 256**group_bytes). That must
+    surface as ValueError -- the erasure contract every decode call site
+    catches -- not OverflowError, which crashed real basemaxg E2E restores
+    (found by the 2026-07-21 basemaxg gate run).
+    """
+    import pytest
+
+    from glyphive.codec.engine import radix_decode
+    from glyphive.codec.radix import BASE85, BASEMAXG, Z85
+
+    for spec in (BASEMAXG, BASE85, Z85):
+        # The all-max-digit group is the largest representable value and is
+        # guaranteed out of range for any spec where radix**chars > 256**bytes.
+        assert spec.radix ** spec.group_chars > 256 ** spec.group_bytes
+        bad_group = spec.alphabet[-1] * spec.group_chars
+        with pytest.raises(ValueError, match="out of range"):
+            radix_decode(bad_group, spec.group_bytes, spec)
+
+
+def test_group_decode_max_valid_group_round_trips():
+    """The bounds check must not reject the top of the VALID range."""
+    from glyphive.codec.engine import radix_decode, radix_encode
+    from glyphive.codec.radix import BASE85, BASEMAXG, Z85
+
+    for spec in (BASEMAXG, BASE85, Z85):
+        top = b"\xff" * spec.group_bytes
+        assert radix_decode(radix_encode(top, spec), spec.group_bytes, spec) == top
