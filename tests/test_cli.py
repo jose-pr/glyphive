@@ -681,7 +681,7 @@ def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch)
     monkeypatch.setattr(
         extract_command,
         "load_image_lines_with_conf",
-        lambda source, engine=None, blur=0.0: seen.update(source=source, engine=engine) or ([], None),
+        lambda source, engine=None, blur=0.0, spine=None: seen.update(source=source, engine=engine) or ([], None),
     )
     monkeypatch.setattr(
         unarchive,
@@ -715,7 +715,7 @@ def test_extract_threads_ocr_confidence_into_restore(tmp_path, monkeypatch):
     monkeypatch.setattr(
         extract_command,
         "load_image_lines_with_conf",
-        lambda source, engine=None, blur=0.0: (["L00000 AB #CD", "L00001 EF #GH"], conf),
+        lambda source, engine=None, blur=0.0, spine=None: (["L00000 AB #CD", "L00001 EF #GH"], conf),
     )
     captured = {}
 
@@ -920,8 +920,8 @@ def test_descan_auto_retries_with_blur_on_image_decode_failure(tmp_path, monkeyp
 
     good_lines = ["decoded", "lines"]
 
-    def fake_loader(source, *, engine=None, blur=None):
-        calls.append(list(blur) if blur is not None else None)
+    def fake_loader(source, *, engine=None, blur=None, spine=None):
+        calls.append((list(blur) if blur is not None else None, spine))
         # First (sharp) call raises via the decode below; second returns good.
         # extract now consumes (lines, char_conf); char_conf is None here.
         return (["sharp"] if len(calls) == 1 else good_lines), None
@@ -941,11 +941,18 @@ def test_descan_auto_retries_with_blur_on_image_decode_failure(tmp_path, monkeyp
 
     rc = cli.run(["extract", "-f", str(image), "--from-images", "-C", str(tmp_path / "o")])
     assert rc == 0
-    # Two loads: the sharp [0.0], then the retry over the full blur ladder
-    # (which includes 0.8 -- a real Courier-12 archive decoded only at 0.8).
-    assert calls[0] == [0.0]
-    assert calls[1] == _common.AUTO_DESCAN_RETRY_RADII
-    assert 0.8 in calls[1]
+    # Two loads: the sharp [0.0] (no spine -- it's the first pass), then the
+    # retry over the ADDITIONAL blur ladder only (0.6, 0.8 -- NOT 0.0, since
+    # the sharp pass's own lines are threaded back in as the retry's spine so
+    # it is never re-OCR'd; 0.8 matters because a real Courier-12 archive
+    # decoded only at that radius).
+    assert calls[0][0] == [0.0]
+    assert calls[0][1] is None
+    assert calls[1][0] == _common.AUTO_DESCAN_RETRY_RADII
+    assert 0.0 not in calls[1][0]
+    assert 0.8 in calls[1][0]
+    # The retry's spine carries the sharp pass's own lines (as OcrLine).
+    assert [line.text for line in calls[1][1]] == ["sharp"]
 
 
 def test_descan_auto_does_not_retry_text_input(tmp_path, monkeypatch):
@@ -957,7 +964,7 @@ def test_descan_auto_does_not_retry_text_input(tmp_path, monkeypatch):
     transcript.write_text("not a real transcript\n", encoding="utf-8")
     calls = []
 
-    def fake_loader(source, *, engine=None, blur=None):
+    def fake_loader(source, *, engine=None, blur=None, spine=None):
         calls.append(list(blur) if blur is not None else None)
         return ["lines"], None  # extract now consumes (lines, char_conf)
 
