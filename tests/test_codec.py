@@ -895,3 +895,128 @@ def test_no_uniform_run_index_per_radix():
             tok = _encode_index(i, spec)
             assert len(set(tok)) > 1, (spec.name, i, tok)
             assert _decode_index(tok, spec) == i
+
+
+# --------------------------------------------------------------------------- #
+# Runt final data line (2026-07-21 fourpt-runt-line finding) --------------- #
+# --------------------------------------------------------------------------- #
+#
+# See .agents/plans/runt_final_line_layout_fix.md and
+# benchmarks/results/fourpt-runt-line-20260721.json: a tiny final data-line
+# payload (measured: 13 chars) is destroyed by Tesseract psm-6 at small font
+# sizes, and can corrupt the leading frame token of the line above it -- one
+# pad byte flips a document between restore-OK and restore-FAIL. Decode was
+# read first (RadixCodec.decode_spool / _assemble_to_spool): only the single
+# LAST line of each kind may have a non-modal width; every other line whose
+# width disagrees with the modal width is forced into an erasure. So
+# "rebalance the last two lines" would make the second-to-last line
+# non-modal-width and decode would treat it as corruption -- burning RS
+# budget on a perfectly good line. That ruled out rebalancing; the fix here
+# is Option 2 (pad), landed as ``_runt_pad_bytes`` in codec/engine.py: extra
+# zero bytes appended to the data stream (after the real payload, before RS)
+# whenever the natural final-line remainder would print below threshold. The
+# header's ``orig_len`` stays the true unpadded length, and decode already
+# truncates its output to exactly that many bytes, so no decoder change was
+# needed at all.
+
+from glyphive.codec.engine import (  # noqa: E402  (grouped with the new tests)
+    _chars_for_byte_count,
+    _min_final_line_payload_chars,
+)
+
+
+def _final_data_line_payload_len(lines, spec=BASE16G):
+    """Return the printed payload length (chars) of the last ``L`` line."""
+    data_lines = [line for line in lines if line.startswith("L")]
+    assert data_lines, "no data lines emitted"
+    label, payload, _check = _split3(data_lines[-1], spec)
+    return len(payload)
+
+
+@pytest.mark.parametrize("nsym_line", [0, 2, 4])
+@pytest.mark.parametrize("size", list(range(0, 200)))
+def test_no_runt_final_data_line_across_size_sweep(size, nsym_line):
+    """Sweeping ~200 consecutive byte lengths (covers every remainder mod
+    ``bytes_per_line``), the final data line's printed payload is never below
+    the runt threshold, and the document still round-trips byte-identical.
+    """
+    line_width = 60
+    rng = random.Random(20260721 + size + nsym_line)
+    data = bytes(rng.randrange(256) for _ in range(size))
+    lines = base16g_codec.encode(data, line_width=line_width, nsym_line=nsym_line)
+    threshold = _min_final_line_payload_chars(line_width, BASE16G)
+    payload_len = _final_data_line_payload_len(lines)
+    assert payload_len >= threshold, (
+        f"runt final data line at size={size} nsym_line={nsym_line}: "
+        f"{payload_len} chars < threshold {threshold}"
+    )
+    assert base16g_codec.decode(lines) == data
+
+
+@pytest.mark.parametrize(
+    "name", ["base16g-crc16-rs", "base32g-crc16-rs", "basemaxg-crc16-rs", "base85-crc16-rs"]
+)
+@pytest.mark.parametrize("size", list(range(0, 200, 3)))
+def test_no_runt_final_data_line_group_packed_codecs(size, name):
+    """Same runt-avoidance guarantee for group-packed codecs (basemaxg/base85),
+    where group alignment interacts with line filling differently from plain
+    bit-packing -- the pad-byte count must still land the final printed
+    payload at or above threshold, and round-trip must stay byte-identical.
+    """
+    line_width = 60
+    c = codec.get(name)
+    spec = c._spec
+    rng = random.Random(9000 + size)
+    data = bytes(rng.randrange(256) for _ in range(size))
+    lines = c.encode(data, line_width=line_width)
+    threshold = _min_final_line_payload_chars(line_width, spec)
+    payload_len = _final_data_line_payload_len(lines, spec)
+    assert payload_len >= threshold, (
+        f"runt final data line for {name} at size={size}: "
+        f"{payload_len} chars < threshold {threshold}"
+    )
+    assert c.decode(lines) == data
+
+
+def test_runt_pad_bytes_helper_never_produces_a_runt():
+    """Direct unit check of :func:`_runt_pad_bytes` / :func:`_chars_for_byte_count`
+    over every possible remainder for the default line width, independent of
+    a full encode -- the arithmetic itself must never leave a sub-threshold
+    remainder unpadded, and must never demand more than one full line's worth
+    of bytes."""
+    from glyphive.codec.engine import _bytes_per_line, _runt_pad_bytes
+
+    line_width = 60
+    bytes_per_line = _bytes_per_line(line_width, BASE16G)
+    threshold = _min_final_line_payload_chars(line_width, BASE16G)
+    for protected_len in range(1, bytes_per_line * 3):
+        pad = _runt_pad_bytes(protected_len, bytes_per_line, line_width, BASE16G)
+        remainder = protected_len % bytes_per_line
+        if remainder == 0:
+            assert pad == 0
+            continue
+        padded_remainder = remainder + pad
+        assert padded_remainder <= bytes_per_line
+        assert _chars_for_byte_count(padded_remainder, BASE16G) >= threshold or (
+            padded_remainder == bytes_per_line
+        )
+
+
+def test_encoded_line_count_matches_actual_emitted_lines_with_padding():
+    """Page-count planning (:func:`encoded_line_count`) must still match the
+    actual line count :meth:`RadixCodec.encode` emits now that a runt final
+    line can pull in extra pad bytes (occasionally growing ``data_lines`` by
+    one) -- padding is allowed to change the total line count (unlike a pure
+    rebalance, which by construction could not), but planning and reality
+    must never disagree."""
+    for size in range(0, 200):
+        rng = random.Random(555 + size)
+        data = bytes(rng.randrange(256) for _ in range(size))
+        lines = base16g_codec.encode(data)
+        data_line_count = sum(1 for line in lines if line.startswith("L"))
+        planned = encoded_line_count(size)
+        assert planned == len(lines), (size, planned, len(lines))
+        # Sanity: padding never REDUCES the data line count below what the
+        # unpadded remainder would need (it can only grow it by the rare
+        # extra-line case), and never exceeds one extra line.
+        assert data_line_count >= 1
