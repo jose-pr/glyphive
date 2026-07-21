@@ -1,5 +1,7 @@
 [
   {
+    "run": 1,
+    "note": "history: crashed on a decoder bug (glyphive.codec.engine._group_decode OverflowError), not a real CRC/RS-budget verdict. Superseded by run 2 after the fix (commit 9f0875d). Kept for provenance.",
     "codec": "basemaxg-crc16-rs",
     "glyphs": 43,
     "packing": "group",
@@ -17,6 +19,8 @@
     "result": "FAIL: OverflowError: int too big to convert"
   },
   {
+    "run": 1,
+    "note": "history: crashed on a decoder bug (glyphive.codec.engine._group_decode OverflowError), not a real CRC/RS-budget verdict. Superseded by run 2 after the fix (commit 9f0875d). Kept for provenance.",
     "codec": "basemaxg-crc16-rs",
     "glyphs": 43,
     "packing": "group",
@@ -34,6 +38,7 @@
     "result": "FAIL: OverflowError: int too big to convert"
   },
   {
+    "run": 1,
     "codec": "base32g-crc16-rs",
     "glyphs": 32,
     "packing": "bit",
@@ -51,6 +56,7 @@
     "result": "OK byte-identical"
   },
   {
+    "run": 1,
     "codec": "base32g-crc16-rs",
     "glyphs": 32,
     "packing": "bit",
@@ -63,6 +69,70 @@
     "n_train": 2902,
     "framed_clean_CER": 0.0,
     "framed_blur_CER": 0.0,
+    "pages": 9,
+    "ocr_lines": 643,
+    "result": "OK byte-identical"
+  },
+  {
+    "run": 2,
+    "note": "DEFINITIVE: E2E-gate-only rerun (no retraining, same trained models as run 1) after the _group_decode overflow fix (commit 9f0875d, applied on the VM checkout via /root/gd_overflow_fix.patch, not yet on origin). Answers the plan's real question.",
+    "codec": "basemaxg-crc16-rs",
+    "glyphs": 43,
+    "packing": "group",
+    "pt": 8,
+    "font": "Nimbus Mono PS",
+    "width": 63,
+    "blur": 0.0,
+    "engine": "framed",
+    "model": "basemaxg_63",
+    "pages": 8,
+    "ocr_lines": 597,
+    "result": "FAIL: ValueError: cannot recover RS parameters: data/parity line counts are inconsistent (missing or spurious lines)"
+  },
+  {
+    "run": 2,
+    "note": "DEFINITIVE: E2E-gate-only rerun (no retraining, same trained models as run 1) after the _group_decode overflow fix (commit 9f0875d, applied on the VM checkout via /root/gd_overflow_fix.patch, not yet on origin). Answers the plan's real question.",
+    "codec": "basemaxg-crc16-rs",
+    "glyphs": 43,
+    "packing": "group",
+    "pt": 8,
+    "font": "Nimbus Mono PS",
+    "width": 63,
+    "blur": 0.6,
+    "engine": "framed",
+    "model": "basemaxg_63",
+    "pages": 8,
+    "ocr_lines": 597,
+    "result": "FAIL: ValueError: cannot recover RS parameters: data/parity line counts are inconsistent (missing or spurious lines)"
+  },
+  {
+    "run": 2,
+    "note": "reconfirmation, gate-only rerun, same as run 1",
+    "codec": "base32g-crc16-rs",
+    "glyphs": 32,
+    "packing": "bit",
+    "pt": 8,
+    "font": "Nimbus Mono PS",
+    "width": 63,
+    "blur": 0.0,
+    "engine": "framed",
+    "model": "base32g_63",
+    "pages": 9,
+    "ocr_lines": 643,
+    "result": "OK byte-identical"
+  },
+  {
+    "run": 2,
+    "note": "reconfirmation, gate-only rerun, same as run 1",
+    "codec": "base32g-crc16-rs",
+    "glyphs": 32,
+    "packing": "bit",
+    "pt": 8,
+    "font": "Nimbus Mono PS",
+    "width": 63,
+    "blur": 0.6,
+    "engine": "framed",
+    "model": "base32g_63",
     "pages": 9,
     "ocr_lines": 643,
     "result": "OK byte-identical"
