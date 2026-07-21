@@ -1401,22 +1401,51 @@ def machine_check(kind: str, idx_token: str, payload: str) -> str:
     return nibble_encode(crc.to_bytes(2, "big"))
 
 
-def machine_frame(kind: str, idx: int, payload: str) -> str:
-    """Build one machine frame ``<kind><token> <payload> #<check>``.
+def machine_line_parity(idx_token: str, payload: str, nsym_line: int) -> str:
+    """Per-line Reed-Solomon parity chars for a machine frame, or ``""``.
+
+    Mirrors the payload frames' per-line RS: ``nsym_line`` parity bytes over the
+    printed index token plus the payload's decoded bytes, rendered back into the
+    machine (base16g) alphabet. Machine frames previously had NO in-line
+    correction at all -- only a CRC (detect-only), envelope RS, and duplicate
+    copies -- which made them a *lower* ceiling than the L/P payload frames they
+    introduce: at small font sizes decode failed on the H frames while the data
+    lines themselves were still recoverable.
+    """
+    if not nsym_line:
+        return ""
+    message = idx_token.encode() + nibble_decode(payload, len(payload) // 2)
+    parity = bytes(_reedsolo.RSCodec(nsym_line).encode(message)[len(message):])
+    return nibble_encode(parity)
+
+
+def machine_frame(kind: str, idx: int, payload: str, *, nsym_line: int = 0) -> str:
+    """Build one machine frame ``<kind><token> <payload> [<lparity> ]#<check>``.
 
     ``payload`` must be MACHINE_SPEC safe-alphabet characters (the caller has
-    already :func:`nibble_encode`-d its bytes). The CRC covers the kind char.
+    already :func:`nibble_encode`-d its bytes). The CRC covers the kind char and
+    deliberately does NOT cover the line-parity field: a corrupted parity field
+    must not fail an otherwise-good line, since the parity is itself validated by
+    the correct-then-reverify loop in :func:`repair_machine_frame`.
     """
     if len(kind) != 1 or not kind.isalpha():
         raise ValueError(f"invalid machine frame kind {kind!r}")
     if any(char not in MACHINE_SPEC.alphabet for char in payload):
         raise ValueError("machine metadata payload contains an unsafe character")
     token = encode_index(idx)
-    return f"{kind}{token} {payload} #{machine_check(kind, token, payload)}"
+    check = machine_check(kind, token, payload)
+    lparity = machine_line_parity(token, payload, nsym_line)
+    if lparity:
+        return f"{kind}{token} {payload} {lparity} #{check}"
+    return f"{kind}{token} {payload} #{check}"
 
 
 def parse_machine_frame(
-    line: str, kind: str, *, allow_trailing: bool = False
+    line: str,
+    kind: str,
+    *,
+    allow_trailing: bool = False,
+    nsym_line: int = 0,
 ) -> _ty.Optional[ParsedMachineFrame]:
     """Parse one machine frame of ``kind`` without trusting surrounding text.
 
@@ -1424,11 +1453,22 @@ def parse_machine_frame(
     footer's ``PAGE n/total`` hint). Interior whitespace in the safe-alphabet
     payload is stripped, exactly as for payload frames; the kind-covered CRC is
     the acceptance oracle.
+
+    ``nsym_line`` is the per-line Reed-Solomon parity byte count the document
+    was written with. It must be supplied by the caller (from the protected
+    header, or the layout constant used to emit the frames) because the parity
+    field carries no delimiter -- exactly the ambiguity that made the payload
+    frames' token-counting heuristic fail on space-stripped OCR output. When it
+    is non-zero and the CRC fails, one in-line RS correction is attempted and
+    the printed CRC is RE-VERIFIED before the result is trusted.
     """
-    split = split_frame(line, allow_trailing=allow_trailing)
+    lparity_chars = -(-nsym_line * 8 // MACHINE_SPEC.bits) if nsym_line else 0
+    split = split_frame_with_parity(
+        line, allow_trailing=allow_trailing, line_parity_chars=lparity_chars
+    )
     if split is None:
         return None
-    label, payload, check_field = split
+    label, payload, lparity, check_field = split
     if label[:1].upper() != kind:
         return None
     if len(label) != INDEX_WIDTH + 1:
@@ -1439,8 +1479,48 @@ def parse_machine_frame(
         return ParsedMachineFrame(idx=None, payload="", ok=False)
     payload = payload.upper()
     check = check_field[1:].upper()
-    expected = machine_check(kind, idx_token, payload)
-    return ParsedMachineFrame(idx=idx, payload=payload, ok=check == expected)
+    if machine_check(kind, idx_token, payload) == check:
+        return ParsedMachineFrame(idx=idx, payload=payload, ok=True)
+    if nsym_line and lparity:
+        repaired = _repair_machine_payload(idx_token, payload, lparity, nsym_line)
+        if repaired is not None:
+            fixed_token, fixed_payload = repaired
+            # Re-verify the PRINTED CRC: an RS miscorrection must never be
+            # accepted just because RS reported success.
+            if machine_check(kind, fixed_token, fixed_payload) == check:
+                fixed_idx = decode_index(fixed_token)
+                if fixed_idx is not None:
+                    return ParsedMachineFrame(
+                        idx=fixed_idx, payload=fixed_payload, ok=True
+                    )
+    return ParsedMachineFrame(idx=idx, payload=payload, ok=False)
+
+
+def _repair_machine_payload(
+    idx_token: str, payload: str, lparity: str, nsym_line: int
+) -> _ty.Optional[_ty.Tuple[str, str]]:
+    """RS-correct a machine frame's token+payload from its line-parity field.
+
+    Returns ``(idx_token, payload)`` re-rendered from the corrected bytes, or
+    ``None`` when RS cannot decode. The caller MUST re-verify the printed CRC
+    before trusting the result (see :func:`parse_machine_frame`).
+    """
+    try:
+        payload_bytes = nibble_decode(payload, len(payload) // 2)
+        parity_bytes = nibble_decode(lparity, nsym_line)
+    except ValueError:
+        return None
+    message = idx_token.encode() + payload_bytes
+    try:
+        decoded = _reedsolo.RSCodec(nsym_line).decode(
+            bytearray(message + parity_bytes)
+        )[0]
+    except (_reedsolo.ReedSolomonError, ValueError):
+        return None
+    token_len = len(idx_token)
+    fixed_token = bytes(decoded[:token_len]).decode("ascii", "replace")
+    fixed_payload = nibble_encode(bytes(decoded[token_len:]))
+    return fixed_token, fixed_payload
 
 
 def rs_protect(data: bytes, nsym: int) -> _ty.Tuple[bytes, bytes, int]:
