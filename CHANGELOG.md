@@ -35,6 +35,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   Tesseract to calibrate the default threshold (ships at `0.6` pending a
   real calibration run — see the tool's own docstring).
 
+### Fixed
+
+- **Default `--line-parity` (2) broke restore on the primary OCR path
+  (breaking, pre-release — no compat shim).** The constrained Tesseract
+  character whitelist used for scanning strips ALL interior spaces from
+  every printed line, producing the "compact frame" form
+  `split_frame`/`split_frame_with_parity` already tolerate. But the reader
+  determined the printed per-line Reed-Solomon field's width by counting
+  whitespace tokens per line (`_detect_line_parity_chars`), and a
+  one-token compact line cannot vote — every line silently fell back to
+  width 0, folding the line-parity characters into the payload and
+  corrupting the byte count for the whole stream. At 3pt OCR-B end-to-end,
+  `--line-parity 0` round-tripped fine while `--line-parity 2` (the
+  default) and `4` both failed with `cannot recover RS parameters:
+  data/parity line counts are inconsistent` or a per-line CRC/RS-budget
+  error — the default was worse than off. The protected machine header
+  (`layout.py`) now carries `nsym_line` as an authoritative field
+  (`_machine_header_bytes`/`_decode_machine_header` gain one byte); the
+  restore path (`restore/decode.py`) reads it from the CRC/RS-protected
+  header — decoded before any payload line is even classified — and
+  passes it straight to `RadixCodec.decode_spool`, which prefers it over
+  the token-counting heuristic. `_detect_line_parity_chars` remains the
+  fallback for headerless/raw-codec callers (e.g. `glyphive inspect`'s
+  read-only `describe_line_stream`). Existing documents from before this
+  change do not decode (the machine header envelope grew one byte).
+
 ### Changed
 
 - **Page parity lifts the 255-page cap: `--parity-pages` now supports up to

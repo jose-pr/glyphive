@@ -355,6 +355,7 @@ def test_decode_document_uses_char_conf_through_layout():
             "files": len(paths),
             "bytes": len(raw),
             "sha256": hashlib.sha256(raw).hexdigest(),
+            "nsym_line": 0,
         }
         pages = layout.paginate(encoded, meta, lines_per_page=lines_per_page_for(11.0))
         text_lines = []

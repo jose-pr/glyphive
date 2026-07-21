@@ -1003,8 +1003,15 @@ def _detect_line_parity_chars(
     vote here: the fixed label/check widths alone cannot distinguish "wide
     payload, no line-parity" from "narrower payload plus a line-parity field"
     without a separator, so a transcript sampled entirely from compact lines
-    is genuinely ambiguous by this heuristic and falls back to 0 -- the header
-    cross-check is the backstop for that case.
+    is genuinely ambiguous by this heuristic and falls back to 0.
+
+    This is only a fallback. :mod:`glyphive.layout` carries ``nsym_line`` as
+    an authoritative field in its CRC/RS-protected machine header (decoded
+    before any L/P line is even classified) and passes it straight to
+    :meth:`RadixCodec.decode_spool`, which skips this heuristic entirely when
+    given it. This function remains the decode path for headerless/raw-codec
+    callers with no such header to consult (and for ``describe_line_stream``,
+    a read-only reporting helper).
     """
     delim = spec.delimiter
     counts: _ty.Counter[int] = _collections.Counter()
@@ -1695,6 +1702,7 @@ def _preprocess_spool(
     char_conf: _ty.Optional[
         _ty.Sequence[_ty.Optional[_ty.Sequence[float]]]
     ] = None,
+    nsym_line: _ty.Optional[int] = None,
 ) -> _ty.Tuple[bool, _ty.Optional[_ty.List[_ty.Optional[_ty.Sequence[float]]]]]:
     """Decode-hardening pre-pass (plans 1 & 2). Streams ``source`` -> ``sink``
     applying, to CRC-*failed* L/P lines only:
@@ -1713,12 +1721,21 @@ def _preprocess_spool(
          otherwise dropped (its true slot stays a missing-line erasure).
 
     ``line_parity_chars`` (the printed width of the optional line-parity
-    field) is detected STRUCTURALLY once, up front, from the raw lines
-    (:func:`_detect_line_parity_chars`) -- decode needs it before the group
-    header (which carries the authoritative ``nsym_line``) can even be
-    assembled, since it changes where the payload/check boundary falls. The
-    header cross-check happens later in ``_decode_hardened_spool`` once the
-    header itself is recovered; a mismatch there is a hard error.
+    field) is normally detected STRUCTURALLY once, up front, from the raw
+    lines (:func:`_detect_line_parity_chars`) -- decode needs it before the
+    group header (which also carries ``nsym_line``) can even be assembled,
+    since it changes where the payload/check boundary falls. That heuristic
+    is ambiguous when every line has had its interior whitespace stripped
+    (a constrained OCR whitelist): with one token per line, no line can vote,
+    and it silently returns 0. ``nsym_line`` (optional) lets a caller with a
+    more authoritative source -- :mod:`glyphive.layout`'s CRC/RS-protected
+    machine header, decoded before any L/P line is even classified -- supply
+    the true value directly, skipping the heuristic entirely. When omitted
+    (the default; e.g. a bare codec-level ``decode_spool`` call with no
+    layout header available), the structural heuristic is used exactly as
+    before. The group header cross-check happens later in
+    ``_decode_hardened_spool`` once the header itself is recovered; a
+    mismatch there is a hard error either way.
 
     Clean and structurally-foreign lines pass through verbatim. Returns True if it
     changed anything (so the caller can keep the original spool on the fast path).
@@ -1732,8 +1749,11 @@ def _preprocess_spool(
             break
         raw_lines.append(raw.decode("utf-8").rstrip("\r\n"))
 
-    line_parity_chars = _detect_line_parity_chars(raw_lines, spec)
-    nsym_line = _nsym_line_for_chars(line_parity_chars, spec)
+    if nsym_line is None:
+        line_parity_chars = _detect_line_parity_chars(raw_lines, spec)
+        nsym_line = _nsym_line_for_chars(line_parity_chars, spec)
+    else:
+        line_parity_chars = _line_parity_chars(nsym_line, spec)
     entries: _ty.List[_ty.Tuple[_ty.Optional[_ParsedLine], str]] = [
         (_parse_line(text, spec, line_parity_chars=line_parity_chars), text)
         for text in raw_lines
@@ -2213,9 +2233,21 @@ class RadixCodec(Codec):
         ] = None,
         conf_threshold: float = DEFAULT_CONF_THRESHOLD,
         max_suspects: int = DEFAULT_MAX_SUSPECTS,
+        nsym_line: _ty.Optional[int] = None,
         temp_dir: _ty.Optional[str] = None,
     ) -> None:
         """Decode an encoded-line spool with only offsets and RS blocks in RAM.
+
+        ``nsym_line`` (optional): the AUTHORITATIVE per-line parity byte count,
+        supplied by the caller when it already knows it from the protected
+        machine header. This matters because the printed line-parity field has
+        no delimiter separating it from the payload: on a transcript whose
+        interior spaces were stripped -- which is the NORMAL constrained-OCR
+        whitelist case -- the structural token-count heuristic cannot tell
+        "wide payload, no line-parity" from "narrower payload plus parity", so
+        it falls back to 0 and mis-frames every line. Passing the header's value
+        removes that guess entirely. When ``None``, the heuristic is used (the
+        raw-codec path, where there is no layout header to consult).
 
         ``char_conf`` (plan 3, optional): per-line OCR character confidence,
         keyed by PHYSICAL LINE ORDER within ``encoded_source`` (``char_conf[i]``
@@ -2235,7 +2267,8 @@ class RadixCodec(Codec):
         # see ``_preprocess_spool``.
         with _tempfile.TemporaryFile(dir=temp_dir) as _hardened:
             changed, hardened_conf = _preprocess_spool(
-                encoded_source, _hardened, self._spec, char_conf=char_conf
+                encoded_source, _hardened, self._spec, char_conf=char_conf,
+                nsym_line=nsym_line,
             )
             if changed:
                 _hardened.seek(0)
@@ -2246,6 +2279,7 @@ class RadixCodec(Codec):
                     char_conf=hardened_conf,
                     conf_threshold=conf_threshold,
                     max_suspects=max_suspects,
+                    nsym_line=nsym_line,
                 )
                 return
         self._decode_hardened_spool(
@@ -2255,6 +2289,7 @@ class RadixCodec(Codec):
             char_conf=char_conf,
             conf_threshold=conf_threshold,
             max_suspects=max_suspects,
+            nsym_line=nsym_line,
         )
 
     def _decode_hardened_spool(
@@ -2267,6 +2302,7 @@ class RadixCodec(Codec):
         ] = None,
         conf_threshold: float = DEFAULT_CONF_THRESHOLD,
         max_suspects: int = DEFAULT_MAX_SUSPECTS,
+        nsym_line: _ty.Optional[int] = None,
         temp_dir: _ty.Optional[str] = None,
     ) -> None:
         data_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
@@ -2283,13 +2319,20 @@ class RadixCodec(Codec):
         # The optional line-parity field's printed width is not known until the
         # group header is recovered (it carries the authoritative nsym_line),
         # but the field's presence changes where payload/check fall on EVERY
-        # line -- so it is detected STRUCTURALLY up front (3 vs 4
+        # line -- so it is normally detected STRUCTURALLY up front (3 vs 4
         # whitespace-delimited tokens per line) and later cross-checked against
-        # the header once that's recoverable; a mismatch is a hard error.
+        # the header once that's recoverable; a mismatch is a hard error. When
+        # the caller already knows ``nsym_line`` (layout's protected machine
+        # header), that heuristic -- ambiguous on a transcript whose interior
+        # spaces were stripped by a constrained OCR whitelist -- is skipped
+        # entirely in favor of the authoritative value.
         encoded_source.seek(0)
-        line_parity_chars = _detect_line_parity_chars(
-            (raw.decode("utf-8", "replace") for raw in encoded_source), self._spec
-        )
+        if nsym_line is None:
+            line_parity_chars = _detect_line_parity_chars(
+                (raw.decode("utf-8", "replace") for raw in encoded_source), self._spec
+            )
+        else:
+            line_parity_chars = _line_parity_chars(nsym_line, self._spec)
         encoded_source.seek(0)
         # ``char_conf`` is indexed by PHYSICAL LINE ORDER (see decode_spool's
         # docstring) -- resolve it here, once, into an offset-keyed lookup so
