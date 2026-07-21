@@ -164,6 +164,7 @@ behaviour) before the block is given up as uncorrectable. See
 """
 
 import collections as _collections
+import math as _math
 import mmap as _mmap
 import io as _io
 import tempfile as _tempfile
@@ -365,13 +366,12 @@ def _group_encode(data: bytes, spec: "_RadixSpec") -> str:
     if not data:
         return ""
     nb, nc, alphabet, radix = spec.group_bytes, spec.group_chars, spec.alphabet, spec.radix
-    import math
 
     out: _ty.List[str] = []
     for start in range(0, len(data), nb):
         chunk = data[start:start + nb]
         value = int.from_bytes(chunk, "big")
-        chars = nc if len(chunk) == nb else math.ceil(len(chunk) * 8 / math.log2(radix))
+        chars = nc if len(chunk) == nb else _math.ceil(len(chunk) * 8 / _math.log2(radix))
         digits = [""] * chars
         for i in range(chars - 1, -1, -1):
             value, rem = divmod(value, radix)
@@ -385,7 +385,6 @@ def _group_decode(text: str, byte_len: int, spec: "_RadixSpec") -> bytes:
     if byte_len == 0:
         return b""
     nb, nc, decode_map, radix = spec.group_bytes, spec.group_chars, spec.decode_map, spec.radix
-    import math
 
     out = bytearray()
     pos = 0
@@ -393,7 +392,7 @@ def _group_decode(text: str, byte_len: int, spec: "_RadixSpec") -> bytes:
     while len(out) < byte_len:
         remaining = byte_len - len(out)
         this_bytes = min(nb, remaining)
-        chars = nc if this_bytes == nb else math.ceil(this_bytes * 8 / math.log2(radix))
+        chars = nc if this_bytes == nb else _math.ceil(this_bytes * 8 / _math.log2(radix))
         group = text[pos:pos + chars]
         pos += chars
         if len(group) < chars:
@@ -472,7 +471,7 @@ def radix_decode(text: str, byte_len: int, spec: "_RadixSpec" = BASE16G) -> byte
     return bytes(out)
 
 
-# Base16c-bound public aliases (layout.py + tests import these names).
+# Base16g-bound public aliases (layout.py + tests import these names).
 def nibble_encode(data: bytes) -> str:
     """base16g-bound :func:`radix_encode` (4 bits/char). Public API."""
     return radix_encode(data, BASE16G)
@@ -660,9 +659,8 @@ def _line_parity_chars(nsym_line: int, spec: "_RadixSpec") -> int:
     if nsym_line <= 0:
         return 0
     if spec.packing == "group":
-        import math
 
-        return math.ceil(nsym_line * 8 / math.log2(spec.radix))
+        return _math.ceil(nsym_line * 8 / _math.log2(spec.radix))
     return -(-(nsym_line * 8) // spec.bits)  # ceil(nsym_line*8 / spec.bits)
 
 
@@ -1992,9 +1990,8 @@ def _payload_byte_len(
         whole, rem_chars = divmod(n, spec.group_chars)
         total = whole * spec.group_bytes
         if rem_chars:
-            import math
             # largest k bytes whose char count == rem_chars
-            k = (rem_chars * math.log2(spec.radix)) // 8
+            k = (rem_chars * _math.log2(spec.radix)) // 8
             total += int(k)
         return total
     # Last line: derive byte count from its own char width (floor(bits*chars/8)).
