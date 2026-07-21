@@ -126,8 +126,7 @@ def _shallow_match(
             return entry
     return None
 
-#: Every published OCR-safety measurement in this project (see Known Facts in
-#: .agents/plans/codec_naming_and_ocr_safe_index.md) was taken at a 60-character
+#: Every published OCR-safety measurement in this project was taken at a 60-character
 #: payload row, including the OCR-B "dense" preset -- OCR-B was measured
 #: *denser per page* only via a smaller font/DPI at that SAME 60-char width,
 #: never via a wider row. Geometric fit alone (fpdf2's glyph-width measurement)

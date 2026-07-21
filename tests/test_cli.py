@@ -196,8 +196,8 @@ def test_tar_style_mode_flags_roundtrip(tmp_path, capsys):
 def test_create_and_extract_log_progressive_stage_events(tmp_path, caplog):
     """create/extract log progress events, not just a final one-line summary.
 
-    Phase 4 of bounded_memory_streaming_pipeline.md requires successful runs
-    to "report progressive staging and publication" -- verify both commands
+    Successful runs are required to "report progressive staging and
+    publication" -- verify both commands
     actually emit intermediate stage events via the logger, not only the
     pre-existing final "wrote"/"restored" line.
     """
