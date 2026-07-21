@@ -1,0 +1,17 @@
+Glyphive E2E benchmark fixture note-003.
+A third small synthetic document. Three fixtures let --repeat 3 (a sensible
+small default) run each configuration cell across three distinct documents
+rather than the same bytes three times, while staying entirely deterministic
+and checked into version control.
+
+To be, or not to be restored byte-identical, that is the question: whether
+'tis nobler in the archive to suffer the scans and scratches of outrageous
+noise, or to take parity against a sea of errors, and by correcting, fix them.
+
+1122334455 1122334455 1122334455 1122334455 1122334455 1122334455 1122334455
+A wizard's job is to vex chumps quickly in fog. Six big devils from Japan
+quickly forgot how to waltz. Crazy Fredrick bought many very exquisite opal
+jewels.
+
+Pinned fixture; never regenerated at run time; sha256 recorded in every
+benchmarks/results/*.json produced by benchmarks/e2e_grid.py.
