@@ -1633,8 +1633,9 @@ def _min_final_line_payload_chars(line_width: int, spec: "_RadixSpec") -> int:
     """The runt-line threshold: minimum PRINTED payload width a final data
     line may have, in this spec's alphabet characters.
 
-    Chosen conservatively (see ``.agents/plans/runt_final_line_layout_fix.md``
-    and the 2026-07-21 measurement that a 13-char final line gets destroyed,
+    Chosen conservatively (see
+    ``benchmarks/results/fourpt-runt-line-20260721.json``:
+    the 2026-07-21 measurement that a 13-char final line gets destroyed,
     with collateral damage to the line above, by Tesseract psm-6 at small
     font sizes -- the exact safe minimum is unmeasured, so this picks HALF
     the configured line width, capped at the width itself (a narrower

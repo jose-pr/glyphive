@@ -935,8 +935,7 @@ def test_group_decode_max_valid_group_round_trips():
 # Runt final data line (2026-07-21 fourpt-runt-line finding) --------------- #
 # --------------------------------------------------------------------------- #
 #
-# See .agents/plans/runt_final_line_layout_fix.md and
-# benchmarks/results/fourpt-runt-line-20260721.json: a tiny final data-line
+# See benchmarks/results/fourpt-runt-line-20260721.json: a tiny final data-line
 # payload (measured: 13 chars) is destroyed by Tesseract psm-6 at small font
 # sizes, and can corrupt the leading frame token of the line above it -- one
 # pad byte flips a document between restore-OK and restore-FAIL. Decode was

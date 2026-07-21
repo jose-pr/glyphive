@@ -25,8 +25,9 @@ Degradation parameters (deterministic, no randomness):
     ROTATION_DEGREES = 0.7  (small skew, Pillow Image.rotate, expand=True,
                               fillcolor=255 so the new corners are page-white)
 
-These were chosen to be representative of real phone-scan artifacts (see
-``.agents/plans/physical_scan_regression_gate.md``) while still restoring
+These were chosen to be representative of real phone-scan artifacts (blur,
+slight skew -- the failure modes real photographed pages exhibit that clean
+rasterization does not) while still restoring
 reliably through ``extract --from-images --ocr-engine tesseract-glyphive``
 with the auto ``--descan`` retry ladder (``[0.0, 0.6, 0.8]``). If a future
 change to this script increases the degradation, re-verify the fixture still

@@ -9,6 +9,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Repo-resident E2E benchmark grid harness** (`benchmarks/e2e_grid.py`):
+  create → rasterize → OCR → restore over a font-size × line-width × codec ×
+  line-parity grid. Per-cell status is one of
+  `restored`/`not-restored`/`not-built`/`error`; a configuration `create`
+  refuses to build is excluded from every restore-rate denominator (reported
+  as `n/m testable (k not built)`, or a loud `UNTESTED`), `--repeat N`
+  aggregates across repeat documents, the corpus is a pinned checked-in
+  fixture, and results JSON carries full provenance (commit, engine version,
+  corpus digest). Harness logic is unit-tested with a fake OCR provider, no
+  engine required.
+- **Physical-scan regression fixture + gate**
+  (`tests/fixtures/physical_scan/`, wired into `tests/test_ocr_transcripts.py`):
+  a committed, deterministically degraded page render (Gaussian blur 0.6 +
+  0.7° rotation, generation script included) restored byte-for-byte through
+  `extract --from-images` with `tesseract-glyphive`; skips cleanly without
+  the engine. Guards the real-scan path with zero real user content.
+- **Per-glyph deletion stats in `tools/ocr_font_report.py`**
+  (`align_and_tally`): aligned-diff tallies of per-glyph drop rate and
+  insertion adjacency alongside the existing confusion stats — OCR *dropping*
+  a thin glyph shrinks the line and desynchronizes the fixed-width frame
+  parse, a strictly worse failure than a substitution, so candidate alphabets
+  are now gated on both.
+
+### Fixed
+
+- **A very short ("runt") final data line no longer decides restore.**
+  Whether a document restored at small font sizes depended on
+  `encoded_length mod line_capacity`: a few-character final data line is
+  destroyed by OCR page segmentation (and can corrupt the line above it), so
+  one payload byte more or less flipped restore between OK and FAIL
+  (measured: 13-char final line fails, 153-char passes —
+  `benchmarks/results/fourpt-runt-line-20260721.json`). The codec now
+  zero-pads the protected stream so the final data line's printed payload is
+  never below half the line width; the header's recorded length stays
+  unpadded, so decode truncates the pad with no decoder change.
+- **Group-packed decode no longer crashes on an out-of-range group.** For
+  codecs where `radix**group_chars > 256**group_bytes` (basemaxg, base85,
+  z85) an OCR misread could decode a group past its byte range;
+  `int.to_bytes` then raised `OverflowError`, which sailed past every
+  `ValueError` erasure handler and aborted the whole restore. Such a group
+  now raises `ValueError` and is absorbed as an ordinary erasure.
+- **`--descan` auto-retry no longer re-OCRs the sharp pass.** The failure-path
+  retry ladder re-ran radius 0.0 over every page even though the initial
+  sharp sweep was already computed; the retry now OCRs only the additional
+  radii (0.6, 0.8) and merges onto the existing sharp results as the ordered
+  spine — one full OCR sweep saved per retried document, byte-identical
+  outcome.
+- **`tools/ocr_font_report.py` whitelist quoting**: an alphabet containing a
+  shell-special character (e.g. an embedded `"`) crashed pytesseract's
+  internal `shlex.split` before OCR ran; the whitelist config is now
+  shell-quoted.
+
+### CI
+
+- **PyPI publish and GitHub release no longer depend on the docs deploy.**
+  A GitHub Pages/docs failure blocked the v0.1.0 package publish twice;
+  `docs-build`/`docs-deploy` are now a parallel, best-effort branch off the
+  release-critical path.
+
+### Added
+
 - **OCR per-character confidence drives char-level erasure marking (plan
   3).** A CRC-failed line used to erase its ENTIRE byte span for the
   document-level Reed-Solomon tier, even though the typical cause is one or
