@@ -796,7 +796,7 @@ def iter_paginate(
     # which are not known until all data lines are chunked. Page 1's header
     # is the very first thing yielded, so when K>0 we chunk all data pages up
     # front (consistent with the project's existing multi-pass, bounded-memory
-    # create path -- see AGENTS.md) and reuse those chunks for emission below,
+    # create path) and reuse those chunks for emission below,
     # rather than consuming the encoded-line source twice. When K=0, none of
     # this runs: pages are chunked lazily exactly as before, so the K=0 path
     # is byte-for-byte identical to the pre-parity-pages format.
@@ -1288,7 +1288,8 @@ def read_pages_to_spool(
     # page order (rather than transcript order) guarantees a reconstructed
     # interior/last page's lines land at the correct position in the spool,
     # which downstream RS-parameter recovery depends on (a missing *last*
-    # page otherwise truncates the stream shape -- see Phase 0 findings).
+    # page otherwise truncates the stream shape -- a real bug found in early
+    # testing).
     # ``spool_conf`` mirrors the written lines 1:1 -- this is the shape
     # :meth:`Base16GCodec.decode_spool` expects for its own ``char_conf``
     # (keyed by PHYSICAL LINE ORDER within the spool it reads).

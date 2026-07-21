@@ -115,7 +115,7 @@ def test_page_parity_restores_byte_for_byte_with_interior_page_deleted():
 def test_page_parity_restores_byte_for_byte_with_last_page_deleted():
     """K=2, delete the LAST data page: must not truncate stream shape.
 
-    Phase 0 testing found a missing *last* page breaks RS-parameter recovery
+    Early testing found a missing *last* page breaks RS-parameter recovery
     if its lines aren't re-injected at the correct spool position -- this is
     the explicit regression case for that bug class.
     """

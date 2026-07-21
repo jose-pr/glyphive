@@ -9,8 +9,7 @@ this harness answers "at what character error rate does the *format*
 stop recovering?", independent of any particular OCR engine.
 
 The optional ``--repair`` tier prototypes CRC-guided single-substitution
-repair (see ``.agents/plans/codec_review/01_decode_hardening.md``): for each
-CRC-failed line, every single-character substitution over the printed
+repair: for each CRC-failed line, every single-character substitution over the printed
 index+payload is tested against the printed check field, plus the
 "check field itself is the corrupted character" case; a repair is accepted
 only when exactly ONE candidate matches. Acceptance therefore remains

@@ -1,6 +1,6 @@
 """Real-OCR regression coverage for the printable transcript grammar.
 
-Two layers, per Phase 6 of ``.agents/plans/codec_naming_and_ocr_safe_index.md``:
+Two layers:
 
 1. A captured-transcript regression test (plain string fixture, no image or
    OCR engine dependency) so the frame-parsing/CRC/RS grammar itself is

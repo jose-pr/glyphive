@@ -749,7 +749,7 @@ def test_describe_line_stream_ambiguous_shape_reports_none():
 
 
 def test_clean_decode_skips_reed_solomon_entirely(monkeypatch):
-    """A zero-erasure stream decodes without invoking reedsolo at all (Phase 1)."""
+    """A zero-erasure stream decodes without invoking reedsolo at all."""
     import reedsolo
 
     calls = {"n": 0}
@@ -768,7 +768,7 @@ def test_clean_decode_skips_reed_solomon_entirely(monkeypatch):
 
 
 def test_damaged_decode_calls_rs_only_for_blocks_with_erasures(monkeypatch):
-    """A stream with a few bad lines RS-corrects only the affected blocks (Phase 2)."""
+    """A stream with a few bad lines RS-corrects only the affected blocks."""
     import reedsolo
 
     calls = {"n": 0}

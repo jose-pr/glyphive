@@ -10,10 +10,10 @@ Density vs. base16g (4 bits/char):
   - ``base32g``  : 5 bits/char (1.25x — glyphive's measured 32-glyph set)
   - ``base64``   : 6 bits/char (1.5x)
 
-The measured stock-OCR-safe ceiling is 16 characters (A1/size sweeps 2026-07-18);
-base32g/base64 are NOT stock-OCR-safe (~14.8% CER stock) but read at 0.0% CER with
-a per-font fine-tuned model (see ``.agents/plans/base32_punctuation_ocr_findings.md``).
-They are for the trained-model restore path (opt-in per-font OCR model packages).
+The measured stock-OCR-safe ceiling is 16 characters (alphabet/size sweeps
+2026-07-18); base32g/base64 are NOT stock-OCR-safe (~14.8% CER stock) but read at
+0.0% CER with a per-font fine-tuned model (measured 2026-07-18). They are for the
+trained-model restore path (opt-in per-font OCR model packages).
 Codecs are never gated — creation only maps bytes to characters and never needs a
 model; choosing a denser codec is the user's informed decision. base16g stays the
 recommendation.
@@ -88,7 +88,7 @@ BASE8G: _ty.Final[_RadixSpec] = _RadixSpec(
 # base16g-16 plus 10 measured-distinct letters/digits plus 6 measured-safe
 # punctuation glyphs (? @ ! & + =). It is NOT stock-OCR-safe (stock CER ~14.8%),
 # but a per-font fine-tuned model reads it at 0.0% CER clean and blurred
-# (2026-07-18 VM measurement; see .agents/plans/base32_punctuation_ocr_findings.md).
+# (2026-07-18 VM measurement).
 # Excludes '#' (frame delimiter) and whitespace. check_width = ceil(16/5) = 4;
 # index_width = 4 (32**4 = 1,048,576). index_mask: 4 distinct values < 32.
 BASE32G: _ty.Final[_RadixSpec] = _RadixSpec(
