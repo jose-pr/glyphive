@@ -1,0 +1,102 @@
+{
+  "cells": [
+    {
+      "codec": "base16g-crc16-rs",
+      "engine": "tesseract",
+      "font": "ocr-b",
+      "font_size": 8.0,
+      "line_parity": 2,
+      "line_width": "60",
+      "restore_counts": {
+        "max": 1,
+        "mean": 1.0,
+        "min": 1
+      },
+      "restore_rate": 1.0,
+      "status_counts": {
+        "error": 0,
+        "not-built": 0,
+        "not-restored": 0,
+        "restored": 1
+      },
+      "summary": "1/1 testable",
+      "testable": 1,
+      "total": 1,
+      "trials": [
+        {
+          "detail": null,
+          "document": "note-001.txt",
+          "failed_at": null,
+          "status": "restored"
+        }
+      ],
+      "untested": false
+    },
+    {
+      "codec": "base16g-crc16-rs",
+      "engine": "tesseract-glyphive",
+      "font": "ocr-b",
+      "font_size": 8.0,
+      "line_parity": 2,
+      "line_width": "60",
+      "restore_counts": {
+        "max": 1,
+        "mean": 1.0,
+        "min": 1
+      },
+      "restore_rate": 1.0,
+      "status_counts": {
+        "error": 0,
+        "not-built": 0,
+        "not-restored": 0,
+        "restored": 1
+      },
+      "summary": "1/1 testable",
+      "testable": 1,
+      "total": 1,
+      "trials": [
+        {
+          "detail": null,
+          "document": "note-001.txt",
+          "failed_at": null,
+          "status": "restored"
+        }
+      ],
+      "untested": false
+    }
+  ],
+  "git": {
+    "commit": "c145a2a453c9a283e0686ec758b95287161a1da6",
+    "dirty": true
+  },
+  "glyphive_version": "0.1.0",
+  "harness_version": "e2e_grid-1.0.0",
+  "name": "e2e-grid-smoke-20260721",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "provenance": {
+    "corpus": {
+      "combined_sha256": "2ad075e0c789fed3bb5e00f80a461371c281d7176bc839b47e9b0abea6a26bf0",
+      "file_count": 3,
+      "files": {
+        "note-001.txt": {
+          "bytes": 1056,
+          "sha256": "6f14856b83d124a5c9a3bb7f8a537021fab698a20d92d99b50c0796cc286cc45"
+        },
+        "note-002.txt": {
+          "bytes": 1013,
+          "sha256": "f2f14d04fbe5611eb10b39fb06b684d79054763ef323be7c4f297c18b12d57d5"
+        },
+        "note-003.txt": {
+          "bytes": 904,
+          "sha256": "5608578d5332a251247c04a794a80aef638335d6baead9dab100c5b07cebb1e2"
+        }
+      },
+      "total_bytes": 2973
+    },
+    "tesseract_version": "5.4.0.20240606"
+  },
+  "python": "3.14.6",
+  "repeat": 1,
+  "schema_version": 1,
+  "timestamp": "2026-07-21T06:42:01+00:00"
+}
