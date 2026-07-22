@@ -7,8 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-22
+
+Restore correctness release. Several format fixes remove failure modes that
+could make a printed document unrecoverable, and a measurement campaign settled
+the long-open question of whether trained OCR models are worth shipping (they
+are not).
+
+**Breaking (pre-1.0, no compatibility shim):** the wire format changed. The
+identifier stays `v1` (magic `B1`, `_VERSION = 1`, codec names unchanged), but
+documents produced by 0.1.0 do not decode with 0.2.0. Re-create any archive you
+intend to keep.
+
+### Highlights
+
+- **No trained OCR model is needed for any codec.** `base16g` never required
+  one; `base32g` no longer does either, because this release's format fixes
+  moved it from model-required to stock-viable. The published
+  `glyphive-ocrmodel-*` packages were trained on the wrong data and are not
+  recommended for anything.
+- **`base32g` is Courier-only on stock OCR** (measured 4–10pt across 3 fonts):
+  it fails on OCR-B and DejaVu Sans Mono at every size. Documented so nobody
+  picks it blind.
+- **A very short final data line no longer decides whether a document
+  restores.** This was a lottery every document ran at create time.
+
 ### Added
 
+- **`glyphive train` (experimental)** — build an OCR model for a codec/font/size
+  with the data-integrity gates that every previous attempt lacked: it verifies
+  that each row image actually shows its paired text, aborts on any unencodable
+  transcription or non-zero trainer skip ratio, derives a narrowed unicharset
+  from the codec registry instead of inheriting the base model's ~112
+  characters, and builds its own starter artifacts. Reported CER is labelled a
+  proxy everywhere it appears; a produced model records `gate_verdict=UNGATED`
+  because character error rate has repeatedly failed to predict restore. Not
+  needed to use glyphive — it exists so future experiments are measurable.
 - **Repo-resident E2E benchmark grid harness** (`benchmarks/e2e_grid.py`):
   create → rasterize → OCR → restore over a font-size × line-width × codec ×
   line-parity grid. Per-cell status is one of
@@ -68,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `docs-build`/`docs-deploy` are now a parallel, best-effort branch off the
   release-critical path.
 
-### Added
+### Added (earlier in this cycle)
 
 - **OCR per-character confidence drives char-level erasure marking (plan
   3).** A CRC-failed line used to erase its ENTIRE byte span for the
@@ -96,7 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   Tesseract to calibrate the default threshold (ships at `0.6` pending a
   real calibration run — see the tool's own docstring).
 
-### Fixed
+### Fixed (earlier in this cycle)
 
 - **Default `--line-parity` (2) broke restore on the primary OCR path
   (breaking, pre-release — no compat shim).** The constrained Tesseract
@@ -122,7 +156,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   read-only `describe_line_stream`). Existing documents from before this
   change do not decode (the machine header envelope grew one byte).
 
-### Changed
+### Changed (earlier in this cycle)
 
 - **Page parity lifts the 255-page cap: `--parity-pages` now supports up to
   65,535 total pages (breaking, pre-release — no compat shim).** Document-level
@@ -161,7 +195,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   30 KB docs, 12% document parity) moves from failing at 0.1% substitution
   error to succeeding at 0.5% at the ``nsym_line=2`` default.
 
-### Fixed
+### Fixed (earlier in this cycle)
 
 - **Decode hardening (rescues documents that previously hard-failed).** A
   CRC-failed line whose index token was misread used to be trusted for stream

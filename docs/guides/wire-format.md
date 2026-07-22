@@ -189,11 +189,17 @@ glyphive-modified, OCR-measured alphabet; an un-suffixed one (`base16`, `base32`
 
 Codecs are **never gated** — `create --codec <name>` just maps bytes to
 characters and never needs OCR, whether or not a matching model is installed.
-But *reliable restore* of a wide alphabet (base32g/base64 and the standard 32/64
-sets) needs a matching per-font fine-tuned OCR model (published as opt-in
-`glyphive-ocrmodel-*` packages); stock OCR distinguishes only ~16 glyphs
-reliably (measured ~43 per font for a curated maximal set, but only ~27 across
-all fonts). `create` logs an advisory when a non-`base16g` codec is selected.
+*Reliable restore* of a wider alphabet is a different question, and it is
+answered per codec and per font rather than by a model. `base32g` restores on
+stock OCR with Courier (4–10pt, byte-restore gated) but fails on OCR-B and
+DejaVu Sans Mono at every size, because the `?@!&+=` glyphs it adds are dropped
+or mangled on those fonts — and a dropped glyph shortens the line, which
+desynchronizes the frame parse. The standard 32/64 sets and `base64`/`base64g`
+do not restore at all: no conflict-free 64-glyph set exists in printable ASCII
+(55 maximum mutually-distinct, 52 usable), so they must double-book confusable
+classes. A trained model does not fix any of this — every model measured either
+matched stock or lost to it. `create` logs an advisory when a non-`base16g`
+codec is selected.
 The index/check widths adjust per radix (e.g. base64 uses a 3-character check
 field). Because the L/P payload alphabet differs from the base16g-encoded `H`
 header, restore reads the selected codec name from the protected header first,
