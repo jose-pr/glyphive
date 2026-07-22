@@ -103,8 +103,13 @@ An end-to-end check (create → render at 300 DPI → OCR with this profile →
 `extract` → byte-diff) restored `base16g` documents **byte-for-byte at 8pt, 4pt
 (~4× denser), and even 3pt with OCR-B** — all with stock Tesseract, no trained
 model. The format's per-line CRC + Reed-Solomon absorb the residual small-font
-OCR noise. (The `glyphive-ocrmodel-*` packages are experimental and not currently
-recommended — see their notes.)
+OCR noise.
+
+No trained OCR model is needed for any codec: `base32g` restores on stock too
+(with Courier — see the create guide for its font limits), and every model this
+project trained either matched stock or lost to it. The published
+`glyphive-ocrmodel-*` packages were trained on the wrong data and are not
+recommended.
 
 ### De-scanning raw photos (`--descan`)
 

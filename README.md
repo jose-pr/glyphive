@@ -19,7 +19,7 @@ the character errors that make ordinary base64-on-paper fragile.
 - **Bundled OCR-B PDF option** under the SIL Open Font License, plus custom
   `.ttf`/`.otf` PDF font paths for measured channels.
 - **Measured OCR-safe `base16g-crc16-rs` alphabet** (`ABCDHKLMPRTVXY34`) with no confusable
-  character aliases.
+  character aliases — and **no trained OCR model required**, for any codec.
 - **Localized integrity checks** on every encoded line and protected page
   metadata.
 - **Document-wide Reed-Solomon parity** for correcting scattered OCR errors.
@@ -158,6 +158,22 @@ CRC-protected `H` header frames carry the codec, compression method, page
 count, and whole-document SHA-256. Each page has a protected `T` footer with
 its page number and a truncated page hash. Human-facing `#!glyphive` and
 `PAGE n/total` text is display-only; restore trusts the protected frames.
+
+### Which codec should I use?
+
+**`base16g-crc16-rs` (the default), with any font.** It restores byte-for-byte
+on stock Tesseract from 8pt down to 4pt — and 3pt with OCR-B — so the cheapest
+way to get more data per page is a *smaller font*, not a wider alphabet: 4pt is
+roughly 4× denser than 8pt.
+
+`base32g-crc16-rs` is ~25% denser per character and restores on stock too, but
+**only with Courier** (measured 4–10pt). It fails on OCR-B and DejaVu Sans Mono
+at every size, because the punctuation it adds (`?@!&+=`) gets dropped or
+mangled on those fonts, and a dropped glyph shortens the line in a way
+Reed-Solomon cannot repair. The 64-glyph codecs are encode-only: no
+conflict-free 64-glyph set exists in printable ASCII.
+
+No trained OCR model is needed — or recommended — for any of them.
 
 Small, scattered line errors become known erasures and can be repaired by the
 document-wide Reed-Solomon parity. A missing page is reported rather than
