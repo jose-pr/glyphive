@@ -47,16 +47,34 @@ from .model import (
     check_toolchain,
     plan_training,
 )
+from .pipeline import (
+    PipelineResult,
+    StageError,
+    check_encoding,
+    check_training_data,
+    run_stage,
+    summarize,
+    write_box_file,
+    write_sidecar,
+)
 
 __all__ = [
     "GroundTruthRow",
     "PairCheckResult",
+    "PipelineResult",
+    "StageError",
     "TrainingError",
     "TrainingPlan",
     "ToolchainError",
     "build_training_rows",
     "build_unicharset",
+    "check_encoding",
     "check_toolchain",
+    "check_training_data",
     "plan_training",
+    "run_stage",
+    "summarize",
     "verify_pairs",
+    "write_box_file",
+    "write_sidecar",
 ]

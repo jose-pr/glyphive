@@ -224,3 +224,96 @@ def test_verify_pairs_reports_offenders_by_name():
 
 def test_verify_pairs_handles_empty_input():
     assert verify_pairs([], lambda p: "").ok
+
+
+# --------------------------------------------------------------------------- #
+# Pipeline gates (pure; no toolchain required)
+# --------------------------------------------------------------------------- #
+from glyphive.training import (  # noqa: E402
+    StageError,
+    check_encoding,
+    check_training_data,
+    run_stage,
+    summarize,
+    write_box_file,
+)
+from glyphive.training.pipeline import PipelineResult  # noqa: E402
+
+
+class _Completed:
+    def __init__(self, returncode=0, stdout="", stderr=""):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+def test_run_stage_returns_output_on_success():
+    out = run_stage("x", ["true"], runner=lambda *a, **k: _Completed(0, "hi", ""))
+    assert "hi" in out
+
+
+def test_run_stage_raises_with_the_real_error_text():
+    """Swallowing stderr is how a long run ends in an unexplained empty dir."""
+    with pytest.raises(StageError, match="boom"):
+        run_stage("x", ["false"],
+                  runner=lambda *a, **k: _Completed(1, "", "line1\nboom"))
+
+
+def test_check_encoding_aborts_on_unencodable_transcriptions():
+    log = "Can't encode transcription: 'LM?Y' in language ''\nskip ratio=35.000%"
+    with pytest.raises(StageError, match="could not be encoded"):
+        check_encoding(log)
+
+
+def test_check_encoding_aborts_on_a_nonzero_skip_ratio():
+    """A 35% silent skip once trained a model on two thirds of its data."""
+    with pytest.raises(StageError, match="skip ratio"):
+        check_encoding("At iteration 1/20/20, skip ratio=12.500%")
+
+
+def test_check_encoding_accepts_a_clean_run():
+    failures, skip = check_encoding("At iteration 20/20/20, skip ratio=0.000%")
+    assert failures == 0 and skip == 0.0
+
+
+def test_check_training_data_rejects_too_few_rows():
+    with pytest.raises(StageError, match="at least"):
+        check_training_data([], lambda p: "", minimum_rows=10)
+
+
+def test_check_training_data_rejects_mispaired_rows():
+    rows = [GroundTruthRow(Path(f"/r{i}.tif"), f"LM{i:03d} DATA{i} #AB", 0, i)
+            for i in range(120)]
+    with pytest.raises(StageError, match="mispaired|wrong text"):
+        check_training_data(rows, lambda p: "TOTALLY DIFFERENT LINE")
+
+
+def test_check_training_data_accepts_correctly_paired_rows():
+    rows = [GroundTruthRow(Path(f"/r{i}.tif"), f"LM{i:03d} DATA{i} #AB", 0, i)
+            for i in range(120)]
+    lookup = {r.image: r.text for r in rows}
+    check_training_data(rows, lambda p: lookup[p])  # must not raise
+
+
+def test_write_box_file_carries_ground_truth_not_ocr(tmp_path):
+    """lstmbox labels boxes with what stock OCR READ; that trains in its errors."""
+    box = Path(str(tmp_path)) / "row.box"
+    write_box_file(box, "LM001 PAYLOAD #AB", 2550, 52)
+    content = box.read_text(encoding="utf-8")
+    assert "WordStr" in content
+    assert "LM001 PAYLOAD #AB" in content
+
+
+def test_summary_labels_cer_as_a_proxy_and_warns():
+    plan = _plan()
+    result = PipelineResult(
+        model_path=plan.model_path, rows_trained=1600, rows_held_out=300,
+        encode_failures=0, skip_ratio=0.0, cer_proxy=2.081,
+        gate_verdict="UNGATED",
+    )
+    summary = summarize(plan, result)
+    caveat = summary["cer_is_a_proxy"].lower()
+    assert "does not predict restore" in caveat
+    assert "byte-identical restore" in caveat
+    assert "beaten stock" in summary["warning"]
+    assert summary["cer_proxy_percent"] == 2.081
