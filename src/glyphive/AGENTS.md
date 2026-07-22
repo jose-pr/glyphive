@@ -4,7 +4,7 @@ Header-file-style reference for the `glyphive` package: every public export
 grouped by module, with its signature, arguments, return/contract, and
 gotchas, so this package can be consumed without reading its source. Kept
 current with the public API. For the project overview, code layout, and
-concepts, see the repo-root [`AGENTS.md`](../../AGENTS.md).
+concepts, see the shipped `README.md`, or <https://github.com/jose-pr/glyphive>.
 
 Every optional renderer/OCR-engine import is gated inside functions:
 `import glyphive`, `glyphive.render`, and `glyphive.restore.ocr` all succeed
