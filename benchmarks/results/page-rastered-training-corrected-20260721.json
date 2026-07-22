@@ -1,0 +1,58 @@
+{
+  "name": "page-rastered-training-corrected-20260721",
+  "supersedes": "page-rastered-training-20260721.json (that run was VOID - three data-integrity bugs)",
+  "question": "With verified-clean training data, does page-rastered (row-sliced) training beat the psm-7 synthetic model and stock Tesseract on byte-restore for base32g?",
+  "verdict": "NO. The corrected page-rastered model FAILS the byte-restore gate clean and blurred, while the psm-7 synthetic control and stock Tesseract both restore byte-identical. The hypothesis is refuted on its merits this time: the data defects that voided the first attempt were fixed and verified, and the approach still loses.",
+  "environment": {
+    "host": "rocky9-vm 10.7.19.75",
+    "tesseract": "5.4.1 (source build, /usr/local/bin)",
+    "base_model": "tessdata_best/eng",
+    "font": "courier (Nimbus Mono PS on the VM)",
+    "pt": 8,
+    "line_width": 60,
+    "line_parity": 2,
+    "dpi": 300,
+    "codec": "base32g-crc16-rs"
+  },
+  "data_integrity_fixes_applied_before_this_run": {
+    "1_banner_off_by_one": "frame_lines() drops the display-only #!glyphive banner from ground truth, but slice_rows() still cut from the banner's physical position, so crop i was paired with line i+1. Measured before fix: 266/300 sampled pairs mismatched. Fixed with a row_offset.",
+    "2_geometric_row_overcount": "rows-per-page was estimated as (height - margin) // leading = 78 on pages that actually printed 58, so tail crops fell past the last printed line and pairing drifted from that point on. Fixed by reading the authoritative per-page printed-row count from the PDF text layer.",
+    "3_ocr_derived_box_labels": "the lstmbox step labels box files with what STOCK OCR READ, not with the ground truth, injecting characters outside the codec alphabet (S/Q/W/O/section-sign/pipe) into the .lstmf transcriptions - i.e. training the model to reproduce stock's mistakes. Fixed by emitting a WordStr line box carrying the authoritative transcription.",
+    "verification": "encode failures 7 -> 0; skip ratio 35.000% -> 0.000% sustained across the entire run; pair check sampled 80 rows with 3 near-misses attributable to OCR noise, none to mispairing."
+  },
+  "training": {
+    "method": "page-rastered: create --format pdf -> rasterize 300 DPI -> slice rows by authoritative printed-row count -> WordStr box from ground truth -> tesseract --psm 6 lstm.train",
+    "train_rows": 1616,
+    "eval_rows": 339,
+    "train_doc_seeds": "1-40",
+    "eval_doc_seeds": "5001-5009 (disjoint)",
+    "unicharset_size": 58,
+    "base_unicharset_size": 112,
+    "flags": "--old_traineddata (unicharsets differ), --perfect_sample_delay 19",
+    "max_iterations": 10000,
+    "best_checkpoint_iteration": 5400,
+    "bcer_train_start_pct": 7.34,
+    "bcer_train_best_pct": 2.081,
+    "note": "training plateaued and selected its best checkpoint at 5400 rather than running to 10000"
+  },
+  "gate": {
+    "definition": "byte-identical restore: create -> rasterize 300 DPI -> OCR per page (whitelist = codec spec.alphabet + delimiter, --psm 6) -> extract -> byte-diff the tree",
+    "corpus": "2 real markdown guides, 21658 bytes, 10 pages, 678 OCR lines",
+    "results": [
+      {"arm": "fixed", "blur": 0.0, "result": "FAIL", "detail": "cannot recover RS parameters: data/parity line counts are inconsistent (missing or spurious lines)"},
+      {"arm": "fixed", "blur": 0.6, "result": "FAIL", "detail": "line L00007 failed CRC and exceeds RS correction budget"},
+      {"arm": "broken", "blur": 0.0, "result": "FAIL", "detail": "line L00001 failed CRC and exceeds RS correction budget"},
+      {"arm": "broken", "blur": 0.6, "result": "FAIL", "detail": "line L00001 failed CRC and exceeds RS correction budget"},
+      {"arm": "synthetic", "blur": 0.0, "result": "OK"},
+      {"arm": "synthetic", "blur": 0.6, "result": "OK"},
+      {"arm": "stock", "blur": 0.0, "result": "OK"},
+      {"arm": "stock", "blur": 0.6, "result": "OK"}
+    ]
+  },
+  "analysis": {
+    "failure_mode": "The corrected model's clean-image failure is a LINE-COUNT error (data/parity line counts inconsistent), not a substitution error - it still merges or drops printed rows. That is the same lethal mechanism that killed basemaxg, base64g and PaddleOCR: this format tolerates a misread character (CRC/RS repair it in place) far better than a change in line length or line count, which desynchronizes the frame parse.",
+    "cer_finally_agrees_with_restore": "The plan's stated acceptance criterion was a model whose reported eval error and byte-restore outcome agree in DIRECTION. That is now satisfied - just not favourably. This model reports 2.081% BCER (honest, measured against correctly-paired ground truth) and fails restore, whereas the earlier ~0% CER figures were measured against corrupted labels and were meaningless. An honest metric and an honest outcome now point the same way.",
+    "why_synthetic_wins": "The psm-7 synthetic model trains on isolated, generously-spaced single lines, which never teaches row-merging. Page-rastered crops carry inter-line context, and the model learns to merge or split rows - exactly the behaviour the format cannot absorb."
+  },
+  "recommendation": "Do not ship any base32g model. Stock Tesseract + the codec whitelist restores base32g byte-identical, clean and blurred, with no model at all - it is the baseline none of the three trained approaches beat. Page-level (row-sliced) training is retired for this format; option (b) from the original plan, whole-page --psm 6 training without slicing, is untried but has no supporting evidence and would face the same line-merging risk."
+}
