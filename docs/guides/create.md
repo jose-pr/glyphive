@@ -91,19 +91,49 @@ Tesseract — no trained model required** (the format's error correction does th
 work). Caveats: validate on your actual printer/scanner/DPI/engine (nominal
 density is not recoverable density), and pick OCR-B for the smallest sizes.
 
-> **Note on trained OCR models.** A byte-restore-gated evaluation (2026-07-19)
-> settled what a trained model buys over stock Tesseract:
-> - For `base16g` it buys **nothing** — stock already restores it byte-for-byte to
->   4pt and across row widths, so no model is needed or shipped.
-> - For `base32g` (5 bits/char, 25% denser) a per-font framed-trained model **does**
->   restore byte-for-byte where stock fails — the working denser path.
-> - For `base64`/`base64g` a model is **not enough**: their 64-glyph alphabets keep
->   OCR-confusable pairs (`l`↔`1`, `;`↔`i`) that fail per-line CRCs faster than
->   Reed-Solomon can repair. They stay encode-only.
+> **Note on trained OCR models: none are needed.** Byte-restore-gated
+> evaluation (2026-07-19 through 2026-07-22) settled what a trained model buys
+> over stock Tesseract, and the answer is nothing:
+> - `base16g` restores byte-for-byte on stock down to 4pt and across row widths.
+> - `base32g` **also restores on stock** as of the current format — earlier
+>   measurements that showed it needing a model predate the decode hardening,
+>   machine-frame Reed-Solomon and final-line padding fixes, which is what moved
+>   it from model-required to stock-viable. See its font limits below.
+> - `base64`/`base64g` cannot be rescued by a model at all: no conflict-free
+>   64-glyph set exists in printable ASCII (the maximum mutually-distinct set is
+>   55, 52 usable), so their alphabets must double-book OCR-confusable classes.
+>   They stay encode-only.
 >
-> The currently-published `glyphive-ocrmodel-*` packages predate this work, were
-> trained on the wrong data (unstructured strings, not framed pages), and should not
-> be relied on. Stock `tesseract-glyphive` is the recommended engine for `base16g`.
+> Every model this project trained — on synthetic lines, on framed pages, and on
+> page rasters — either matched stock or lost to it. The published
+> `glyphive-ocrmodel-*` packages were trained on the wrong data and should not be
+> relied on. Stock `tesseract-glyphive` is the recommended engine for every
+> codec.
+
+### Choosing a denser codec: `base32g` is Courier-only
+
+`base32g-crc16-rs` carries 5 bits per character instead of 4, so it is ~25%
+denser than the default. On stock OCR that density is **font-dependent**, and
+the dependency is sharp rather than gradual (measured 2026-07-22, 3 fonts ×
+5 sizes × 2 widths, byte-restore gated):
+
+| font | 4pt | 5pt | 6pt | 8pt | 10pt |
+|------|-----|-----|-----|-----|------|
+| Courier | ✅ | ✅ | ✅ | ✅ | ✅ |
+| OCR-B | ❌ | ❌ | ❌ | ❌ | — |
+| DejaVu Sans Mono | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+(width 60; Courier also restores at width 90 from 5pt up. `—` is a geometry
+refusal, not an OCR failure.)
+
+The cause is the alphabet: `base32g` adds `?@!&+=` to the base16g set, and those
+punctuation glyphs are the ones OCR drops or mangles on OCR-B and DejaVu. A
+dropped glyph shortens the line, which desynchronizes the frame parse — a
+failure Reed-Solomon cannot repair, unlike an ordinary misread character.
+
+**So: use `base32g` only with Courier.** For any other font, `base16g` is the
+correct choice; a smaller font size buys far more density than a wider alphabet
+anyway (4pt is ~4× denser than 8pt and still restores on stock).
 
 The number of rows per page is calculated from the selected font size and page
 geometry. Use `--minimal-margins` to reduce all margins from 36 points to 12
