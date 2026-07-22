@@ -317,3 +317,54 @@ def test_summary_labels_cer_as_a_proxy_and_warns():
     assert "byte-identical restore" in caveat
     assert "beaten stock" in summary["warning"]
     assert summary["cer_proxy_percent"] == 2.081
+
+
+# --------------------------------------------------------------------------- #
+# Starter artifacts (base.lstm + narrowed starter.traineddata)
+# --------------------------------------------------------------------------- #
+from glyphive.training.starter import (  # noqa: E402
+    LANGDATA_FILES,
+    check_langdata,
+    find_base_traineddata,
+)
+
+
+def test_find_base_traineddata_prefers_an_explicit_path(tmp_path):
+    base = Path(str(tmp_path)) / "eng.traineddata"
+    base.write_bytes(b"x")
+    assert find_base_traineddata(base) == base
+
+
+def test_find_base_traineddata_errors_naming_everything_tried():
+    """'File not found' with no list is a bad way to start a multi-hour run."""
+    with pytest.raises(StageError) as excinfo:
+        find_base_traineddata(None, candidates=("/nope/a.traineddata",), env={})
+    message = str(excinfo.value)
+    assert "/nope/a.traineddata" in message
+    assert "--base-model" in message
+
+
+def test_find_base_traineddata_honours_tessdata_prefix(tmp_path):
+    prefix = Path(str(tmp_path))
+    (prefix / "eng.traineddata").write_bytes(b"x")
+    found = find_base_traineddata(
+        None, candidates=(), env={"TESSDATA_PREFIX": str(prefix)}
+    )
+    assert found.name == "eng.traineddata"
+
+
+def test_check_langdata_names_the_missing_files_and_where_to_get_them(tmp_path):
+    """combine_lang_model otherwise fails with a bare 'Error writing unicharset!!'."""
+    with pytest.raises(StageError) as excinfo:
+        check_langdata(tmp_path)
+    message = str(excinfo.value)
+    for name in LANGDATA_FILES:
+        assert name in message
+    assert "langdata" in message
+
+
+def test_check_langdata_accepts_a_complete_directory(tmp_path):
+    directory = Path(str(tmp_path))
+    for name in LANGDATA_FILES:
+        (directory / name).write_text("x", encoding="utf-8")
+    assert check_langdata(directory) == directory

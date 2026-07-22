@@ -77,6 +77,14 @@ class Train(LoggingArgs):
     "Seed for document generation, so a run is reproducible."
     ("--seed",)
 
+    base_model: "_ty.Optional[str]" = None
+    "Base .traineddata to fine-tune from (default: autodetect; tessdata_best preferred)."
+    ("--base-model",)
+
+    langdata: "_ty.Optional[str]" = None
+    "Directory holding Latin.unicharset, Common.unicharset and radical-stroke.txt."
+    ("--langdata",)
+
     work_dir: "_ty.Optional[str]" = None
     "Scratch directory for generated rows (default: a temporary directory)."
     ("--work-dir",)
@@ -123,7 +131,12 @@ class Train(LoggingArgs):
         from ..training.runner import execute
 
         try:
-            result = execute(plan, logger=logger)
+            result = execute(
+                plan,
+                logger=logger,
+                base_model=self.base_model,
+                langdata_dir=self.langdata,
+            )
         except TrainingError as exc:
             logger.error("training aborted: %s", exc)
             return 1

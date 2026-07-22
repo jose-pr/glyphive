@@ -27,6 +27,13 @@ from pathlib_next import Path
 
 from .data import GroundTruthRow, build_training_rows
 from .model import TrainingPlan
+from .starter import (
+    LANGDATA_FILES,
+    LANGDATA_URL,
+    build_starter_traineddata,
+    extract_base_lstm,
+    find_base_traineddata,
+)
 from .pipeline import (
     PipelineResult,
     StageError,
@@ -208,14 +215,45 @@ def _write_list(paths: "_ty.Sequence[Path]", target: "Path") -> "Path":
     return target
 
 
-def execute(plan: TrainingPlan, *, logger: "_ty.Any" = None) -> PipelineResult:
+def execute(
+    plan: TrainingPlan,
+    *,
+    logger: "_ty.Any" = None,
+    base_model: "_ty.Optional[_ty.Union[str, Path]]" = None,
+    langdata_dir: "_ty.Optional[_ty.Union[str, Path]]" = None,
+) -> PipelineResult:
     """Run the full pipeline for ``plan`` and return what it produced.
+
+    Builds its own starter artifacts (``base.lstm`` and a narrowed
+    ``starter.traineddata``) rather than expecting them to be pre-staged.
 
     Raises :class:`StageError` -- never a partial success -- when any integrity
     gate fails.
     """
     env = _env()
     log = logger.info if logger is not None else (lambda *a, **k: None)
+
+    # --- starter artifacts -------------------------------------------------
+    plan.work_dir.mkdir(parents=True, exist_ok=True)
+    base_traineddata = find_base_traineddata(base_model, env=env)
+    log("fine-tuning from %s", base_traineddata)
+    base_lstm = extract_base_lstm(
+        base_traineddata, plan.work_dir / "base.lstm", env=env
+    )
+    if langdata_dir is None:
+        raise StageError(
+            "building the narrowed unicharset needs Tesseract's script data; "
+            f"pass --langdata DIR containing {', '.join(LANGDATA_FILES)} "
+            f"(single files at the root of {LANGDATA_URL}). They are not "
+            "bundled and are not downloaded automatically."
+        )
+    log("building starter traineddata (%d chars)", len(plan.unicharset))
+    starter = build_starter_traineddata(
+        plan.unicharset,
+        work_dir=plan.work_dir,
+        langdata_dir=Path(langdata_dir),
+        env=env,
+    )
 
     log("generating %d training documents", plan.docs)
     train_rows = _build_rows(
@@ -251,10 +289,10 @@ def execute(plan: TrainingPlan, *, logger: "_ty.Any" = None) -> PipelineResult:
         "lstmtraining(probe)",
         [
             "lstmtraining",
-            "--continue_from", str(plan.work_dir / "base.lstm"),
+            "--continue_from", str(base_lstm),
             "--model_output", str(plan.work_dir / "probe"),
-            "--traineddata", str(plan.work_dir / "starter.traineddata"),
-            "--old_traineddata", str(plan.work_dir / "base.traineddata"),
+            "--traineddata", str(starter),
+            "--old_traineddata", str(base_traineddata),
             "--train_listfile", str(train_list),
             "--eval_listfile", str(eval_list),
             "--max_iterations", "20",
@@ -268,10 +306,10 @@ def execute(plan: TrainingPlan, *, logger: "_ty.Any" = None) -> PipelineResult:
         "lstmtraining",
         [
             "lstmtraining",
-            "--continue_from", str(plan.work_dir / "base.lstm"),
+            "--continue_from", str(base_lstm),
             "--model_output", str(plan.work_dir / "model"),
-            "--traineddata", str(plan.work_dir / "starter.traineddata"),
-            "--old_traineddata", str(plan.work_dir / "base.traineddata"),
+            "--traineddata", str(starter),
+            "--old_traineddata", str(base_traineddata),
             "--train_listfile", str(train_list),
             "--eval_listfile", str(eval_list),
             "--perfect_sample_delay", "19",
@@ -294,7 +332,7 @@ def execute(plan: TrainingPlan, *, logger: "_ty.Any" = None) -> PipelineResult:
         [
             "lstmtraining", "--stop_training",
             "--continue_from", str(checkpoints[-1]),
-            "--traineddata", str(plan.work_dir / "starter.traineddata"),
+            "--traineddata", str(starter),
             "--model_output", str(plan.model_path),
         ],
         env=env,
