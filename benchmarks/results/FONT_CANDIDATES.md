@@ -292,6 +292,47 @@ extract → byte-diff`, `benchmarks/e2e_grid.py`, 2 documents/cell:**
   by this sweep (6pt confirmed good for both DejaVu and Consolas on
   base16g) — 4pt, 8-12pt, and any non-60 width remain unconfirmed for the
   actual shipped default.
+
+## Blur-tolerance stress test at `--line-width max` (2026-07-23, local)
+
+Real restore gate over `courier` / `dejavu-sans-mono` / `consolas` × base16g
+× 6pt × `--line-width max` × a blur ladder `[0.0, 0.6, 0.8, 1.0, 1.2, 1.5,
+2.0]`, both engines, `--descan 0` (single pass, NO auto-retry ladder) so the
+result isolates raw blur tolerance from `extract`'s own retry-on-failure
+behavior. The clean/light-blur diagnostic and restore-gate results above
+(6pt, width=60/max) do not by themselves answer "which font survives the
+*worst* realistic scan degradation" — this does. Raw JSON:
+`benchmarks/results/local-blur-stress-20260723/results.json`.
+
+**Breaking-point summary** (last blur radius that still restored
+byte-identical; both engines, `--descan 0`):
+
+| font | tesseract | tesseract-glyphive |
+| --- | --- | --- |
+| dejavu-sans-mono | 1.5 (fails at 2.0) | 1.5 (fails at 2.0) |
+| courier | 1.2 (fails at 1.5) | 1.5 (fails at 2.0) |
+| consolas | **non-monotonic**: fails at 1.0, recovers 1.2, fails again 1.5+ | **non-monotonic**: fails at 1.0, recovers 1.2/1.5, fails at 2.0 |
+
+**Findings:**
+- **DejaVu Sans Mono is the most blur-tolerant of the three at `--line-width
+  max`**, matching Courier's best case (`tesseract-glyphive`) and beating it
+  on plain `tesseract` (1.5 vs 1.2). This is the opposite of what the
+  earlier synthetic `usable_bytes_per_page` numbers alone would suggest
+  weighting toward.
+- **Consolas is NOT a safe worst-case choice despite its strong clean/light
+  results earlier in this file.** It fails at blur 1.0 — well before both
+  other fonts — on BOTH engines, then "recovers" at 1.2/1.5 before failing
+  again at 2.0. A non-monotonic pass/fail pattern (worse then better then
+  worse again as blur increases) is a sign of sitting near an unstable
+  confusion-graph edge, not a real safety margin — do not read the 1.2/1.5
+  "restored" results as evidence Consolas is more robust than this table's
+  breaking point implies. Consolas remains a good choice for a CLEAN scan
+  (per the earlier restore-gate confirmation at 6pt/blur 0), but is not
+  recommended when scan quality is uncertain.
+- **Recommendation for a "survives a bad scan" default: `dejavu-sans-mono`**,
+  not Courier or Consolas — it is both the current shipped default AND the
+  measured winner for worst-case blur tolerance at `--line-width max` on
+  this Tesseract 5.4.0 build.
 - An older sweep (`ocr-e2e-denser-and-4pt-20260719.json`) recorded
   `base16g @ 4pt width=max` restoring byte-identical on stock, but did not
   record which font. This session's data shows font choice at 4pt is NOT

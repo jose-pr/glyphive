@@ -120,6 +120,22 @@ class Create(LoggingArgs):
     "Printable codec name (default: base16g-crc16-rs)."
     ("--codec",)
 
+    mode: "_ty.Literal['conservative', 'standard', 'max']" = "standard"
+    "Measured codec/font/size/width/margin preset (real create->rasterize->"
+    "OCR->extract->diff restore gates, see benchmarks/results/FONT_CANDIDATES.md "
+    "'Local font/size sweep' and 'Blur-tolerance stress test', 2026-07-23): "
+    "'conservative' = base16g-crc16-rs, dejavu-sans-mono, 8pt, --line-width auto "
+    "(OCR-measured-safe cap, <=60), regular margins -- lowest density, matches "
+    "this project's oldest verified-safe baseline. 'standard' (the default) = "
+    "base16g-crc16-rs, dejavu-sans-mono, 6pt, --line-width max, regular margins "
+    "-- the most blur-tolerant combination measured (survives a real blur ladder "
+    "up to radius 1.5 on both engines, beating Courier and Consolas). 'max' = "
+    "the same codec/font/size/width as 'standard' but --minimal-margins for the "
+    "smallest page count -- same measured OCR robustness, less paper. Any of "
+    "--codec/--font/--font-size/--line-width/--minimal-margins passed "
+    "explicitly overrides just that one field from the mode's preset."
+    ("--mode",)
+
     metadata: "_ty.Literal['none', 'basic']" = "none"
     "Archive metadata profile."
     ("--metadata",)
@@ -257,6 +273,45 @@ class Create(LoggingArgs):
         name = self.compression or legacy or _compression.default()
         return name, _select_compression(name)
 
+    #: (codec, font, font_size, line_width, minimal_margins) per --mode.
+    #: Measured 2026-07-23 (real create->rasterize->OCR->extract->diff),
+    #: see benchmarks/results/FONT_CANDIDATES.md "Local font/size sweep" and
+    #: "Blur-tolerance stress test" -- do not hand-edit these numbers without
+    #: a matching restore-gate measurement backing the change.
+    _MODE_PRESETS = {
+        "conservative": ("base16g-crc16-rs", "dejavu-sans-mono", 8.0, "auto", False),
+        "standard": ("base16g-crc16-rs", "dejavu-sans-mono", 6.0, "max", False),
+        "max": ("base16g-crc16-rs", "dejavu-sans-mono", 6.0, "max", True),
+    }
+
+    #: Set True in _apply_mode when line_width came from the mode's preset
+    #: rather than an explicit --line-width -- see _resolve_line_width's use
+    #: of it to degrade 'max' to 'auto' (instead of erroring) on a format
+    #: with no geometric metrics, since the mode is meant to be a sensible
+    #: default across every output format, not just PDF.
+    _line_width_from_mode = False
+
+    def _apply_mode(self) -> None:
+        """Fill in codec/font/font_size/line_width/minimal_margins from
+        --mode, for whichever of those fields is still at its own bare
+        class default (i.e. was not explicitly passed) -- an explicit flag
+        always wins over the mode's preset for that one field.
+        """
+        codec, font, font_size, line_width, minimal_margins = self._MODE_PRESETS[
+            self.mode
+        ]
+        if self.codec == type(self).codec:
+            self.codec = codec
+        if self.font is None:
+            self.font = font
+        if self.font_size == type(self).font_size:
+            self.font_size = font_size
+        if self.line_width is None:
+            self.line_width = line_width
+            self._line_width_from_mode = True
+        if self.minimal_margins == type(self).minimal_margins:
+            self.minimal_margins = minimal_margins
+
     _SIMPLE_PARITY_RATIO = 0.04
 
     def _parity_ratio_selection(self) -> float:
@@ -277,9 +332,14 @@ class Create(LoggingArgs):
         """Resolve --line-width auto|max|<int> to a concrete payload width.
 
         ``auto`` (or omitted) = the OCR-measured-safe capacity (≤60). ``max`` =
-        the renderer's uncapped geometric fit (may exceed 60, unmeasured), or a
-        hard error on a format with no geometric metrics. An integer above the
-        safe cap needs ``--force`` and must still fit the geometric width.
+        the renderer's uncapped geometric fit (may exceed 60, unmeasured). On
+        a format with no geometric metrics (text/docx/qr), an EXPLICIT
+        ``--line-width max`` is a hard error naming the limitation; a ``max``
+        that came from ``--mode``'s preset (no explicit ``--line-width``)
+        instead degrades quietly to ``auto`` -- the mode is meant to be a
+        sensible default across every output format, not a PDF-only demand.
+        An integer above the safe cap needs ``--force`` and must still fit
+        the geometric width.
         """
         raw = self.line_width
         if raw is None or raw == "auto":
@@ -293,6 +353,8 @@ class Create(LoggingArgs):
                 nsym_line=self.line_parity,
             )
             if geometric is None:
+                if self._line_width_from_mode:
+                    return measured_capacity or 60
                 raise SystemExit(
                     "error: --line-width max needs a format with physical font "
                     "metrics (PDF); use 'auto' or an explicit integer for "
@@ -331,6 +393,7 @@ class Create(LoggingArgs):
         return width
 
     def __call__(self) -> int:
+        self._apply_mode()
         codec_name = self.codec
         codec = _select_codec(codec_name)
         if codec_name != "base16g-crc16-rs":
