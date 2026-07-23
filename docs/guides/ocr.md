@@ -32,8 +32,7 @@ Omit `--ocr-engine` to select the highest-preference available provider. The
 CLI accepts one file or a directory of direct child files. It automatically
 distinguishes UTF-8 transcripts, common images, PDFs, and DOCX documents; mixed
 directories are processed in sorted order. `glyphive list` accepts the same
-inputs and `--ocr-engine` option. Use `--from-images` only when an explicit
-all-images override is useful.
+inputs and `--ocr-engine` option.
 
 `ocr_vote()` can combine line-level output from several engines, but its result
 is only a candidate transcript. Agreement between engines is not proof; the

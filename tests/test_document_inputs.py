@@ -56,13 +56,13 @@ def _write_real_png(path):
     Image.new("RGB", (4, 4), color="white").save(str(path), format="PNG")
 
 
-def test_image_ocr_passes_spine_avoids_reocr_of_its_own_radius(tmp_path, monkeypatch):
+def test_input_ocr_passes_spine_avoids_reocr_of_its_own_radius(tmp_path, monkeypatch):
     """A ``spine`` is merged in without OCR'ing it again -- only ``blur``'s
     radii are OCR'd. Regression for the auto-descan retry: the sharp (0.0)
     pass must not be repeated when it is threaded back in as the spine.
     """
     from glyphive import codec
-    from glyphive.cli._common import _image_ocr_passes
+    from glyphive.cli._common import _input_ocr_passes
     from glyphive.restore import ocr
 
     image = tmp_path / "photo.png"
@@ -80,7 +80,7 @@ def test_image_ocr_passes_spine_avoids_reocr_of_its_own_radius(tmp_path, monkeyp
 
     monkeypatch.setattr(ocr, "ocr_pages", counting_ocr_pages)
 
-    result = _image_ocr_passes(image, blur=[0.6, 0.8], spine=[spine_frame])
+    result = _input_ocr_passes(image, blur=[0.6, 0.8], spine=[spine_frame])
 
     # OCR ran exactly once per NEW radius (0.6, 0.8) -- never for the spine's
     # own (0.0) pass, which was supplied pre-computed instead of re-OCR'd.
@@ -90,13 +90,13 @@ def test_image_ocr_passes_spine_avoids_reocr_of_its_own_radius(tmp_path, monkeyp
     assert texts == [spine_frame, extra_frame]
 
 
-def test_image_ocr_passes_spine_matches_prior_full_sweep_behavior(tmp_path, monkeypatch):
+def test_input_ocr_passes_spine_matches_prior_full_sweep_behavior(tmp_path, monkeypatch):
     """The spine-based retry produces the SAME merged lines, in the SAME
     order, as the old approach of re-OCRing radius 0.0 alongside 0.6/0.8 --
     only the redundant extra OCR call is removed, not the recovered data.
     """
     from glyphive import codec
-    from glyphive.cli._common import _image_ocr_passes
+    from glyphive.cli._common import _input_ocr_passes
     from glyphive.restore import ocr
 
     image = tmp_path / "photo.png"
@@ -115,7 +115,7 @@ def test_image_ocr_passes_spine_matches_prior_full_sweep_behavior(tmp_path, monk
 
     monkeypatch.setattr(ocr, "ocr_pages", ocr_by_call_order_full)
     old_result = [
-        line.text for line in _image_ocr_passes(image, blur=[0.0, 0.6, 0.8])
+        line.text for line in _input_ocr_passes(image, blur=[0.0, 0.6, 0.8])
     ]
 
     # --- New behavior: sharp pass precomputed, retry only OCRs 0.6/0.8. ---
@@ -125,7 +125,7 @@ def test_image_ocr_passes_spine_matches_prior_full_sweep_behavior(tmp_path, monk
     monkeypatch.setattr(ocr, "ocr_pages", ocr_by_call_order_extra)
     new_result = [
         line.text
-        for line in _image_ocr_passes(image, blur=[0.6, 0.8], spine=[sharp_frame])
+        for line in _input_ocr_passes(image, blur=[0.6, 0.8], spine=[sharp_frame])
     ]
 
     assert new_result == old_result
@@ -264,6 +264,86 @@ def test_docx_transcript_is_read_directly_and_diagnostic_pages_render(tmp_path):
     outputs = render_document_images(source, tmp_path / "pages", dpi=72)
     assert [path.name for path in outputs] == ["scan-0001.png", "scan-0002.png"]
     assert all(path.read_bytes().startswith(b"\x89PNG") for path in outputs)
+
+
+def _write_glyphive_pdf(path, data: bytes):
+    import hashlib
+
+    from glyphive import codec, layout
+    from glyphive.render.formats.pdf import PdfRenderFormat
+
+    encoded = codec.get("base16g-crc16-rs").encode(data)
+    meta = {
+        "codec": "base16g-crc16-rs", "comp": "none", "meta": "none",
+        "files": 1, "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    pages = list(layout.paginate(encoded, meta, lines_per_page=14))
+    PdfRenderFormat().render(pages, str(path))
+
+
+def test_pdf_text_layer_is_read_directly_without_ocr(tmp_path, monkeypatch):
+    """A PDF glyphive itself rendered has a real embedded text layer --
+    ``load_input_lines`` must read it directly and never call the OCR
+    engine, which finding 2 flagged as wasted rasterize+OCR work.
+    """
+    from glyphive import codec
+    from glyphive.cli._common import load_input_lines
+    from glyphive.restore import ocr
+
+    data = b"pdf text layer bypasses ocr entirely " * 10
+    source = tmp_path / "doc.pdf"
+    _write_glyphive_pdf(source, data)
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("OCR must not run when a text layer is present")
+
+    monkeypatch.setattr(ocr, "ocr_pages", fail_if_called)
+
+    from glyphive import layout as _layout
+
+    lines = load_input_lines(source)
+    meta, encoded_lines = _layout.read_pages(lines)
+    assert codec.get(meta["codec"]).decode(encoded_lines) == data
+
+
+def test_pdf_without_glyphive_text_layer_falls_back_to_ocr(tmp_path, monkeypatch):
+    """A PDF with no glyphive header in its text layer (e.g. a scanned photo
+    saved as PDF, with no embedded text at all) must still rasterize+OCR --
+    the text-layer bypass must not swallow that case silently.
+    """
+    from glyphive.cli import _common
+    from glyphive.restore import ocr
+
+    try:
+        import fpdf
+    except ImportError:
+        pytest.skip("fpdf2 not installed")
+
+    source = tmp_path / "scanned.pdf"
+    pdf = fpdf.FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=12)
+    pdf.cell(text="just a random unrelated document, not glyphive output")
+    pdf.output(str(source))
+
+    seen = {}
+
+    def fake_render(path, destination, *, blur=0.0):
+        seen["render"] = path.name
+        return [destination / "scanned-0001.png"]
+
+    def fake_ocr(paths, *, engine=None):
+        seen.setdefault("ocr", []).append([path.name for path in paths])
+        return [["line-from-ocr"]]
+
+    monkeypatch.setattr(
+        "glyphive.restore.document_images.render_document_images", fake_render
+    )
+    monkeypatch.setattr(ocr, "ocr_pages", fake_ocr)
+
+    assert _common.load_input_lines(source) == ["line-from-ocr"]
+    assert seen["render"] == "scanned.pdf"
 
 
 @pytest.mark.parametrize("dpi,blur", [(0, 0), (300, -1)])

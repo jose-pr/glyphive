@@ -382,7 +382,6 @@ def real_restore_trial(cell: Cell, source_path: "Path", work_dir: "Path") -> Doc
         "extract",
         "-f",
         str(image_dir),
-        "--from-images",
         "--ocr-engine",
         cell.engine,
         "-C",

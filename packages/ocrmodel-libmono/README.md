@@ -8,7 +8,7 @@ fine-tuned for **Liberation Mono** renderings of the base16g alphabet.
 
 ```bash
 pip install glyphive-ocrmodel-libmono
-glyphive extract -f scan/ --from-images --ocr-engine tesseract-glyphive-libmono -C out
+glyphive extract -f scan/ --ocr-engine tesseract-glyphive-libmono -C out
 ```
 
 Installing it registers a `tesseract-glyphive-libmono` OCR provider through the

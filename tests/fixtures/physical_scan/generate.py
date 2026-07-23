@@ -13,10 +13,10 @@ Regenerate the fixture with:
 
 This overwrites ``pages/*.png``, ``MANIFEST.txt``, and ``payload.bin`` in this
 directory (not this script itself). Page images live in the ``pages/``
-subdirectory (not this directory directly) so ``extract --from-images`` can
-point at a directory containing only images -- ``_input_files`` treats every
-direct-child file of an image directory as a candidate page. After
-regenerating, re-run the Phase 2 gate test in
+subdirectory (not this directory directly) so ``extract`` can point at a
+directory containing only images (auto-detected by magic bytes) --
+``_input_files`` treats every direct-child file of an image directory as a
+candidate page. After regenerating, re-run the Phase 2 gate test in
 ``tests/test_ocr_transcripts.py`` (with Tesseract on PATH) to confirm the
 fixture still restores byte-for-byte before committing.
 
@@ -28,7 +28,7 @@ Degradation parameters (deterministic, no randomness):
 These were chosen to be representative of real phone-scan artifacts (blur,
 slight skew -- the failure modes real photographed pages exhibit that clean
 rasterization does not) while still restoring
-reliably through ``extract --from-images --ocr-engine tesseract-glyphive``
+reliably through ``extract --ocr-engine tesseract-glyphive``
 with the auto ``--descan`` retry ladder (``[0.0, 0.6, 0.8]``). If a future
 change to this script increases the degradation, re-verify the fixture still
 restores -- the gate must PASS on healthy code, so degradation must never be

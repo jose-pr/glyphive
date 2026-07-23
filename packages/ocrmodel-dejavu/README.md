@@ -8,7 +8,7 @@ fine-tuned for **DejaVu Sans Mono** renderings of the base16g alphabet.
 
 ```bash
 pip install glyphive-ocrmodel-dejavu
-glyphive extract -f scan/ --from-images --ocr-engine tesseract-glyphive-dejavu -C out
+glyphive extract -f scan/ --ocr-engine tesseract-glyphive-dejavu -C out
 ```
 
 Installing it registers a `tesseract-glyphive-dejavu` OCR provider through the

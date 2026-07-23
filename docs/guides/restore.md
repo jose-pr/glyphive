@@ -119,7 +119,7 @@ even on an otherwise-good scan. A light Gaussian blur softens the glyph edges
 enough for reliable OCR — and **this happens automatically by default**:
 
 ```bash
-glyphive extract -f photos/ --from-images -C restored   # auto-retries with blur
+glyphive extract -f photos/ -C restored   # auto-retries with blur
 ```
 
 With the default `--descan auto`, `extract` and `list` first try a single sharp
@@ -145,12 +145,13 @@ deterministic filename order. Each file is detected independently using content
 signatures first, its extension second, and UTF-8 text as the fallback. This
 allows extensionless or renamed common images and PDFs to be read correctly.
 
-PDF pages are rendered with `pypdfium2`. Glyphive-generated DOCX paragraph
-transcripts are read directly with `python-docx`, so restore does not require
-Microsoft Word or LibreOffice. The separate image-conversion helper can produce
-a diagnostic DOCX re-render, but it is not a Word-layout compatibility test.
-`--from-images` remains available as an explicit override when every supplied
-file is an image. See [OCR](ocr.md).
+A Glyphive-generated PDF's embedded text layer is read directly (no
+rasterize/OCR) when its `#!glyphive` header is present in that layer;
+otherwise the PDF is rendered with `pypdfium2` and OCR'd like any other image
+input. Glyphive-generated DOCX paragraph transcripts are read directly with
+`python-docx`, so restore does not require Microsoft Word or LibreOffice. The
+separate image-conversion helper can produce a diagnostic DOCX re-render, but
+it is not a Word-layout compatibility test. See [OCR](ocr.md).
 
 ## Whole-page recovery (parity pages)
 

@@ -8,7 +8,7 @@ fine-tuned for **OCR-B** renderings of the base16g alphabet.
 
 ```bash
 pip install glyphive-ocrmodel-ocrb
-glyphive extract -f scan/ --from-images --ocr-engine tesseract-glyphive-ocrb -C out
+glyphive extract -f scan/ --ocr-engine tesseract-glyphive-ocrb -C out
 ```
 
 Installing it registers a `tesseract-glyphive-ocrb` OCR provider through the

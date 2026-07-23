@@ -7,7 +7,7 @@ import zipfile
 
 from pathlib_next import Path
 
-__all__ = ["read_docx_lines", "render_document_images"]
+__all__ = ["read_docx_lines", "read_pdf_text_lines", "render_document_images"]
 
 
 def render_document_images(
@@ -76,6 +76,50 @@ def _read_docx_pages(source: "Path") -> _ty.List[_ty.List[str]]:
         if paragraph.text:
             pages[-1].append(paragraph.text)
     return [page for page in pages if page]
+
+
+def read_pdf_text_lines(source: _ty.Union[str, "Path"]) -> _ty.List[str]:
+    """Read a PDF's embedded text layer directly, without rasterizing/OCR.
+
+    A PDF glyphive itself created (the ``fpdf2``/``pdf`` render extra) embeds
+    real text glyphs, not just their rasterized appearance -- pypdfium2 can
+    read that layer back verbatim, byte-for-byte, which is both cheaper and
+    more reliable than rasterizing every page and running OCR over it. Raises
+    ``ValueError`` if the PDF carries no ``#!glyphive`` header line on any
+    page's extracted text -- the caller's signal that this PDF likely has no
+    usable text layer (e.g. a photographed/scanned document with only a
+    picture of text) and should fall back to :func:`render_document_images`
+    + OCR instead of trusting this function's output.
+    """
+    try:
+        import pypdfium2
+    except ImportError as exc:  # pragma: no cover - environment dependent
+        raise RuntimeError(
+            "PDF text-layer reading requires pypdfium2; install "
+            "glyphive[document-input]"
+        ) from exc
+
+    from ..layout import HEADER_PREFIX
+
+    document = pypdfium2.PdfDocument(str(Path(source)))
+    lines: _ty.List[str] = []
+    try:
+        for page in document:
+            textpage = page.get_textpage()
+            try:
+                lines.extend(textpage.get_text_range().splitlines())
+            finally:
+                textpage.close()
+            page.close()
+    finally:
+        document.close()
+    if not any(line.startswith(HEADER_PREFIX) for line in lines):
+        raise ValueError(
+            f"{source} has no readable {HEADER_PREFIX!r} header in its PDF "
+            "text layer; likely a scanned/photographed document with no "
+            "usable embedded text -- rasterize and OCR it instead"
+        )
+    return lines
 
 
 def read_docx_lines(source: _ty.Union[str, "Path"]) -> _ty.List[str]:
