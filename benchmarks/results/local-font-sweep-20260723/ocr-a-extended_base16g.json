@@ -1,0 +1,2015 @@
+{
+  "results": [
+    {
+      "font_arg": "C:\\Windows\\Fonts\\OCRAEXT.TTF",
+      "font_label": "OCRAEXT.TTF",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 4.0,
+      "rows": 60,
+      "line_length": 219,
+      "chars_per_line": 219,
+      "lines_per_page": 150,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.7333333333333333,
+      "length_mismatches": 44,
+      "per_char": {
+        "A": {
+          "samples": 200,
+          "errors": 12,
+          "error_rate": 0.06,
+          "misreads": [
+            {
+              "target": "3",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "N",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 783,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "B": {
+          "samples": 225,
+          "errors": 9,
+          "error_rate": 0.04,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 831,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "C": {
+          "samples": 214,
+          "errors": 16,
+          "error_rate": 0.07476635514018691,
+          "misreads": [
+            {
+              "target": "H",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 852,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "D": {
+          "samples": 250,
+          "errors": 20,
+          "error_rate": 0.08,
+          "misreads": [
+            {
+              "target": "L",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 842,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "H": {
+          "samples": 251,
+          "errors": 19,
+          "error_rate": 0.07569721115537849,
+          "misreads": [
+            {
+              "target": "V",
+              "count": 5,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 878,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "K": {
+          "samples": 211,
+          "errors": 16,
+          "error_rate": 0.07582938388625593,
+          "misreads": [
+            {
+              "target": "X",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "3",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 789,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "L": {
+          "samples": 206,
+          "errors": 12,
+          "error_rate": 0.05825242718446602,
+          "misreads": [
+            {
+              "target": "R",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 814,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 9
+        },
+        "M": {
+          "samples": 197,
+          "errors": 51,
+          "error_rate": 0.25888324873096447,
+          "misreads": [
+            {
+              "target": "N",
+              "count": 34,
+              "corrupting": false
+            },
+            {
+              "target": "H",
+              "count": 7,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "I",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 838,
+          "deletions": 3,
+          "deletion_rate": 0.003579952267303103,
+          "insertion_adjacent": 26
+        },
+        "P": {
+          "samples": 231,
+          "errors": 20,
+          "error_rate": 0.08658008658008658,
+          "misreads": [
+            {
+              "target": "V",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "3",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 845,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "R": {
+          "samples": 221,
+          "errors": 15,
+          "error_rate": 0.06787330316742081,
+          "misreads": [
+            {
+              "target": "D",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 817,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "T": {
+          "samples": 215,
+          "errors": 10,
+          "error_rate": 0.046511627906976744,
+          "misreads": [
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 827,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "V": {
+          "samples": 233,
+          "errors": 27,
+          "error_rate": 0.11587982832618025,
+          "misreads": [
+            {
+              "target": "P",
+              "count": 5,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 818,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "X": {
+          "samples": 181,
+          "errors": 8,
+          "error_rate": 0.04419889502762431,
+          "misreads": [
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 778,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "Y": {
+          "samples": 238,
+          "errors": 17,
+          "error_rate": 0.07142857142857142,
+          "misreads": [
+            {
+              "target": "4",
+              "count": 4,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 846,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "3": {
+          "samples": 222,
+          "errors": 65,
+          "error_rate": 0.2927927927927928,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 34,
+              "corrupting": false
+            },
+            {
+              "target": "A",
+              "count": 18,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "D",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 802,
+          "deletions": 8,
+          "deletion_rate": 0.00997506234413965,
+          "insertion_adjacent": 3
+        },
+        "4": {
+          "samples": 209,
+          "errors": 96,
+          "error_rate": 0.45933014354066987,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 77,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 6,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "T",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "V",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 780,
+          "deletions": 3,
+          "deletion_rate": 0.0038461538461538464,
+          "insertion_adjacent": 20
+        }
+      },
+      "safe": "",
+      "safe_len": 0,
+      "usable_radix": 0,
+      "effective_bits": 0.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.0,
+      "corrupting_pairs": [
+        [
+          "A",
+          "3",
+          2
+        ],
+        [
+          "A",
+          "B",
+          1
+        ],
+        [
+          "A",
+          "L",
+          1
+        ],
+        [
+          "A",
+          "V",
+          1
+        ],
+        [
+          "B",
+          "Y",
+          2
+        ],
+        [
+          "B",
+          "T",
+          1
+        ],
+        [
+          "B",
+          "H",
+          1
+        ],
+        [
+          "B",
+          "D",
+          1
+        ],
+        [
+          "B",
+          "V",
+          1
+        ],
+        [
+          "C",
+          "H",
+          4
+        ],
+        [
+          "C",
+          "P",
+          4
+        ],
+        [
+          "C",
+          "V",
+          3
+        ],
+        [
+          "C",
+          "T",
+          2
+        ],
+        [
+          "C",
+          "D",
+          1
+        ],
+        [
+          "D",
+          "L",
+          3
+        ],
+        [
+          "D",
+          "K",
+          2
+        ],
+        [
+          "D",
+          "Y",
+          2
+        ],
+        [
+          "D",
+          "A",
+          2
+        ],
+        [
+          "D",
+          "H",
+          2
+        ],
+        [
+          "H",
+          "V",
+          5
+        ],
+        [
+          "H",
+          "D",
+          3
+        ],
+        [
+          "H",
+          "X",
+          3
+        ],
+        [
+          "H",
+          "B",
+          2
+        ],
+        [
+          "H",
+          "T",
+          2
+        ],
+        [
+          "K",
+          "X",
+          2
+        ],
+        [
+          "K",
+          "V",
+          2
+        ],
+        [
+          "K",
+          "D",
+          2
+        ],
+        [
+          "K",
+          "A",
+          2
+        ],
+        [
+          "K",
+          "3",
+          1
+        ],
+        [
+          "L",
+          "R",
+          3
+        ],
+        [
+          "L",
+          "Y",
+          2
+        ],
+        [
+          "L",
+          "H",
+          2
+        ],
+        [
+          "L",
+          "M",
+          1
+        ],
+        [
+          "L",
+          "V",
+          1
+        ],
+        [
+          "M",
+          "H",
+          7
+        ],
+        [
+          "M",
+          "Y",
+          1
+        ],
+        [
+          "M",
+          "L",
+          1
+        ],
+        [
+          "P",
+          "V",
+          4
+        ],
+        [
+          "P",
+          "D",
+          3
+        ],
+        [
+          "P",
+          "M",
+          3
+        ],
+        [
+          "P",
+          "3",
+          2
+        ],
+        [
+          "P",
+          "C",
+          2
+        ],
+        [
+          "R",
+          "D",
+          3
+        ],
+        [
+          "R",
+          "L",
+          2
+        ],
+        [
+          "R",
+          "B",
+          2
+        ],
+        [
+          "R",
+          "P",
+          2
+        ],
+        [
+          "R",
+          "Y",
+          2
+        ],
+        [
+          "T",
+          "H",
+          2
+        ],
+        [
+          "T",
+          "V",
+          2
+        ],
+        [
+          "T",
+          "C",
+          2
+        ],
+        [
+          "T",
+          "B",
+          1
+        ],
+        [
+          "T",
+          "L",
+          1
+        ],
+        [
+          "V",
+          "P",
+          5
+        ],
+        [
+          "V",
+          "K",
+          4
+        ],
+        [
+          "V",
+          "D",
+          3
+        ],
+        [
+          "V",
+          "Y",
+          3
+        ],
+        [
+          "V",
+          "A",
+          2
+        ],
+        [
+          "X",
+          "H",
+          2
+        ],
+        [
+          "X",
+          "V",
+          2
+        ],
+        [
+          "X",
+          "C",
+          1
+        ],
+        [
+          "X",
+          "L",
+          1
+        ],
+        [
+          "X",
+          "Y",
+          1
+        ],
+        [
+          "Y",
+          "4",
+          4
+        ],
+        [
+          "Y",
+          "R",
+          3
+        ],
+        [
+          "Y",
+          "C",
+          3
+        ],
+        [
+          "Y",
+          "P",
+          2
+        ],
+        [
+          "Y",
+          "A",
+          1
+        ],
+        [
+          "3",
+          "A",
+          18
+        ],
+        [
+          "3",
+          "C",
+          2
+        ],
+        [
+          "3",
+          "K",
+          2
+        ],
+        [
+          "3",
+          "D",
+          2
+        ],
+        [
+          "4",
+          "Y",
+          77
+        ],
+        [
+          "4",
+          "H",
+          6
+        ],
+        [
+          "4",
+          "A",
+          2
+        ],
+        [
+          "4",
+          "T",
+          2
+        ],
+        [
+          "4",
+          "V",
+          2
+        ]
+      ],
+      "drop_pairs": [
+        [
+          "3",
+          8,
+          0.00997506234413965
+        ],
+        [
+          "4",
+          3,
+          0.0038461538461538464
+        ],
+        [
+          "M",
+          3,
+          0.003579952267303103
+        ]
+      ],
+      "chars_per_page": 32850,
+      "bytes_per_page": 0.0,
+      "usable_bytes_per_page": 0.0,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "C:\\Windows\\Fonts\\OCRAEXT.TTF",
+      "font_label": "OCRAEXT.TTF",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 6.0,
+      "rows": 60,
+      "line_length": 146,
+      "chars_per_line": 146,
+      "lines_per_page": 100,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.9166666666666666,
+      "length_mismatches": 55,
+      "per_char": {
+        "A": {
+          "samples": 45,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 509,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "B": {
+          "samples": 52,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 560,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "C": {
+          "samples": 48,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 581,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "D": {
+          "samples": 33,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 557,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "H": {
+          "samples": 54,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 594,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "K": {
+          "samples": 45,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 519,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "L": {
+          "samples": 48,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 534,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "M": {
+          "samples": 47,
+          "errors": 1,
+          "error_rate": 0.02127659574468085,
+          "misreads": [
+            {
+              "target": "N",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 539,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 10
+        },
+        "P": {
+          "samples": 38,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 575,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "R": {
+          "samples": 43,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 539,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "T": {
+          "samples": 50,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 547,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "V": {
+          "samples": 42,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 552,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "X": {
+          "samples": 50,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 532,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "Y": {
+          "samples": 49,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 559,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "3": {
+          "samples": 37,
+          "errors": 15,
+          "error_rate": 0.40540540540540543,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 12,
+              "corrupting": false
+            },
+            {
+              "target": "I",
+              "count": 2,
+              "corrupting": false
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 542,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 56
+        },
+        "4": {
+          "samples": 49,
+          "errors": 35,
+          "error_rate": 0.7142857142857143,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 35,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 521,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 73
+        }
+      },
+      "safe": "BCDHKLPRTVX",
+      "safe_len": 11,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "3",
+          "A",
+          1
+        ],
+        [
+          "4",
+          "Y",
+          35
+        ]
+      ],
+      "drop_pairs": [],
+      "chars_per_page": 14600,
+      "bytes_per_page": 5475.0,
+      "usable_bytes_per_page": 456.2500000000002,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "C:\\Windows\\Fonts\\OCRAEXT.TTF",
+      "font_label": "OCRAEXT.TTF",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 8.0,
+      "rows": 60,
+      "line_length": 109,
+      "chars_per_line": 109,
+      "lines_per_page": 75,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.9833333333333333,
+      "length_mismatches": 59,
+      "per_char": {
+        "A": {
+          "samples": 11,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 383,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "B": {
+          "samples": 7,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 439,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "C": {
+          "samples": 5,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 437,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "D": {
+          "samples": 3,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 428,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "H": {
+          "samples": 4,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 436,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "K": {
+          "samples": 10,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 357,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "L": {
+          "samples": 6,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 396,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "M": {
+          "samples": 9,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 375,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 11
+        },
+        "P": {
+          "samples": 6,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 444,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "R": {
+          "samples": 8,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 390,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "T": {
+          "samples": 6,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 408,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "V": {
+          "samples": 4,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 401,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "X": {
+          "samples": 4,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 409,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "Y": {
+          "samples": 13,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 444,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "3": {
+          "samples": 7,
+          "errors": 3,
+          "error_rate": 0.42857142857142855,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 3,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 410,
+          "deletions": 1,
+          "deletion_rate": 0.0024390243902439024,
+          "insertion_adjacent": 85
+        },
+        "4": {
+          "samples": 6,
+          "errors": 5,
+          "error_rate": 0.8333333333333334,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 5,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 383,
+          "deletions": 4,
+          "deletion_rate": 0.010443864229765013,
+          "insertion_adjacent": 76
+        }
+      },
+      "safe": "ABCDHKLMPRTVX",
+      "safe_len": 13,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "4",
+          "Y",
+          5
+        ]
+      ],
+      "drop_pairs": [
+        [
+          "4",
+          4,
+          0.010443864229765013
+        ],
+        [
+          "3",
+          1,
+          0.0024390243902439024
+        ]
+      ],
+      "chars_per_page": 8175,
+      "bytes_per_page": 3065.625,
+      "usable_bytes_per_page": 51.093750000000156,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "C:\\Windows\\Fonts\\OCRAEXT.TTF",
+      "font_label": "OCRAEXT.TTF",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 10.0,
+      "rows": 60,
+      "line_length": 87,
+      "chars_per_line": 87,
+      "lines_per_page": 60,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.9166666666666666,
+      "length_mismatches": 55,
+      "per_char": {
+        "A": {
+          "samples": 28,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 311,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "B": {
+          "samples": 33,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 339,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "C": {
+          "samples": 35,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 351,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "D": {
+          "samples": 29,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 340,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "H": {
+          "samples": 24,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 343,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "K": {
+          "samples": 23,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 296,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "L": {
+          "samples": 21,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 293,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "M": {
+          "samples": 27,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 301,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 7
+        },
+        "P": {
+          "samples": 31,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 354,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "R": {
+          "samples": 24,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 312,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "T": {
+          "samples": 33,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 331,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "V": {
+          "samples": 26,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 324,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "X": {
+          "samples": 27,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 332,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "Y": {
+          "samples": 27,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 345,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "3": {
+          "samples": 23,
+          "errors": 10,
+          "error_rate": 0.43478260869565216,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 7,
+              "corrupting": false
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "I",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 335,
+          "deletions": 1,
+          "deletion_rate": 0.0029850746268656717,
+          "insertion_adjacent": 89
+        },
+        "4": {
+          "samples": 24,
+          "errors": 23,
+          "error_rate": 0.9583333333333334,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 22,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 313,
+          "deletions": 1,
+          "deletion_rate": 0.003194888178913738,
+          "insertion_adjacent": 56
+        }
+      },
+      "safe": "BCDKLMPRTVX",
+      "safe_len": 11,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "3",
+          "A",
+          2
+        ],
+        [
+          "4",
+          "Y",
+          22
+        ],
+        [
+          "4",
+          "H",
+          1
+        ]
+      ],
+      "drop_pairs": [
+        [
+          "4",
+          1,
+          0.003194888178913738
+        ],
+        [
+          "3",
+          1,
+          0.0029850746268656717
+        ]
+      ],
+      "chars_per_page": 5220,
+      "bytes_per_page": 1957.5,
+      "usable_bytes_per_page": 163.12500000000009,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "C:\\Windows\\Fonts\\OCRAEXT.TTF",
+      "font_label": "OCRAEXT.TTF",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34",
+      "alphabet_len": 16,
+      "dpi": 300,
+      "size": 12.0,
+      "rows": 60,
+      "line_length": 73,
+      "chars_per_line": 73,
+      "lines_per_page": 50,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.8666666666666667,
+      "length_mismatches": 52,
+      "per_char": {
+        "A": {
+          "samples": 40,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 262,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "B": {
+          "samples": 42,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 278,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "C": {
+          "samples": 43,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 290,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "D": {
+          "samples": 50,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 281,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "H": {
+          "samples": 45,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 292,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "K": {
+          "samples": 29,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 255,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "L": {
+          "samples": 30,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 244,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "M": {
+          "samples": 35,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 255,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "P": {
+          "samples": 46,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 298,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "R": {
+          "samples": 42,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 270,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "T": {
+          "samples": 41,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 279,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "V": {
+          "samples": 32,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 275,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "X": {
+          "samples": 19,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 269,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "Y": {
+          "samples": 33,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 284,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "3": {
+          "samples": 32,
+          "errors": 14,
+          "error_rate": 0.4375,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 11,
+              "corrupting": false
+            },
+            {
+              "target": "A",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "I",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 283,
+          "deletions": 1,
+          "deletion_rate": 0.0035335689045936395,
+          "insertion_adjacent": 75
+        },
+        "4": {
+          "samples": 25,
+          "errors": 22,
+          "error_rate": 0.88,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 20,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 265,
+          "deletions": 2,
+          "deletion_rate": 0.007547169811320755,
+          "insertion_adjacent": 56
+        }
+      },
+      "safe": "BCDKLMPRTVX",
+      "safe_len": 11,
+      "usable_radix": 8,
+      "effective_bits": 3.0,
+      "nominal_bits": 4.0,
+      "efficiency": 0.75,
+      "corrupting_pairs": [
+        [
+          "3",
+          "A",
+          2
+        ],
+        [
+          "4",
+          "Y",
+          20
+        ],
+        [
+          "4",
+          "H",
+          2
+        ]
+      ],
+      "drop_pairs": [
+        [
+          "4",
+          2,
+          0.007547169811320755
+        ],
+        [
+          "3",
+          1,
+          0.0035335689045936395
+        ]
+      ],
+      "chars_per_page": 3650,
+      "bytes_per_page": 1368.75,
+      "usable_bytes_per_page": 182.49999999999997,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "tesseract"
+    ],
+    "dense": {
+      "font": "OCRAEXT.TTF",
+      "size": 6.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "BCDHKLPRTVX",
+      "safe_len": 11,
+      "usable_radix": 8,
+      "bytes_per_page": 5475.0,
+      "usable_bytes_per_page": 456.2500000000002,
+      "line_insert_rate": 0.9166666666666666,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "OCRAEXT.TTF",
+      "size": 6.0,
+      "charset": "custom",
+      "engines": [
+        "tesseract"
+      ],
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "BCDHKLPRTVX",
+      "safe_len": 11,
+      "usable_radix": 8,
+      "bytes_per_page": 5475.0,
+      "usable_bytes_per_page": 456.2500000000002,
+      "line_insert_rate": 0.9166666666666666
+    },
+    "retype": {
+      "font": "OCRAEXT.TTF",
+      "size": 12.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "BCDKLMPRTVX",
+      "safe_len": 11,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}

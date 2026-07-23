@@ -364,7 +364,9 @@ def rasterize_and_ocr(
                 text = pytesseract.image_to_string(image, config=config)
                 all_lines.extend(line for line in text.splitlines() if line.strip())
             else:
-                all_lines.extend(provider.ocr_image(png_path))
+                # ocr_image returns List[OcrLine] (text + optional per-char
+                # confidence, plan 3) -- this tool only needs the text.
+                all_lines.extend(line.text for line in provider.ocr_image(png_path))
     finally:
         doc.close()
     return all_lines

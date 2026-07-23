@@ -105,10 +105,11 @@ density is not recoverable density), and pick OCR-B for the smallest sizes.
 > evaluation (2026-07-19 through 2026-07-22) settled what a trained model buys
 > over stock Tesseract, and the answer is nothing:
 > - `base16g` restores byte-for-byte on stock down to 4pt and across row widths.
-> - `base32g` **also restores on stock** as of the current format — earlier
->   measurements that showed it needing a model predate the decode hardening,
->   machine-frame Reed-Solomon and final-line padding fixes, which is what moved
->   it from model-required to stock-viable. See its font limits below.
+> - `base32g` **was measured to restore on stock as of the 2026-07-22 format
+>   fixes, on Tesseract 4.1.1** — but a 2026-07-23 re-gate on Tesseract 5.4.0
+>   found it failing at the same sizes that measurement recorded as passing
+>   (see the warning below). Currently NOT recommended pending re-resolution
+>   — use `base16g` instead.
 > - `base64`/`base64g` cannot be rescued by a model at all: no conflict-free
 >   64-glyph set exists in printable ASCII (the maximum mutually-distinct set is
 >   55, 52 usable), so their alphabets must double-book OCR-confusable classes.
@@ -120,21 +121,31 @@ density is not recoverable density), and pick OCR-B for the smallest sizes.
 > relied on. Stock `tesseract-glyphive` is the recommended engine for every
 > codec.
 
-### Choosing a denser codec: `base32g` is Courier-only
+### Choosing a denser codec: `base32g` currently NOT recommended (2026-07-23)
+
+> **Do not use `base32g` on stock OCR right now.** A re-gate on
+> 2026-07-23 (`benchmarks/results/FONT_CANDIDATES.md`, "Local font/size
+> sweep") found that Courier itself — the only font ever confirmed to work —
+> **fails to restore `base32g` at 8pt and 10pt/width-60 on Tesseract
+> 5.4.0**, the exact cells the table below (measured on Tesseract 4.1.1)
+> recorded as passing. A base16g Courier sanity control on the same setup
+> restored fine, so this is `base32g` regressing between Tesseract
+> versions/builds, not a broken test. As of this writing, no font/size/width
+> combination has been confirmed working on a current Tesseract build — use
+> `base16g` (the default) instead until this is re-resolved.
 
 `base32g-crc16-rs` carries 5 bits per character instead of 4, so it is ~25%
-denser than the default. On stock OCR that density is **font-dependent**, and
-the dependency is sharp rather than gradual (measured 2026-07-22, 3 fonts ×
-5 sizes × 2 widths, byte-restore gated):
+denser than the default. The table below is the **superseded** 2026-07-22
+measurement (Tesseract 4.1.1, VM) kept for reference, not current guidance:
 
 | font | 4pt | 5pt | 6pt | 8pt | 10pt |
 |------|-----|-----|-----|-----|------|
-| Courier | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Courier | ✅ (4.1.1 only — FAILED on 5.4.0 at 8/10pt, see warning above) | ✅ | ✅ | ⚠️ | ⚠️ |
 | OCR-B | ❌ | ❌ | ❌ | ❌ | — |
 | DejaVu Sans Mono | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-(width 60; Courier also restores at width 90 from 5pt up. `—` is a geometry
-refusal, not an OCR failure.)
+(width 60; Courier also restored at width 90 from 5pt up on 4.1.1 — not
+re-verified on 5.4.0. `—` is a geometry refusal, not an OCR failure.)
 
 The cause is the alphabet: `base32g` adds `?@!&+=` to the base16g set, and those
 punctuation glyphs are the ones OCR drops or mangles on OCR-B and DejaVu. A

@@ -1,0 +1,2288 @@
+{
+  "results": [
+    {
+      "font_arg": "C:\\Windows\\Fonts\\LTYPE.TTF",
+      "font_label": "LTYPE.TTF",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34EFGNUW2567?@!&+=",
+      "alphabet_len": 32,
+      "dpi": 300,
+      "size": 4.0,
+      "rows": 60,
+      "line_length": 219,
+      "chars_per_line": 219,
+      "lines_per_page": 150,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.8166666666666667,
+      "length_mismatches": 49,
+      "per_char": {
+        "A": {
+          "samples": 70,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 379,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "B": {
+          "samples": 71,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 404,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "C": {
+          "samples": 70,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 422,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "D": {
+          "samples": 78,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 409,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "H": {
+          "samples": 89,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 462,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "K": {
+          "samples": 77,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 390,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "L": {
+          "samples": 83,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 430,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "M": {
+          "samples": 85,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 412,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "P": {
+          "samples": 76,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 428,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "R": {
+          "samples": 93,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 450,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "T": {
+          "samples": 76,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 409,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "V": {
+          "samples": 70,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 380,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 6
+        },
+        "X": {
+          "samples": 74,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 396,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "Y": {
+          "samples": 92,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 418,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "3": {
+          "samples": 48,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 400,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "4": {
+          "samples": 82,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 438,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "E": {
+          "samples": 63,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 402,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "F": {
+          "samples": 81,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 443,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "G": {
+          "samples": 80,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 405,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "N": {
+          "samples": 82,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 412,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 9
+        },
+        "U": {
+          "samples": 71,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 435,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "W": {
+          "samples": 80,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 392,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "2": {
+          "samples": 71,
+          "errors": 1,
+          "error_rate": 0.014084507042253521,
+          "misreads": [
+            {
+              "target": "Z",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 399,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "5": {
+          "samples": 71,
+          "errors": 20,
+          "error_rate": 0.28169014084507044,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 20,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 419,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 7
+        },
+        "6": {
+          "samples": 71,
+          "errors": 2,
+          "error_rate": 0.028169014084507043,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "E",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 359,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "7": {
+          "samples": 67,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 419,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "?": {
+          "samples": 71,
+          "errors": 2,
+          "error_rate": 0.028169014084507043,
+          "misreads": [
+            {
+              "target": "7",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "2",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 430,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 24
+        },
+        "@": {
+          "samples": 70,
+          "errors": 9,
+          "error_rate": 0.12857142857142856,
+          "misreads": [
+            {
+              "target": "G",
+              "count": 7,
+              "corrupting": true
+            },
+            {
+              "target": "Q",
+              "count": 2,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 416,
+          "deletions": 1,
+          "deletion_rate": 0.002403846153846154,
+          "insertion_adjacent": 6
+        },
+        "!": {
+          "samples": 75,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 390,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "&": {
+          "samples": 72,
+          "errors": 3,
+          "error_rate": 0.041666666666666664,
+          "misreads": [
+            {
+              "target": "8",
+              "count": 2,
+              "corrupting": false
+            },
+            {
+              "target": "@",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 412,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "+": {
+          "samples": 73,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 396,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "=": {
+          "samples": 77,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 384,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        }
+      },
+      "safe": "ABCDHKLMPRTVXY34FNUW!+=",
+      "safe_len": 23,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 5.0,
+      "efficiency": 0.8,
+      "corrupting_pairs": [
+        [
+          "6",
+          "E",
+          1
+        ],
+        [
+          "?",
+          "7",
+          1
+        ],
+        [
+          "?",
+          "2",
+          1
+        ],
+        [
+          "@",
+          "G",
+          7
+        ],
+        [
+          "&",
+          "@",
+          1
+        ]
+      ],
+      "drop_pairs": [
+        [
+          "@",
+          1,
+          0.002403846153846154
+        ]
+      ],
+      "chars_per_page": 32850,
+      "bytes_per_page": 16425.0,
+      "usable_bytes_per_page": 3011.2500000000005,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "C:\\Windows\\Fonts\\LTYPE.TTF",
+      "font_label": "LTYPE.TTF",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34EFGNUW2567?@!&+=",
+      "alphabet_len": 32,
+      "dpi": 300,
+      "size": 6.0,
+      "rows": 60,
+      "line_length": 146,
+      "chars_per_line": 146,
+      "lines_per_page": 100,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.4666666666666667,
+      "length_mismatches": 28,
+      "per_char": {
+        "A": {
+          "samples": 119,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 238,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "B": {
+          "samples": 168,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 271,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "C": {
+          "samples": 142,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 290,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "D": {
+          "samples": 160,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 270,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "H": {
+          "samples": 167,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 310,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "K": {
+          "samples": 139,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 271,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "L": {
+          "samples": 160,
+          "errors": 1,
+          "error_rate": 0.00625,
+          "misreads": [
+            {
+              "target": "=",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 299,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "M": {
+          "samples": 137,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 258,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "P": {
+          "samples": 156,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 297,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "R": {
+          "samples": 156,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 297,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "T": {
+          "samples": 150,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 264,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "V": {
+          "samples": 134,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 255,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "X": {
+          "samples": 144,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 268,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "Y": {
+          "samples": 149,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 266,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "3": {
+          "samples": 153,
+          "errors": 1,
+          "error_rate": 0.006535947712418301,
+          "misreads": [
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 267,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "4": {
+          "samples": 143,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 272,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "E": {
+          "samples": 139,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 276,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "F": {
+          "samples": 169,
+          "errors": 2,
+          "error_rate": 0.011834319526627219,
+          "misreads": [
+            {
+              "target": "E",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 299,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "G": {
+          "samples": 144,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 281,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "N": {
+          "samples": 132,
+          "errors": 1,
+          "error_rate": 0.007575757575757576,
+          "misreads": [
+            {
+              "target": "3",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 258,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "U": {
+          "samples": 148,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 282,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "W": {
+          "samples": 138,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 265,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "2": {
+          "samples": 141,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 279,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "5": {
+          "samples": 141,
+          "errors": 13,
+          "error_rate": 0.09219858156028368,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 13,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 273,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "6": {
+          "samples": 137,
+          "errors": 4,
+          "error_rate": 0.029197080291970802,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 3,
+              "corrupting": false
+            },
+            {
+              "target": "E",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 245,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 6
+        },
+        "7": {
+          "samples": 162,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 287,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "?": {
+          "samples": 165,
+          "errors": 3,
+          "error_rate": 0.01818181818181818,
+          "misreads": [
+            {
+              "target": "7",
+              "count": 3,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 290,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "@": {
+          "samples": 128,
+          "errors": 4,
+          "error_rate": 0.03125,
+          "misreads": [
+            {
+              "target": "G",
+              "count": 4,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 269,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "!": {
+          "samples": 136,
+          "errors": 1,
+          "error_rate": 0.007352941176470588,
+          "misreads": [
+            {
+              "target": "N",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 266,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "&": {
+          "samples": 138,
+          "errors": 2,
+          "error_rate": 0.014492753623188406,
+          "misreads": [
+            {
+              "target": "@",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "!",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 276,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "+": {
+          "samples": 127,
+          "errors": 1,
+          "error_rate": 0.007874015748031496,
+          "misreads": [
+            {
+              "target": "&",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 265,
+          "deletions": 1,
+          "deletion_rate": 0.0037735849056603774,
+          "insertion_adjacent": 0
+        },
+        "=": {
+          "samples": 150,
+          "errors": 2,
+          "error_rate": 0.013333333333333334,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 2,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 256,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        }
+      },
+      "safe": "ABCDHKMPRTVXY4UW2",
+      "safe_len": 17,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 5.0,
+      "efficiency": 0.8,
+      "corrupting_pairs": [
+        [
+          "L",
+          "=",
+          1
+        ],
+        [
+          "3",
+          "L",
+          1
+        ],
+        [
+          "F",
+          "E",
+          2
+        ],
+        [
+          "N",
+          "3",
+          1
+        ],
+        [
+          "6",
+          "E",
+          1
+        ],
+        [
+          "?",
+          "7",
+          3
+        ],
+        [
+          "@",
+          "G",
+          4
+        ],
+        [
+          "!",
+          "N",
+          1
+        ],
+        [
+          "&",
+          "@",
+          1
+        ],
+        [
+          "&",
+          "!",
+          1
+        ],
+        [
+          "+",
+          "&",
+          1
+        ]
+      ],
+      "drop_pairs": [
+        [
+          "+",
+          1,
+          0.0037735849056603774
+        ]
+      ],
+      "chars_per_page": 14600,
+      "bytes_per_page": 7300.0,
+      "usable_bytes_per_page": 3893.3333333333335,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "C:\\Windows\\Fonts\\LTYPE.TTF",
+      "font_label": "LTYPE.TTF",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34EFGNUW2567?@!&+=",
+      "alphabet_len": 32,
+      "dpi": 300,
+      "size": 8.0,
+      "rows": 60,
+      "line_length": 109,
+      "chars_per_line": 109,
+      "lines_per_page": 75,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.43333333333333335,
+      "length_mismatches": 26,
+      "per_char": {
+        "A": {
+          "samples": 84,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 169,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "B": {
+          "samples": 133,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 214,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "C": {
+          "samples": 140,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 227,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "D": {
+          "samples": 133,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 212,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "H": {
+          "samples": 148,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 225,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "K": {
+          "samples": 116,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 212,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "L": {
+          "samples": 142,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 235,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "M": {
+          "samples": 114,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 193,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "P": {
+          "samples": 119,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 220,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "R": {
+          "samples": 125,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 216,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "T": {
+          "samples": 95,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 184,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "V": {
+          "samples": 90,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 173,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "X": {
+          "samples": 118,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 201,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "Y": {
+          "samples": 111,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 195,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "3": {
+          "samples": 105,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 183,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "4": {
+          "samples": 111,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 192,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "E": {
+          "samples": 136,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 218,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "F": {
+          "samples": 132,
+          "errors": 2,
+          "error_rate": 0.015151515151515152,
+          "misreads": [
+            {
+              "target": "E",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 226,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "G": {
+          "samples": 100,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 203,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "N": {
+          "samples": 103,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 187,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "U": {
+          "samples": 130,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 226,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "W": {
+          "samples": 96,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 182,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "2": {
+          "samples": 123,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 198,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "5": {
+          "samples": 102,
+          "errors": 13,
+          "error_rate": 0.12745098039215685,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 13,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 203,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 6
+        },
+        "6": {
+          "samples": 91,
+          "errors": 1,
+          "error_rate": 0.01098901098901099,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 183,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "7": {
+          "samples": 128,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 226,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "?": {
+          "samples": 124,
+          "errors": 2,
+          "error_rate": 0.016129032258064516,
+          "misreads": [
+            {
+              "target": "7",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 233,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 13
+        },
+        "@": {
+          "samples": 121,
+          "errors": 2,
+          "error_rate": 0.01652892561983471,
+          "misreads": [
+            {
+              "target": "G",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 211,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "!": {
+          "samples": 103,
+          "errors": 1,
+          "error_rate": 0.009708737864077669,
+          "misreads": [
+            {
+              "target": "|",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 198,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "&": {
+          "samples": 116,
+          "errors": 3,
+          "error_rate": 0.02586206896551724,
+          "misreads": [
+            {
+              "target": "8",
+              "count": 2,
+              "corrupting": false
+            },
+            {
+              "target": "S",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 212,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "+": {
+          "samples": 100,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 191,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "=": {
+          "samples": 117,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 192,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        }
+      },
+      "safe": "ABCDHKLMRTVXY34NUW2+=",
+      "safe_len": 21,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 5.0,
+      "efficiency": 0.8,
+      "corrupting_pairs": [
+        [
+          "F",
+          "E",
+          2
+        ],
+        [
+          "?",
+          "7",
+          1
+        ],
+        [
+          "?",
+          "P",
+          1
+        ],
+        [
+          "@",
+          "G",
+          2
+        ]
+      ],
+      "drop_pairs": [],
+      "chars_per_page": 8175,
+      "bytes_per_page": 4087.5,
+      "usable_bytes_per_page": 2316.25,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "C:\\Windows\\Fonts\\LTYPE.TTF",
+      "font_label": "LTYPE.TTF",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34EFGNUW2567?@!&+=",
+      "alphabet_len": 32,
+      "dpi": 300,
+      "size": 10.0,
+      "rows": 60,
+      "line_length": 87,
+      "chars_per_line": 87,
+      "lines_per_page": 60,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.4,
+      "length_mismatches": 24,
+      "per_char": {
+        "A": {
+          "samples": 68,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 137,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "B": {
+          "samples": 106,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 174,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "C": {
+          "samples": 104,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 178,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "D": {
+          "samples": 107,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 161,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "H": {
+          "samples": 108,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 185,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "K": {
+          "samples": 105,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 166,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "L": {
+          "samples": 126,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 189,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "M": {
+          "samples": 91,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 151,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "P": {
+          "samples": 107,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 175,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "R": {
+          "samples": 100,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 168,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "T": {
+          "samples": 92,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 149,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "V": {
+          "samples": 87,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 147,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "X": {
+          "samples": 87,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 162,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "Y": {
+          "samples": 86,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 131,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "3": {
+          "samples": 74,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 140,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "4": {
+          "samples": 93,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 161,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "E": {
+          "samples": 113,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 161,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "F": {
+          "samples": 125,
+          "errors": 2,
+          "error_rate": 0.016,
+          "misreads": [
+            {
+              "target": "E",
+              "count": 2,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 193,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "G": {
+          "samples": 94,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 159,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "N": {
+          "samples": 97,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 153,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "U": {
+          "samples": 113,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 179,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "W": {
+          "samples": 84,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 152,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "2": {
+          "samples": 103,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 156,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "5": {
+          "samples": 101,
+          "errors": 4,
+          "error_rate": 0.039603960396039604,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 4,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 168,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "6": {
+          "samples": 86,
+          "errors": 2,
+          "error_rate": 0.023255813953488372,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 2,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 151,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "7": {
+          "samples": 103,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 181,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "?": {
+          "samples": 98,
+          "errors": 3,
+          "error_rate": 0.030612244897959183,
+          "misreads": [
+            {
+              "target": "7",
+              "count": 3,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 187,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "@": {
+          "samples": 95,
+          "errors": 3,
+          "error_rate": 0.031578947368421054,
+          "misreads": [
+            {
+              "target": "G",
+              "count": 3,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 158,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "!": {
+          "samples": 86,
+          "errors": 1,
+          "error_rate": 0.011627906976744186,
+          "misreads": [
+            {
+              "target": "|",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 162,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "&": {
+          "samples": 97,
+          "errors": 3,
+          "error_rate": 0.030927835051546393,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "@",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "G",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 173,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "+": {
+          "samples": 97,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 157,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "=": {
+          "samples": 99,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 156,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        }
+      },
+      "safe": "ABCDHKLMPRTVXY34NUW2+=",
+      "safe_len": 22,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 5.0,
+      "efficiency": 0.8,
+      "corrupting_pairs": [
+        [
+          "F",
+          "E",
+          2
+        ],
+        [
+          "?",
+          "7",
+          3
+        ],
+        [
+          "@",
+          "G",
+          3
+        ],
+        [
+          "&",
+          "@",
+          1
+        ],
+        [
+          "&",
+          "G",
+          1
+        ]
+      ],
+      "drop_pairs": [],
+      "chars_per_page": 5220,
+      "bytes_per_page": 2610.0,
+      "usable_bytes_per_page": 1566.0,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "C:\\Windows\\Fonts\\LTYPE.TTF",
+      "font_label": "LTYPE.TTF",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34EFGNUW2567?@!&+=",
+      "alphabet_len": 32,
+      "dpi": 300,
+      "size": 12.0,
+      "rows": 60,
+      "line_length": 73,
+      "chars_per_line": 73,
+      "lines_per_page": 50,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.45,
+      "length_mismatches": 27,
+      "per_char": {
+        "A": {
+          "samples": 59,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 113,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "B": {
+          "samples": 85,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 149,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "C": {
+          "samples": 89,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 149,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "D": {
+          "samples": 77,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 129,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "H": {
+          "samples": 90,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 156,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "K": {
+          "samples": 79,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 134,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "L": {
+          "samples": 95,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 162,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "M": {
+          "samples": 80,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 119,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "P": {
+          "samples": 85,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 155,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "R": {
+          "samples": 77,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 137,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "T": {
+          "samples": 70,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 129,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "V": {
+          "samples": 61,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 126,
+          "deletions": 1,
+          "deletion_rate": 0.007936507936507936,
+          "insertion_adjacent": 0
+        },
+        "X": {
+          "samples": 70,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 134,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "Y": {
+          "samples": 56,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 110,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "3": {
+          "samples": 61,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 119,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "4": {
+          "samples": 85,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 136,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "E": {
+          "samples": 81,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 136,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "F": {
+          "samples": 99,
+          "errors": 1,
+          "error_rate": 0.010101010101010102,
+          "misreads": [
+            {
+              "target": "E",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 162,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "G": {
+          "samples": 70,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 130,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "N": {
+          "samples": 72,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 140,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "U": {
+          "samples": 74,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 148,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "W": {
+          "samples": 73,
+          "errors": 1,
+          "error_rate": 0.0136986301369863,
+          "misreads": [
+            {
+              "target": "w",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 131,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "2": {
+          "samples": 75,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 135,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "5": {
+          "samples": 72,
+          "errors": 1,
+          "error_rate": 0.013888888888888888,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 140,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "6": {
+          "samples": 58,
+          "errors": 2,
+          "error_rate": 0.034482758620689655,
+          "misreads": [
+            {
+              "target": "(",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "O",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 122,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "7": {
+          "samples": 81,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 147,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "?": {
+          "samples": 80,
+          "errors": 1,
+          "error_rate": 0.0125,
+          "misreads": [
+            {
+              "target": "7",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 158,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 6
+        },
+        "@": {
+          "samples": 63,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 126,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 6
+        },
+        "!": {
+          "samples": 65,
+          "errors": 1,
+          "error_rate": 0.015384615384615385,
+          "misreads": [
+            {
+              "target": "|",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 130,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "&": {
+          "samples": 84,
+          "errors": 3,
+          "error_rate": 0.03571428571428571,
+          "misreads": [
+            {
+              "target": "@",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 153,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "+": {
+          "samples": 63,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 127,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "=": {
+          "samples": 80,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 138,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        }
+      },
+      "safe": "ABCDHKLMPTVXY34GNU2+=",
+      "safe_len": 21,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 5.0,
+      "efficiency": 0.8,
+      "corrupting_pairs": [
+        [
+          "F",
+          "E",
+          1
+        ],
+        [
+          "?",
+          "7",
+          1
+        ],
+        [
+          "&",
+          "@",
+          2
+        ],
+        [
+          "&",
+          "R",
+          1
+        ]
+      ],
+      "drop_pairs": [
+        [
+          "V",
+          1,
+          0.007936507936507936
+        ]
+      ],
+      "chars_per_page": 3650,
+      "bytes_per_page": 1825.0,
+      "usable_bytes_per_page": 1003.7500000000001,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "tesseract"
+    ],
+    "dense": {
+      "font": "LTYPE.TTF",
+      "size": 6.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "ABCDHKMPRTVXY4UW2",
+      "safe_len": 17,
+      "usable_radix": 16,
+      "bytes_per_page": 7300.0,
+      "usable_bytes_per_page": 3893.3333333333335,
+      "line_insert_rate": 0.4666666666666667,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "LTYPE.TTF",
+      "size": 6.0,
+      "charset": "custom",
+      "engines": [
+        "tesseract"
+      ],
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "24ABCDHKMPRTUVWXY",
+      "safe_len": 17,
+      "usable_radix": 16,
+      "bytes_per_page": 7300.0,
+      "usable_bytes_per_page": 3893.3333333333335,
+      "line_insert_rate": 0.4666666666666667
+    },
+    "retype": {
+      "font": "LTYPE.TTF",
+      "size": 12.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "ABCDHKLMPTVXY34GNU2+=",
+      "safe_len": 21,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}
