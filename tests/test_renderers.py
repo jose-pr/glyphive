@@ -322,6 +322,43 @@ def test_pdf_resolves_font_name_from_system_store(tmp_path, monkeypatch):
     assert output.read_bytes().startswith(b"%PDF")
 
 
+def test_pdf_resolves_font_name_from_true_family_name(tmp_path, monkeypatch):
+    """A name matching the font's TRUE family (not its filename) still resolves.
+
+    Regression for the Windows case where a font's canonical file isn't named
+    after its family (e.g. Consolas ships as ``consola.ttf``): the filename-
+    stem pass must fall through to reading the font's own ``name`` table
+    rather than reporting "not found" just because the file happens to be
+    named something else. Uses a real TTF (the bundled OCR-B) with its
+    internal family name rewritten to something that is neither its filename
+    nor any core/bundled font name, so the test can only pass via the true
+    name-table lookup -- not the filename-stem pass or the core/bundled
+    dispatch that come first in ``registered_pdf_font``.
+    """
+    from fontTools.ttLib import TTFont
+
+    from glyphive.render.formats import pdf as pdf_mod
+    from pathlib_next import Path
+
+    fake_store = tmp_path / "fake-fonts"
+    fake_store.mkdir()
+    src = resources.files("glyphive.assets.fonts.ocr_b").joinpath("OCR-B.ttf")
+    renamed = fake_store / "totally-unrelated-filename.ttf"
+    with resources.as_file(src) as font_path:
+        font = TTFont(str(font_path))
+    name_table = font["name"]
+    for record in name_table.names:
+        if record.nameID in (1, 4, 6, 16):
+            record.string = "Totally Custom Family Name"
+    font.save(str(renamed))
+    monkeypatch.setattr(pdf_mod, "_system_font_dirs", lambda: [Path(str(fake_store))])
+
+    _data, pages = _make_pages(nbytes=80)
+    output = tmp_path / "by-true-name.pdf"
+    render(pages, output, "pdf", font="Totally Custom Family Name", font_size=8)
+    assert output.read_bytes().startswith(b"%PDF")
+
+
 def test_pdf_unknown_font_reports_system_store_search(tmp_path, monkeypatch):
     """When the name is nowhere (incl. an empty system store), the error says so."""
     from glyphive.render.formats import pdf as pdf_mod

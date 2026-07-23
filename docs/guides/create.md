@@ -46,7 +46,17 @@ glyphive create -f backup.docx --font Consolas --font-size 10 -C project .
 
 PDF output accepts the built-in FPDF families `courier`, `helvetica`, `times`,
 `symbol`, `zapfdingbats`, and `arial`, the bundled `ocr-b` and
-`dejavu-sans-mono` options, or an existing `.ttf`/`.otf` path. Word output
+`dejavu-sans-mono` options, an existing `.ttf`/`.otf` path, or **an installed
+system font's name** (e.g. `--font Consolas` or `--font "Cascadia Mono"`) —
+glyphive searches the OS font stores for a match, embeds it, and errors
+listing what it searched if none is found. Resolution tries a fast filename
+match first (e.g. `CascadiaMono.ttf` for `"Cascadia Mono"`), then falls back
+to reading each candidate file's real font-family name (e.g. Windows'
+`consola.ttf`, whose *file*name doesn't match "Consolas" but whose *family*
+name does) — so any installed font is reachable by its real display name, not
+just fonts whose file happens to be named after their family. Any system font
+used this way is measured with the same OCR gate as a bundled one before
+relying on it for recovery. Word output
 accepts an installed Word font name (bundled fonts are embedded only in PDF;
 DOCX references them by name, so a reader without the font installed sees a
 substitute). `dejavu-sans-mono` is bundled under the permissive DejaVu Fonts

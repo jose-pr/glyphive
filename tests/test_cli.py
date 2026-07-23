@@ -1024,3 +1024,79 @@ def test_denser_codecs_full_cli_roundtrip(tmp_path, codec_name):
     ) == 0
     assert cli.run(["extract", "-f", str(archive), "-C", str(outdir)]) == 0
     _compare_dirs(src, outdir)
+
+
+def test_info_reports_registries_and_default_codec(capsys):
+    assert cli.run(["info"]) == 0
+    out = capsys.readouterr().out
+    assert "codecs:" in out
+    assert "base16g-crc16-rs (default)" in out
+    assert "compression:" in out
+    assert "render:" in out
+    assert "ocr:" in out
+    assert "fonts:" in out
+
+
+def test_info_json_is_machine_readable(capsys):
+    import json
+
+    capsys.readouterr()
+    assert cli.run(["info", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["codecs"]["default"] == "base16g-crc16-rs"
+    assert any(
+        entry["name"] == "base16g-crc16-rs" for entry in payload["codecs"]["entries"]
+    )
+    assert "compression" in payload
+    assert "render_formats" in payload
+    assert "ocr_engines" in payload
+    assert "fonts" in payload
+    assert payload["fonts"]["core"]
+    assert payload["fonts"]["bundled"]
+
+
+def test_info_font_lookup_resolves_core_bundled_and_missing(capsys, monkeypatch):
+    from glyphive.render.formats import pdf as pdf_mod
+    from pathlib_next import Path
+
+    monkeypatch.setattr(pdf_mod, "_system_font_dirs", lambda: [])  # no system store
+
+    capsys.readouterr()
+    assert cli.run(["info", "--font", "courier"]) == 0
+    assert "resolves (core)" in capsys.readouterr().out
+
+    capsys.readouterr()
+    assert cli.run(["info", "--font", "ocr-b"]) == 0
+    assert "resolves (bundled)" in capsys.readouterr().out
+
+    capsys.readouterr()
+    assert cli.run(["info", "--font", "no-such-font-at-all"]) == 0
+    assert "NOT found" in capsys.readouterr().out
+
+
+def test_info_font_lookup_resolves_system_font_by_true_family_name(
+    tmp_path, capsys, monkeypatch
+):
+    from fontTools.ttLib import TTFont
+    from importlib import resources
+
+    from glyphive.render.formats import pdf as pdf_mod
+    from pathlib_next import Path
+
+    fake_store = tmp_path / "fake-fonts"
+    fake_store.mkdir()
+    src = resources.files("glyphive.assets.fonts.ocr_b").joinpath("OCR-B.ttf")
+    renamed = fake_store / "totally-unrelated-filename.ttf"
+    with resources.as_file(src) as font_path:
+        font = TTFont(str(font_path))
+    for record in font["name"].names:
+        if record.nameID in (1, 4, 6, 16):
+            record.string = "Test Family Name"
+    font.save(str(renamed))
+    monkeypatch.setattr(pdf_mod, "_system_font_dirs", lambda: [Path(str(fake_store))])
+
+    capsys.readouterr()
+    assert cli.run(["info", "--font", "Test Family Name"]) == 0
+    out = capsys.readouterr().out
+    assert "resolves (system:" in out
+    assert "totally-unrelated-filename.ttf" in out

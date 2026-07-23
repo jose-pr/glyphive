@@ -202,15 +202,30 @@ def _resolve_font(pdf, font_arg: str, size: float) -> str:
         pdf.add_font(family, "", str(candidate))
         pdf.set_font(family, size=size)
         return candidate.name
+
     family = lowered
-    if family not in _CORE_FONTS:
+    if family in _CORE_FONTS:
+        pdf.set_font(family, size=size)
+        return family
+
+    # Not core, not bundled, not an explicit file path: fall back to the same
+    # OS font-store lookup by name the real renderer uses
+    # (``registered_pdf_font``), so this tool measures what ``create --font
+    # <name>`` actually resolves, not a narrower subset.
+    from glyphive.render.formats.pdf import _find_system_font
+
+    found = _find_system_font(font_arg)
+    if found is None:
         raise ValueError(
             f"unsupported font {font_arg!r}: not a PDF core font "
             f"({', '.join(sorted(_CORE_FONTS))}), a bundled font "
-            f"({', '.join(sorted(_BUNDLED_FONTS))}), or an existing file path"
+            f"({', '.join(sorted(_BUNDLED_FONTS))}), an existing file path, "
+            "or an installed system font of that name"
         )
+    family = found.stem
+    pdf.add_font(family, "", str(found))
     pdf.set_font(family, size=size)
-    return family
+    return f"{found.name} (system)"
 
 
 def font_geometry(

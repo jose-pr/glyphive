@@ -159,7 +159,9 @@ class Create(LoggingArgs):
     ("--no-header",)
 
     font: "_ty.Optional[str]" = None
-    "Font family for pdf/docx output (PDF default: bundled dejavu-sans-mono; DOCX default: Consolas)."
+    "Font family for pdf/docx output (PDF default: bundled dejavu-sans-mono; DOCX default: "
+    "Consolas). PDF also accepts an installed system font's name (by filename or true "
+    "font-family name, e.g. Consolas) or an explicit .ttf/.otf path."
     ("--font",)
 
     font_size: float = 11.0
