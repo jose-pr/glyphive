@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+**Breaking (pre-1.0, no compatibility shim): `create`'s default output
+geometry changed via a new `--mode` preset system.** `create` now takes
+`--mode {conservative,standard,max}`, defaulting to **`standard`**
+(omitting `--mode` is the same as passing it): `base16g-crc16-rs`,
+`dejavu-sans-mono`, **6pt** (was 11pt), **`--line-width max`** (was the
+OCR-measured-safe `auto` cap, ≤60), regular margins. This is a real behavior
+change: a bare `create` with no other flags now produces denser, differently
+paginated output than before. The new default is a measured choice, not a
+guess — it is the most blur-tolerant font/size/width combination found in a
+2026-07-23 restore-gate sweep (survives a real Gaussian blur ladder up to
+radius 1.5 on both `tesseract` and `tesseract-glyphive`, beating both Courier
+and Consolas at the same settings; see
+`benchmarks/results/FONT_CANDIDATES.md` "Blur-tolerance stress test"). Any of
+`--codec`/`--font`/`--font-size`/`--line-width`/`--minimal-margins` passed
+explicitly still overrides just that one field from the mode's preset.
+`--mode conservative` (base16g, dejavu-sans-mono, 8pt, `--line-width auto`,
+regular margins) reproduces the pre-existing safety-capped behavior aside
+from the font-size default; `--mode max` is `standard`'s codec/font/size/width
+with `--minimal-margins` for the smallest page count. See the
+[create guide](docs/guides/create.md#--mode-measured-codecfontsizewidthmargin-presets)
+for the full preset table and rationale.
+
 **Guidance retraction: `base32g` is no longer recommended, pending
 re-verification.** 0.2.0's "Highlights" claimed `base32g` needs no trained
 OCR model and named it Courier-only-but-viable, based on a 2026-07-22 VM

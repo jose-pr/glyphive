@@ -153,6 +153,14 @@ def test_create_with_gf216_parity_pages_survives_deleted_page_blocks(tmp_path):
             "create",
             "-f", str(archive_file),
             "-C", str(src),
+            # Pin a stable page geometry (width=auto; font-size 10, distinct
+            # from both the class default 11 and mode presets' 6/8, so the
+            # explicit override actually takes -- see Create._apply_mode's
+            # "still at class default" sentinel check) -- this test's whole
+            # point is triggering the GF(2^16) 255-block threshold with a
+            # specific page count, not exercising --mode.
+            "--mode", "conservative",
+            "--font-size", "10",
             "--parity-pages", "5",
             "--compression", "none",
             ".",
@@ -495,6 +503,103 @@ def test_create_line_width_above_safe_cap_needs_force(tmp_path):
     # Above the geometric fit it is rejected even with --force.
     with pytest.raises(SystemExit, match="exceeds even the geometric fit"):
         run("--line-width", "999", "--force")
+
+
+def test_create_mode_defaults_to_standard(tmp_path):
+    """Bare `create` (no --mode) resolves the same as --mode standard."""
+    from glyphive.cli.create import Create
+
+    bare = Create(file="x.txt", paths=["."])
+    bare._apply_mode()
+    explicit = Create(file="x.txt", paths=["."], mode="standard")
+    explicit._apply_mode()
+    assert (bare.codec, bare.font, bare.font_size, bare.line_width, bare.minimal_margins) == (
+        explicit.codec, explicit.font, explicit.font_size, explicit.line_width, explicit.minimal_margins,
+    )
+    assert bare.codec == "base16g-crc16-rs"
+    assert bare.font == "dejavu-sans-mono"
+    assert bare.font_size == 6.0
+    assert bare.line_width == "max"
+    assert bare.minimal_margins is False
+
+
+@pytest.mark.parametrize(
+    "mode,expected",
+    [
+        ("conservative", ("base16g-crc16-rs", "dejavu-sans-mono", 8.0, "auto", False)),
+        ("standard", ("base16g-crc16-rs", "dejavu-sans-mono", 6.0, "max", False)),
+        ("max", ("base16g-crc16-rs", "dejavu-sans-mono", 6.0, "max", True)),
+    ],
+)
+def test_create_mode_presets_resolve_exact_fields(mode, expected):
+    from glyphive.cli.create import Create
+
+    c = Create(file="x.txt", paths=["."], mode=mode)
+    c._apply_mode()
+    assert (c.codec, c.font, c.font_size, c.line_width, c.minimal_margins) == expected
+
+
+def test_create_mode_lets_explicit_flags_override_individual_fields(tmp_path):
+    """Any of --codec/--font/--font-size/--line-width/--minimal-margins passed
+    explicitly wins over the mode's preset for just that one field."""
+    from glyphive.cli.create import Create
+
+    c = Create(
+        file="x.txt", paths=["."], mode="standard",
+        font="courier", font_size=10.0, minimal_margins=True,
+    )
+    c._apply_mode()
+    # Overridden fields keep the explicit value...
+    assert c.font == "courier"
+    assert c.font_size == 10.0
+    assert c.minimal_margins is True
+    # ...but codec/line_width (not overridden) still come from the mode.
+    assert c.codec == "base16g-crc16-rs"
+    assert c.line_width == "max"
+
+
+def test_create_mode_line_width_max_degrades_to_auto_on_text(tmp_path):
+    """--mode's line_width='max' must not hard-error on text output (no
+    geometric metrics) the way an EXPLICIT --line-width max does -- it
+    should quietly behave like 'auto' instead, since a mode is meant to be
+    a sensible default across every format."""
+    src = _make_srcdir(tmp_path)
+    out = tmp_path / "t.txt"
+    # No --mode passed -> defaults to 'standard' (line_width='max' from the
+    # preset). Must NOT raise, unlike an explicit --line-width max on text.
+    assert cli.run(["create", "-f", str(out), "--format", "text", "-C", str(src), "."]) == 0
+    assert out.exists()
+
+
+def test_create_mode_conservative_roundtrips_on_text(tmp_path):
+    src = _make_srcdir(tmp_path)
+    archive_file = tmp_path / "a.txt"
+    outdir = tmp_path / "out"
+    assert cli.run(
+        ["create", "-f", str(archive_file), "-C", str(src), "--mode", "conservative", "."]
+    ) == 0
+    assert cli.run(["extract", "-f", str(archive_file), "-C", str(outdir)]) == 0
+    _compare_dirs(src, outdir)
+
+
+def test_create_mode_max_roundtrips_on_text(tmp_path):
+    src = _make_srcdir(tmp_path)
+    archive_file = tmp_path / "a.txt"
+    outdir = tmp_path / "out"
+    assert cli.run(
+        ["create", "-f", str(archive_file), "-C", str(src), "--mode", "max", "."]
+    ) == 0
+    assert cli.run(["extract", "-f", str(archive_file), "-C", str(outdir)]) == 0
+    _compare_dirs(src, outdir)
+
+
+def test_create_rejects_unknown_mode(tmp_path):
+    src = _make_srcdir(tmp_path)
+    with pytest.raises(SystemExit):
+        cli.run(
+            ["create", "-f", str(tmp_path / "x.txt"), "-C", str(src),
+             "--mode", "not-a-real-mode", "."]
+        )
 
 
 def test_generic_codec_and_compression_selectors_roundtrip(tmp_path):
@@ -853,7 +958,12 @@ def test_inspect_reports_recovery_headroom_and_strict_exit(tmp_path, capsys):
     (src / "d.txt").write_text("delta " * 400, encoding="utf-8")
     archive = tmp_path / "doc.txt"
     assert cli.run(
+        # Pin a stable page geometry (width=auto; font-size 12, distinct from
+        # both the class default 11 and mode presets' 6/8 so the explicit
+        # override actually takes, and dense enough -- fewer lines/page than
+        # 11pt -- to keep this test's >= 3 data-page requirement).
         ["create", "-f", str(archive), "-C", str(src),
+         "--mode", "conservative", "--font-size", "12",
          "--compression", "none", "--parity-pages", "1", ".",]
     ) == 0
 

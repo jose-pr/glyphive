@@ -13,6 +13,36 @@ glyphive create -f backup.txt -C project .
 `-C project .` means “archive the `project` directory as the root.” The alpha
 CLI accepts exactly one root; put multiple inputs beneath a common directory.
 
+## `--mode`: measured codec/font/size/width/margin presets
+
+`--mode {conservative,standard,max}` bundles the codec, font, font size,
+`--line-width`, and margin choice into one measured preset, so you don't have
+to hand-pick each one. **`standard` is the default** (omitting `--mode` is the
+same as `--mode standard`). Any of `--codec`/`--font`/`--font-size`/
+`--line-width`/`--minimal-margins` passed explicitly overrides just that one
+field from the preset — e.g. `--mode max --font-size 8` keeps `max`'s codec,
+font, width, and margins but uses 8pt instead of its default 6pt.
+
+| Mode | Codec | Font | Size | Width | Margins | Why |
+| --- | --- | --- | --- | --- | --- | --- |
+| `conservative` | base16g-crc16-rs | dejavu-sans-mono | 8pt | `auto` (≤60, OCR-measured-safe) | regular | Lowest density; this project's oldest verified-safe baseline. |
+| `standard` (default) | base16g-crc16-rs | dejavu-sans-mono | 6pt | `max` | regular | The most blur-tolerant combination measured — survives a real Gaussian blur ladder up to radius 1.5 on both stock and `tesseract-glyphive`, beating Courier and Consolas at the same settings. |
+| `max` | base16g-crc16-rs | dejavu-sans-mono | 6pt | `max` | minimal | Same measured OCR robustness as `standard`, smallest page count (minimal margins). |
+
+These are real `create → rasterize → OCR → extract → diff` restore-gate
+measurements, not guesses — see
+[`benchmarks/results/FONT_CANDIDATES.md`](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/FONT_CANDIDATES.md)
+("Local font/size sweep" and "Blur-tolerance stress test", both 2026-07-23)
+for the full data, including why Consolas (which looks strong on a clean
+scan) was *not* chosen: it fails at a lower blur radius than DejaVu on both
+engines, with a non-monotonic pass/fail pattern that indicates an unstable
+margin, not a real safety margin.
+
+`--line-width max` on a format with no physical font metrics (text/docx/qr)
+would normally be a hard error — but when `max` comes from a `--mode` preset
+(not an explicit `--line-width max`), it quietly falls back to `auto`
+instead, since a mode is meant to work sensibly across every output format.
+
 The output format is inferred from `-f`: `.pdf` selects PDF, `.docx` selects
 Word, and `.txt` or `.text` selects text. An unknown or missing extension falls
 back to `text`, and an explicit `--format` always wins. Compression selects
