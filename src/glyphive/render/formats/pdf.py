@@ -61,25 +61,20 @@ def _system_font_dirs() -> "_ty.List[Path]":
     return dirs
 
 
-def _find_system_font(name: str) -> "_ty.Optional[Path]":
-    """Locate a ``.ttf``/``.otf`` in the OS font stores whose file stem matches
-    ``name`` case-insensitively (e.g. ``"DejaVu Sans Mono"`` or ``"Consolas"``).
+def _iter_system_font_files() -> "_ty.Iterator[Path]":
+    """Yield every ``.ttf``/``.otf`` in the OS font stores, one level deep.
 
-    Filename-stem matching, not true family-table resolution — good enough to
-    resolve the common case (the file is named after its family) without a font
-    library. Returns the first match, or ``None``.
+    Shared file-listing walk used by both the fast filename-stem match and
+    the slower true-family-name match below, so the two always see the same
+    candidate set.
     """
-    target = name.strip().lower()
-    # Also try a spaceless variant: many font files drop spaces (DejaVuSansMono).
-    target_nospace = target.replace(" ", "")
-
-    def match_in(directory: "Path") -> "_ty.Optional[Path]":
+    for directory in _system_font_dirs():
         try:
             if not directory.is_dir():
-                return None
+                continue
             entries = sorted(directory.iterdir())
         except OSError:
-            return None
+            continue
         subdirs: _ty.List[Path] = []
         for entry in entries:
             try:
@@ -90,40 +85,75 @@ def _find_system_font(name: str) -> "_ty.Optional[Path]":
                     continue
             except (OSError, ValueError):
                 continue
-            stem = entry.stem.lower()
-            if stem == target or stem.replace(" ", "") == target_nospace:
-                return entry
+            yield entry
         # One level of nesting (Linux groups fonts in per-family subdirs).
         for sub in subdirs:
-            hit = _shallow_match(sub, target, target_nospace)
-            if hit is not None:
-                return hit
-        return None
-
-    for directory in _system_font_dirs():
-        hit = match_in(directory)
-        if hit is not None:
-            return hit
-    return None
-
-
-def _shallow_match(
-    directory: "Path", target: str, target_nospace: str
-) -> "_ty.Optional[Path]":
-    """Match font files directly inside ``directory`` (no further recursion)."""
-    try:
-        entries = sorted(directory.iterdir())
-    except OSError:
-        return None
-    for entry in entries:
-        try:
-            if entry.is_dir() or entry.suffix.lower() not in _SYSTEM_FONT_SUFFIXES:
+            try:
+                sub_entries = sorted(sub.iterdir())
+            except OSError:
                 continue
-        except (OSError, ValueError):
-            continue
+            for entry in sub_entries:
+                try:
+                    if entry.is_dir() or entry.suffix.lower() not in _SYSTEM_FONT_SUFFIXES:
+                        continue
+                except (OSError, ValueError):
+                    continue
+                yield entry
+
+
+def _family_name(path: "Path") -> "_ty.Optional[str]":
+    """Read a font file's true family name from its ``name`` table.
+
+    Prefers the typographic family name (ID 16, used by fonts with style-
+    linked weights/widths) and falls back to the legacy family name (ID 1).
+    ``fontTools`` is a hard dependency of ``fpdf2`` (this module's only
+    caller requires ``fpdf2`` to be importable at all), so this costs no new
+    dependency. Returns ``None`` on anything unreadable/malformed rather than
+    raising — a bad font file must never abort the whole directory scan, and
+    a name-lookup failure here just means this file doesn't match, not that
+    the search fails outright.
+    """
+    try:
+        from fontTools.ttLib import TTFont
+
+        font = TTFont(str(path), lazy=True, fontNumber=0)
+        try:
+            table = font["name"]
+            return table.getDebugName(16) or table.getDebugName(1)
+        finally:
+            font.close()
+    except Exception:
+        return None
+
+
+def _find_system_font(name: str) -> "_ty.Optional[Path]":
+    """Locate a ``.ttf``/``.otf`` in the OS font stores matching ``name``.
+
+    Two passes over the same candidate files (`_iter_system_font_files`):
+    first a fast case-insensitive filename-stem match (handles the common
+    case where the file is named after its family, e.g. ``DejaVuSansMono.ttf``
+    for ``"DejaVu Sans Mono"``, with no font parsing at all); if that finds
+    nothing, a second pass opens each candidate's ``name`` table and compares
+    its TRUE family name (handles a file whose name doesn't match its family,
+    e.g. Windows' ``consola.ttf`` for ``"Consolas"``). Returns the first
+    match by whichever pass finds one first, or ``None``.
+    """
+    target = name.strip().lower()
+    # Also try a spaceless variant: many font files drop spaces (DejaVuSansMono).
+    target_nospace = target.replace(" ", "")
+
+    candidates = list(_iter_system_font_files())
+
+    for entry in candidates:
         stem = entry.stem.lower()
         if stem == target or stem.replace(" ", "") == target_nospace:
             return entry
+
+    for entry in candidates:
+        family = _family_name(entry)
+        if family is not None and family.strip().lower() == target:
+            return entry
+
     return None
 
 #: Every published OCR-safety measurement in this project was taken at a 60-character

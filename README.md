@@ -58,6 +58,7 @@ glyphive create -f backup.txt --compression gzip -C project .
 glyphive list -f backup.txt
 glyphive inspect -f backup.txt          # recovery-headroom report (read-only)
 glyphive extract -f backup.txt -C restored
+glyphive info                           # what codecs/OCR engines/fonts are available
 ```
 
 Restore or inspect an already-generated GQ1 QR image set explicitly with

@@ -19,6 +19,13 @@ prefers them in that order when installed and available.
 Optional imports are lazy. Installing Glyphive without an OCR extra keeps text
 create/restore usable and does not import model runtimes.
 
+Run `glyphive info` to see which OCR engines (and codecs, compression
+methods, and render formats) are actually available in this install, not
+just registered — e.g. `tesseract` is always registered but only reports
+`available` once `pytesseract` and the `tesseract` executable are both
+present. `glyphive info --font <name>` also checks whether a given font name
+would resolve for PDF output before you commit to it in `create --font`.
+
 ## CLI use
 
 ```bash
