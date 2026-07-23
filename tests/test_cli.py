@@ -680,7 +680,7 @@ def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch)
     seen = {}
     monkeypatch.setattr(
         extract_command,
-        "load_image_lines_with_conf",
+        "load_input_lines_with_conf",
         lambda source, engine=None, blur=0.0, spine=None: seen.update(source=source, engine=engine) or ([], None),
     )
     monkeypatch.setattr(
@@ -694,7 +694,6 @@ def test_explicit_ocr_engine_is_forwarded_for_image_input(tmp_path, monkeypatch)
             "extract",
             "-f",
             str(tmp_path / "scan.png"),
-            "--from-images",
             "--ocr-engine",
             "test-engine",
             "-C",
@@ -714,7 +713,7 @@ def test_extract_threads_ocr_confidence_into_restore(tmp_path, monkeypatch):
     conf = [[0.9, 0.2], None]
     monkeypatch.setattr(
         extract_command,
-        "load_image_lines_with_conf",
+        "load_input_lines_with_conf",
         lambda source, engine=None, blur=0.0, spine=None: (["L00000 AB #CD", "L00001 EF #GH"], conf),
     )
     captured = {}
@@ -726,8 +725,7 @@ def test_extract_threads_ocr_confidence_into_restore(tmp_path, monkeypatch):
     monkeypatch.setattr(unarchive, "restore_document_spooled", fake_restore)
 
     assert cli.run(
-        ["extract", "-f", str(tmp_path / "scan.png"), "--from-images",
-         "-C", str(tmp_path / "out")]
+        ["extract", "-f", str(tmp_path / "scan.png"), "-C", str(tmp_path / "out")]
     ) == 0
     assert captured["char_conf"] == conf
 
@@ -762,19 +760,6 @@ def test_extract_from_qr_uses_qr_loader(tmp_path, monkeypatch):
     assert seen["lines"] == ["qr-transcript"]
 
 
-def test_extract_rejects_conflicting_image_modes(tmp_path):
-    with pytest.raises(ValueError, match="mutually exclusive"):
-        cli.run(
-            [
-                "extract",
-                "-f",
-                str(tmp_path / "scan.png"),
-                "--from-images",
-                "--from-qr",
-                "-C",
-                str(tmp_path / "out"),
-            ]
-        )
 
 
 def test_transcript_directory_is_read_in_sorted_nonrecursive_order(tmp_path):
@@ -792,7 +777,7 @@ def test_transcript_directory_is_read_in_sorted_nonrecursive_order(tmp_path):
 
 
 def test_image_directory_uses_one_provider_and_sorted_files(tmp_path, monkeypatch):
-    from glyphive.cli._common import load_image_lines
+    from glyphive.cli._common import load_input_lines
     from glyphive.restore import ocr
 
     images = tmp_path / "images"
@@ -800,27 +785,29 @@ def test_image_directory_uses_one_provider_and_sorted_files(tmp_path, monkeypatc
     (images / "b.png").write_bytes(b"b")
     (images / "a.png").write_bytes(b"a")
     (images / "nested").mkdir()
-    seen = {}
+    seen = {"paths": [], "engines": []}
 
     def fake_ocr_pages(paths, *, engine=None):
-        seen["paths"] = [path.name for path in paths]
-        seen["engine"] = engine
-        return [["page-a"], ["page-b", "tail"]]
+        seen["paths"].append([path.name for path in paths])
+        seen["engines"].append(engine)
+        return [["page-a"]] if paths[0].name == "a.png" else [["page-b", "tail"]]
 
     monkeypatch.setattr(ocr, "ocr_pages", fake_ocr_pages)
-    assert load_image_lines(images, engine="mock") == ["page-a", "page-b", "tail"]
-    assert seen == {"paths": ["a.png", "b.png"], "engine": "mock"}
+    assert load_input_lines(images, engine="mock") == ["page-a", "page-b", "tail"]
+    # Files are OCR'd one at a time, in sorted order -- not batched.
+    assert seen == {
+        "paths": [["a.png"], ["b.png"]],
+        "engines": ["mock", "mock"],
+    }
 
 
-@pytest.mark.parametrize("loader_name", ["load_transcript_lines", "load_image_lines"])
-def test_empty_input_directory_fails_clearly(tmp_path, loader_name):
-    from glyphive.cli import _common
+def test_empty_input_directory_fails_clearly(tmp_path):
+    from glyphive.cli._common import load_transcript_lines
 
     empty = tmp_path / "empty"
     empty.mkdir()
-    loader = getattr(_common, loader_name)
     with pytest.raises(ValueError, match="input directory contains no files"):
-        loader(empty)
+        load_transcript_lines(empty)
 
 
 def test_mutually_exclusive_compression_guard(tmp_path):
@@ -926,10 +913,10 @@ def test_descan_auto_retries_with_blur_on_image_decode_failure(tmp_path, monkeyp
         # extract now consumes (lines, char_conf); char_conf is None here.
         return (["sharp"] if len(calls) == 1 else good_lines), None
 
-    monkeypatch.setattr(_common, "load_image_lines_with_conf", fake_loader)
     # Also patch the name imported into extract's module namespace.
     from glyphive.cli import extract as extract_mod
-    monkeypatch.setattr(extract_mod, "load_image_lines_with_conf", fake_loader)
+    monkeypatch.setattr(_common, "load_input_lines_with_conf", fake_loader)
+    monkeypatch.setattr(extract_mod, "load_input_lines_with_conf", fake_loader)
 
     def fake_restore(lines, dest, **kw):
         if lines == ["sharp"]:
@@ -939,7 +926,7 @@ def test_descan_auto_retries_with_blur_on_image_decode_failure(tmp_path, monkeyp
     from glyphive.restore import unarchive
     monkeypatch.setattr(unarchive, "restore_document_spooled", fake_restore)
 
-    rc = cli.run(["extract", "-f", str(image), "--from-images", "-C", str(tmp_path / "o")])
+    rc = cli.run(["extract", "-f", str(image), "-C", str(tmp_path / "o")])
     assert rc == 0
     # Two loads: the sharp [0.0] (no spine -- it's the first pass), then the
     # retry over the ADDITIONAL blur ladder only (0.6, 0.8 -- NOT 0.0, since

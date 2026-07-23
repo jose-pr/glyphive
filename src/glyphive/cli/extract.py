@@ -8,7 +8,6 @@ from duho import LoggingArgs
 from pathlib_next import Path
 
 from ._common import (
-    load_image_lines_with_conf,
     load_input_lines_with_conf,
     load_qr_lines,
     progress_logger,
@@ -32,10 +31,6 @@ class Extract(LoggingArgs):
     directory: "_ty.Optional[str]" = None
     "Restore into this directory (tar -C). Default: current directory."
     ("-C", "--directory")
-
-    from_images: bool = False
-    "Treat -f as a page image or directory of images and OCR them first."
-    ("--from-images",)
 
     from_qr: bool = False
     "Decode -f as GQ1 QR page images (requires glyphive[qr])."
@@ -80,8 +75,6 @@ class Extract(LoggingArgs):
 
         dest = resolve_destination(self.directory)
         src = Path(self.file)
-        if self.from_images and self.from_qr:
-            raise ValueError("--from-images and --from-qr are mutually exclusive")
         blur_radii, auto_retry = resolve_descan(self.descan)
 
         def _load(radii, *, spine=None):
@@ -95,10 +88,6 @@ class Extract(LoggingArgs):
             # for the OCR loaders -- QR decode has no blur ladder to retry.
             if self.from_qr:
                 return load_qr_lines(src), None
-            if self.from_images:
-                return load_image_lines_with_conf(
-                    src, engine=self.ocr_engine, blur=radii, spine=spine
-                )
             return load_input_lines_with_conf(
                 src, engine=self.ocr_engine, blur=radii, spine=spine
             )

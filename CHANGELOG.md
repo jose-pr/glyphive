@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+**Breaking (pre-1.0, no compatibility shim):** `extract --from-images` is
+removed. It added no capability over the default (no-flag) path, which
+already auto-detects images/PDF/DOCX/text by magic bytes and extension, and
+only existed as a narrower, crash-prone alias. Drop the flag; `-f` alone
+already does the right thing for image input.
+
+### Fixed
+
+- **The page-footer hash disagreed with the CRC on essentially every
+  OCR-recovered line, not just noisy ones.** The footer hash was computed
+  over the raw OCR'd line text, while the per-line CRC check validates a
+  whitespace-normalized (interior-OCR-space-stripped) reconstruction of that
+  same line — two different derived strings of one line, guaranteed to
+  disagree whenever OCR drifted so much as one interior space, which it
+  almost always does. Worse, the footer-hash reader never consulted the
+  header's authoritative `nsym_line` field, so any codec using per-line
+  Reed-Solomon parity (`-crc16-rs`, the common case) hit this on every page
+  regardless of OCR noise. The footer hash is now computed over the same
+  CRC-validated canonical reconstruction, so it agrees with the CRC whenever
+  the line actually decoded correctly, and still flags a genuine page
+  content change.
+- **`extract --from-images` crashed on PDF/DOCX input** with a confusing
+  `PIL.UnidentifiedImageError` deep in Pillow, instead of a clear error.
+  Moot now that the flag is removed — the default auto-detect path was
+  already the correct way to read those inputs.
+- **PDF restore no longer rasterizes and OCRs a document that already has a
+  usable text layer.** A PDF glyphive itself created (the `fpdf2`/`pdf`
+  render extra) embeds real text glyphs; `extract`/`list` now read that
+  layer directly via `pypdfium2` when a `#!glyphive` header is present in
+  it, skipping rasterize+OCR entirely — cheaper and more reliable than OCR
+  for glyphive's own PDF output. Falls back to rasterize+OCR for a PDF with
+  no such text layer (e.g. a scanned/photographed document saved as PDF).
+
 ## [0.2.0] - 2026-07-22
 
 Restore correctness release. Several format fixes remove failure modes that

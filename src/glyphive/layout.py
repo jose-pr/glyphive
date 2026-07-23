@@ -993,6 +993,53 @@ def iter_paginate(
 # ---------------------------------------------------------------------------
 
 
+def _canonical_encoded_line(
+    line: str, spec=None, *, line_parity_chars: int = 0
+) -> _ty.Optional[str]:
+    """Reconstruct the encoder's canonical single-space-joined form of ``line``.
+
+    Returns ``None`` if ``line`` does not look like an ``L``/``P``/``Q`` frame.
+    ``split_frame_with_parity`` already strips OCR-inserted *interior* spaces
+    from the payload (and, when ``line_parity_chars`` is nonzero, splits the
+    trailing line-parity field positionally) before the CRC check runs --
+    that tolerance is the whole point of the frame's "label, then payload,
+    [then line-parity,] then #check" grammar -- see
+    :func:`~glyphive.codec.engine.split_frame`'s docstring -- but the printed
+    line itself still carries that stray spacing. Hashing the raw printed
+    line (as opposed to this reconstruction) for the page-footer check would
+    make the footer hash disagree with the encoder's hash on essentially any
+    OCR pass that inserts so much as one interior space, even though the line
+    decoded perfectly -- the footer hash and the CRC would be validating two
+    different derived strings of the same line. Rebuilding ``label payload[
+    line_parity] #check`` (the exact shape
+    :func:`~glyphive.layout.format_page_footer` hashed at encode time) from
+    the same split the CRC check already trusts keeps the footer hash and the
+    CRC in agreement -- ``line_parity_chars`` MUST be the same authoritative
+    width (from the header's ``nsym_line``, see :func:`_resolve_payload_spec`)
+    the codec itself used, or the payload/line-parity boundary reconstructs
+    in the wrong place for a line-parity-bearing stream.
+    """
+    from .codec.engine import BASE16G, _decode_index, split_frame_with_parity
+
+    spec = spec or BASE16G
+    split = split_frame_with_parity(
+        line, spec=spec, line_parity_chars=line_parity_chars
+    )
+    if split is None:
+        return None
+    label, payload, line_parity, check = split
+    if label[:1] not in ("L", "P", "Q"):
+        return None
+    if _decode_index(label[1:], spec) is None:
+        return None
+    # Matches codec.engine's own canonical rendering (see e.g. its correction
+    # helpers' ``f"{kind}{token} {payload}{parity_field} {check}"``): payload
+    # and line-parity are joined with a single space only when a line-parity
+    # field is actually present.
+    parity_field = f" {line_parity}" if line_parity_chars else ""
+    return f"{label} {payload}{parity_field} {check}"
+
+
 def _looks_like_encoded(line: str, spec=None) -> bool:
     """Cheap check: does ``line`` look like a codec ``L<idx>``/``P<idx>`` frame?
 
@@ -1008,17 +1055,7 @@ def _looks_like_encoded(line: str, spec=None) -> bool:
     apart again, while still ignoring headers/footers/noise (e.g. the
     ``PAGE 1/1 sha256=...`` footer has no ``#check`` field and is rejected).
     """
-    from .codec.engine import BASE16G, _decode_index, split_frame
-
-    spec = spec or BASE16G
-    split = split_frame(line, spec=spec)
-    if split is None:
-        return False
-    label, _payload, _check = split
-    if label[:1] not in ("L", "P", "Q"):
-        return False
-
-    return _decode_index(label[1:], spec) is not None
+    return _canonical_encoded_line(line, spec) is not None
 
 
 def _is_frame_shaped_but_unreadable(line: str, spec=None) -> bool:
@@ -1079,7 +1116,7 @@ def read_pages(
 
 
 def _resolve_payload_spec(header_frames):
-    """Return the payload codec's ``_RadixSpec`` from the decoded H-header frames.
+    """Return ``(spec, line_parity_chars)`` for the payload codec, from the H frames.
 
     The H (machine header) frames are always base16g-encoded (the bootstrap
     alphabet), but the L/P payload frames use the *selected* codec's alphabet —
@@ -1088,17 +1125,28 @@ def _resolve_payload_spec(header_frames):
     so L/P classification uses the right alphabet/index/check widths. Falls back
     to the base16g spec if the header is not yet decodable or the codec is not a
     built-in radix codec (e.g. a plugin codec that reuses the base16g frame shape).
+
+    ``line_parity_chars`` is the printed width of the optional per-line
+    Reed-Solomon field, derived from the header's authoritative ``nsym_line``
+    (see :func:`_machine_header_bytes`'s docstring for why the header value,
+    not whitespace-token counting, is the source of truth). ``0`` when the
+    header is not yet decodable or carries no ``nsym_line``. Resolving it here
+    means every payload-line reader in this function (canonical-line
+    reconstruction included) agrees on the same field width the codec itself
+    uses to split payload from line-parity.
     """
-    from .codec.engine import BASE16G
+    from .codec.engine import BASE16G, _line_parity_chars
 
     try:
         meta = _decode_machine_header(header_frames)
         from .codec import get as _get_codec
 
         codec = _get_codec(str(meta["codec"]))
-        return getattr(codec, "_spec", BASE16G)
+        spec = getattr(codec, "_spec", BASE16G)
+        nsym_line = int(meta.get("nsym_line", 0) or 0)
+        return spec, _line_parity_chars(nsym_line, spec)
     except Exception:
-        return BASE16G
+        return BASE16G, 0
 
 
 def read_pages_to_spool(
@@ -1156,6 +1204,7 @@ def read_pages_to_spool(
     unreadable_lines: _ty.List[_ty.Dict[str, _ty.Any]] = []
     pending_unreadable: _ty.List[str] = []
     payload_spec = None  # resolved lazily from the header once H frames are seen
+    line_parity_chars = 0  # resolved alongside payload_spec, see below
     conf_source = () if line_conf is None else line_conf
     for line, conf in itertools.zip_longest(all_text_lines, conf_source, fillvalue=None):
         if line is None:
@@ -1200,15 +1249,19 @@ def read_pages_to_spool(
         # The payload L/P frames use the SELECTED codec's alphabet (e.g. base32g
         # adds symbols), which differs from the base16g bootstrap used for the H
         # header frames. All H frames precede the first payload line, so resolve
-        # the payload codec's spec once, lazily, before classifying L/P lines.
+        # the payload codec's spec (and its authoritative line-parity field
+        # width, needed to reconstruct the canonical line for hashing) once,
+        # lazily, before classifying L/P lines.
         if payload_spec is None:
-            payload_spec = _resolve_payload_spec(header_frames)
-        if _looks_like_encoded(line, payload_spec):
-            encoded = stripped.encode("utf-8")
+            payload_spec, line_parity_chars = _resolve_payload_spec(header_frames)
+        canonical = _canonical_encoded_line(
+            line, payload_spec, line_parity_chars=line_parity_chars
+        )
+        if canonical is not None:
             current_page_lines.append((stripped, line_conf_value))
             if block_count:
                 block_hash.update(b"\n")
-            block_hash.update(encoded)
+            block_hash.update(canonical.encode("utf-8"))
             block_count += 1
         elif _is_frame_shaped_but_unreadable(line, payload_spec):
             pending_unreadable.append(stripped)

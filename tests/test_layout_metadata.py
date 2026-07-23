@@ -587,13 +587,15 @@ def test_benign_exact_duplicate_lines_do_not_trigger_collision():
     assert c.decode(doubled) == data
 
 
-def test_footer_hash_mismatch_is_advisory_not_a_page_warning():
-    """An OCR-style footer-hash mismatch goes to _footer_hash_notes, not warnings.
+def test_footer_hash_survives_ocr_style_interior_whitespace():
+    """An OCR-style interior space must NOT trip the footer-hash check.
 
-    A space inserted into a payload (OCR routinely does this) changes the page
-    text hash while the L/P line still decodes via CRC/RS. Such a mismatch must
-    be recorded as an advisory footer-hash note -- so the CLI can log it quietly
-    -- and NOT as a real page-integrity warning, and must not break decode.
+    A space inserted into a payload (OCR routinely does this) is exactly the
+    noise ``split_frame``'s "label, then payload, then #check" grammar exists
+    to tolerate -- the L/P line still decodes via CRC/RS. The footer hash is
+    computed over the same CRC-normalized (despaced) line text the codec
+    itself validated, not the raw noisy transcript text, so it must agree:
+    no advisory note, no page warning, and decode must succeed.
     """
     data = b"footer hash advisory note check " * 30
     encoded = codec.get("base16g-crc16-rs").encode(data)
@@ -613,9 +615,38 @@ def test_footer_hash_mismatch_is_advisory_not_a_page_warning():
             break
 
     meta, encoded_lines = layout.read_pages(lines)
-    assert len(meta["_footer_hash_notes"]) >= 1
-    assert not meta["_page_warnings"]  # advisory, not a real warning
+    assert not meta["_footer_hash_notes"]
+    assert not meta["_page_warnings"]
     assert codec.get(meta["codec"]).decode(encoded_lines) == data
+
+
+def test_footer_hash_still_flags_a_genuine_page_content_change():
+    """A real change to a page's data lines must still trip the footer-hash check.
+
+    Distinguishes the OCR-whitespace-tolerance fix (interior-space noise must
+    NOT trip the check, see the sibling test) from a genuine content
+    difference, which must still be reported as an advisory note -- the fix
+    must not silence real page-hash disagreements, only whitespace noise.
+    """
+    data = b"footer hash genuine mismatch check " * 30
+    encoded = codec.get("base16g-crc16-rs").encode(data)
+    meta_in = {
+        "codec": "base16g-crc16-rs", "comp": "none", "meta": "none",
+        "files": 1, "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    pages = layout.paginate(encoded, meta_in, lines_per_page=14)
+    lines = [line for page in pages for line in page.text_lines]
+    # Drop the first L line of the first page entirely -- the footer's hash
+    # was computed over ALL of that page's lines, so removing one changes
+    # the page's actual content, not just its whitespace.
+    for i, line in enumerate(lines):
+        if line.startswith("L"):
+            del lines[i]
+            break
+
+    meta, encoded_lines = layout.read_pages(lines)
+    assert len(meta["_footer_hash_notes"]) >= 1
 
 
 # ---------------------------------------------------------------------------

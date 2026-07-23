@@ -8,7 +8,7 @@ fine-tuned for **Nimbus Mono PS** renderings of the base16g alphabet.
 
 ```bash
 pip install glyphive-ocrmodel-courier
-glyphive extract -f scan/ --from-images --ocr-engine tesseract-glyphive-courier -C out
+glyphive extract -f scan/ --ocr-engine tesseract-glyphive-courier -C out
 ```
 
 Installing it registers a `tesseract-glyphive-courier` OCR provider through the
