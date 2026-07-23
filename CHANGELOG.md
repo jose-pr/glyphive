@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+**Guidance retraction: `base32g` is no longer recommended, pending
+re-verification.** 0.2.0's "Highlights" claimed `base32g` needs no trained
+OCR model and named it Courier-only-but-viable, based on a 2026-07-22 VM
+sweep run on Tesseract 4.1.1. A 2026-07-23 local re-gate on Tesseract 5.4.0
+found Courier itself — the only font that measurement confirmed — failing to
+restore `base32g` at 8pt and 10pt/width-60, the exact cells the 0.2.0
+measurement recorded as passing; a `base16g` sanity control on the identical
+setup restored fine, ruling out a broken test. As of this writing, no
+font/size/width combination has been confirmed to restore `base32g` on a
+current Tesseract build. `base16g` (the default codec) is unaffected. See
+`benchmarks/results/FONT_CANDIDATES.md` "Local font/size sweep (2026-07-23)"
+for the full data. Use `base16g` until this is re-resolved.
+
 **Breaking (pre-1.0, no compatibility shim):** `extract --from-images` is
 removed. It added no capability over the default (no-flag) path, which
 already auto-detects images/PDF/DOCX/text by magic bytes and extension, and

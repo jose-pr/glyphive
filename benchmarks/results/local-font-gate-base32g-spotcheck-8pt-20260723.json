@@ -1,0 +1,190 @@
+{
+  "cells": [
+    {
+      "codec": "base32g-crc16-rs",
+      "engine": "tesseract",
+      "font": "C:\\Windows\\Fonts\\LTYPE.TTF",
+      "font_size": 8.0,
+      "line_parity": 2,
+      "line_width": "60",
+      "restore_counts": {
+        "max": 0,
+        "mean": 0.0,
+        "min": 0
+      },
+      "restore_rate": 0.0,
+      "status_counts": {
+        "error": 0,
+        "not-built": 0,
+        "not-restored": 2,
+        "restored": 0
+      },
+      "summary": "0/2 testable",
+      "testable": 2,
+      "total": 2,
+      "trials": [
+        {
+          "detail": "CodecError: line L00001 failed CRC and exceeds RS correction budget",
+          "document": "note-001.txt",
+          "failed_at": "extract",
+          "status": "not-restored"
+        },
+        {
+          "detail": "CodecError: line L00004 failed CRC and exceeds RS correction budget",
+          "document": "note-002.txt",
+          "failed_at": "extract",
+          "status": "not-restored"
+        }
+      ],
+      "untested": false
+    },
+    {
+      "codec": "base32g-crc16-rs",
+      "engine": "tesseract-glyphive",
+      "font": "C:\\Windows\\Fonts\\LTYPE.TTF",
+      "font_size": 8.0,
+      "line_parity": 2,
+      "line_width": "60",
+      "restore_counts": {
+        "max": 0,
+        "mean": 0.0,
+        "min": 0
+      },
+      "restore_rate": 0.0,
+      "status_counts": {
+        "error": 0,
+        "not-built": 0,
+        "not-restored": 2,
+        "restored": 0
+      },
+      "summary": "0/2 testable",
+      "testable": 2,
+      "total": 2,
+      "trials": [
+        {
+          "detail": "ValueError: cannot recover RS parameters: data/parity line counts are inconsistent (missing or spurious lines)",
+          "document": "note-001.txt",
+          "failed_at": "extract",
+          "status": "not-restored"
+        },
+        {
+          "detail": "ValueError: cannot recover RS parameters: data/parity line counts are inconsistent (missing or spurious lines)",
+          "document": "note-002.txt",
+          "failed_at": "extract",
+          "status": "not-restored"
+        }
+      ],
+      "untested": false
+    },
+    {
+      "codec": "base32g-crc16-rs",
+      "engine": "tesseract",
+      "font": "dejavu-sans-mono",
+      "font_size": 8.0,
+      "line_parity": 2,
+      "line_width": "60",
+      "restore_counts": {
+        "max": 0,
+        "mean": 0.0,
+        "min": 0
+      },
+      "restore_rate": 0.0,
+      "status_counts": {
+        "error": 0,
+        "not-built": 0,
+        "not-restored": 2,
+        "restored": 0
+      },
+      "summary": "0/2 testable",
+      "testable": 2,
+      "total": 2,
+      "trials": [
+        {
+          "detail": "CodecError: line L00002 failed CRC and exceeds RS correction budget",
+          "document": "note-001.txt",
+          "failed_at": "extract",
+          "status": "not-restored"
+        },
+        {
+          "detail": "CodecError: line L00000 failed CRC and exceeds RS correction budget",
+          "document": "note-002.txt",
+          "failed_at": "extract",
+          "status": "not-restored"
+        }
+      ],
+      "untested": false
+    },
+    {
+      "codec": "base32g-crc16-rs",
+      "engine": "tesseract-glyphive",
+      "font": "dejavu-sans-mono",
+      "font_size": 8.0,
+      "line_parity": 2,
+      "line_width": "60",
+      "restore_counts": {
+        "max": 0,
+        "mean": 0.0,
+        "min": 0
+      },
+      "restore_rate": 0.0,
+      "status_counts": {
+        "error": 0,
+        "not-built": 0,
+        "not-restored": 2,
+        "restored": 0
+      },
+      "summary": "0/2 testable",
+      "testable": 2,
+      "total": 2,
+      "trials": [
+        {
+          "detail": "ValueError: cannot recover RS parameters: data/parity line counts are inconsistent (missing or spurious lines)",
+          "document": "note-001.txt",
+          "failed_at": "extract",
+          "status": "not-restored"
+        },
+        {
+          "detail": "ValueError: cannot recover RS parameters: data/parity line counts are inconsistent (missing or spurious lines)",
+          "document": "note-002.txt",
+          "failed_at": "extract",
+          "status": "not-restored"
+        }
+      ],
+      "untested": false
+    }
+  ],
+  "git": {
+    "commit": "92a3bb5269516454ede426215b5c341602a99ea9",
+    "dirty": true
+  },
+  "glyphive_version": "0.2.0",
+  "harness_version": "e2e_grid-1.0.0",
+  "name": "local-font-gate-base32g-spotcheck-8pt-20260723",
+  "platform": "Windows-11-10.0.28000-SP0",
+  "provenance": {
+    "corpus": {
+      "combined_sha256": "2e9f6530cca7ac4575314cfcc0087324fcd077b170561ef00bd30d42e847afa2",
+      "file_count": 3,
+      "files": {
+        "note-001.txt": {
+          "bytes": 1074,
+          "sha256": "ed21dacbf0d387417e5a10ba83c378497f4b0c1379d3b6cce15192e402324894"
+        },
+        "note-002.txt": {
+          "bytes": 1031,
+          "sha256": "beaf53e8edc39a3f94cb5f7f739a4fee993eacd86216d32335f5c4e186e51786"
+        },
+        "note-003.txt": {
+          "bytes": 921,
+          "sha256": "fed2e1e2aaa096176a0720fc017ff2219614101073971ffebd13f62df6e2d4f5"
+        }
+      },
+      "total_bytes": 3026
+    },
+    "tesseract_version": "5.4.0.20240606"
+  },
+  "python": "3.14.6",
+  "repeat": 2,
+  "schema_version": 1,
+  "timestamp": "2026-07-23T21:41:24+00:00"
+}

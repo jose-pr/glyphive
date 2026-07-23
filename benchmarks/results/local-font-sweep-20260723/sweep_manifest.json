@@ -1,0 +1,130 @@
+[
+  {
+    "font": "dejavu-sans-mono",
+    "codec": "base16g",
+    "ok": true,
+    "elapsed_s": 46.3,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\dejavu-sans-mono_base16g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "dejavu-sans-mono",
+    "codec": "base32g",
+    "ok": true,
+    "elapsed_s": 47.3,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\dejavu-sans-mono_base32g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "courier",
+    "codec": "base16g",
+    "ok": true,
+    "elapsed_s": 48.8,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\courier_base16g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "courier",
+    "codec": "base32g",
+    "ok": true,
+    "elapsed_s": 49.7,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\courier_base32g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "ocr-b",
+    "codec": "base16g",
+    "ok": true,
+    "elapsed_s": 38.2,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\ocr-b_base16g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "ocr-b",
+    "codec": "base32g",
+    "ok": true,
+    "elapsed_s": 38.1,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\ocr-b_base32g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "cascadia-mono",
+    "codec": "base16g",
+    "ok": true,
+    "elapsed_s": 44.4,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\cascadia-mono_base16g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "cascadia-mono",
+    "codec": "base32g",
+    "ok": true,
+    "elapsed_s": 50.4,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\cascadia-mono_base32g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "consolas",
+    "codec": "base16g",
+    "ok": true,
+    "elapsed_s": 48.4,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\consolas_base16g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "consolas",
+    "codec": "base32g",
+    "ok": true,
+    "elapsed_s": 48.4,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\consolas_base32g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "lucida-console",
+    "codec": "base16g",
+    "ok": true,
+    "elapsed_s": 45.9,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\lucida-console_base16g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "lucida-console",
+    "codec": "base32g",
+    "ok": true,
+    "elapsed_s": 50.5,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\lucida-console_base32g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "lucida-sans-typewriter",
+    "codec": "base16g",
+    "ok": true,
+    "elapsed_s": 51.3,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\lucida-sans-typewriter_base16g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "lucida-sans-typewriter",
+    "codec": "base32g",
+    "ok": true,
+    "elapsed_s": 50.7,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\lucida-sans-typewriter_base32g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "ocr-a-extended",
+    "codec": "base16g",
+    "ok": true,
+    "elapsed_s": 50.2,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\ocr-a-extended_base16g.json",
+    "stderr_tail": null
+  },
+  {
+    "font": "ocr-a-extended",
+    "codec": "base32g",
+    "ok": true,
+    "elapsed_s": 51.5,
+    "json": "C:\\Users\\jose\\AppData\\Local\\Temp\\claude\\c--Users-jose-devel-glyphive\\114709c3-bd19-4bc9-a0c1-be814371014c\\scratchpad\\font_sweep_out\\ocr-a-extended_base32g.json",
+    "stderr_tail": null
+  }
+]

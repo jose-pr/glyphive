@@ -184,6 +184,123 @@ resolution, and the available official models. Any later fine-tuning must use
 held-out Glyphive frame lines and exact channel characters rather than scoring
 on its synthetic training samples.
 
+## Local font/size sweep (2026-07-23, local machine, stock Tesseract 5.4.0)
+
+First sweep run on `gungnir` (see `~/.agents/AGENTS.local.md`) rather than the
+VM: real Tesseract 5.4.0 turned out to already be installed locally, just not
+on PATH (`~/.agents/AGENTS.local.md` records this). Adds 5 new candidates
+never measured before (4 system fonts by filename path + the fifth,
+`ocr-a-extended`, mostly as a negative control since OCR-A was already
+rejected in the ledger above under different files) alongside the 3 already-
+known fonts, across both `base16g` and `base32g`, sizes 4/6/8/10/12pt, charset
+= each codec's real alphabet, `--rows 60`, width 60 (the current default cap
+— a width sweep is a deliberate follow-up, not run here). Raw JSON:
+`benchmarks/results/local-font-sweep-20260723/`.
+
+**Character-grid `usable_bytes_per_page`** (diagnostic only — see the
+"Verified diagnostic measurements" discipline note above; a high score here
+is NOT evidence of real restore, only of measured OCR reliability at the
+character level):
+
+### base16g
+
+| font | 4pt | 6pt | 8pt | 10pt | 12pt |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| dejavu-sans-mono | 11224 | 7300 | 2963 | 2610 | 1825 |
+| courier | 0 | 5329 | 4125 | 2552 | 1369 |
+| ocr-b | 8408 | 3661 | 2802 | 1121 | 562 |
+| cascadia-mono | 0 | 4219 | 2205 | 1249 | 914 |
+| consolas | 10350 | 7067 | 3094 | 2016 | 1967 |
+| lucida-console | 10882 | 5292 | 2963 | 1827 | 1764 |
+| lucida-sans-typewriter | 9650 | 5475 | 3015 | 2480 | 1825 |
+| ocr-a-extended | 0 | 456 | 51 | 163 | 182 |
+
+### base32g
+
+| font | 4pt | 6pt | 8pt | 10pt | 12pt |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| dejavu-sans-mono | 0 | 3772 | 2044 | 1566 | 1125 |
+| courier | 0 | 2940 | 1994 | 1276 | 791 |
+| ocr-b | 1235 | 210 | 665 | 305 | 188 |
+| cascadia-mono | 1477 | 1312 | 1050 | 675 | 688 |
+| consolas | 7875 | 4667 | 2775 | 2016 | 1300 |
+| lucida-console | 2464 | 1825 | 2316 | 1088 | 1125 |
+| lucida-sans-typewriter | 3011 | 3893 | 2316 | 1566 | 1004 |
+| ocr-a-extended | 0 | 122 | 0 | 87 | 114 |
+
+`0` at 4pt for courier/cascadia-mono/ocr-a-extended on base16g means the
+character-level confusion graph collapsed completely at that size on this
+Tesseract build (`safe_len: 0` — every candidate character is corruptibly
+confusable with another), not a measurement error.
+
+**Restore-gate results (the metric that actually matters), real
+`create → rasterize 300 DPI → OCR (stock tesseract + tesseract-glyphive) →
+extract → byte-diff`, `benchmarks/e2e_grid.py`, 2 documents/cell:**
+
+| font | codec | size | width | restore rate |
+| --- | --- | ---: | ---: | --- |
+| consolas | base16g | 6pt | 60 | **2/2 (both engines)** — `local-font-gate-base16g-20260723.json` |
+| dejavu-sans-mono | base16g | 6pt | 60 | **2/2 (both engines)** — same file, sanity baseline |
+| consolas | base32g | 4pt | 60 | **0/2 (both engines)** — `local-font-gate-base32g-consolas-20260723.json`, `ValueError: no data lines found to decode` (stock) / `cannot recover RS parameters: data/parity line counts are inconsistent` (tesseract-glyphive) |
+| consolas | base32g | 6pt | 60 | **0/2 (both engines)** — `local-font-gate-base32g-consolas-6pt-20260723.json`, same failure mode |
+| courier | base32g | 8pt | 60 | **0/2 (both engines)** — `local-font-gate-base32g-courier-20260723.json`, `CodecError: line L00003 failed CRC and exceeds RS correction budget` (stock) / `cannot recover RS parameters: data/parity line counts are inconsistent` (tesseract-glyphive) |
+| courier | base32g | 10pt | 60 | **0/2 (both engines)** — same file, `cannot recover RS parameters: data/parity line counts are inconsistent` (both engines) |
+| courier | base32g | 12pt | 60 | not-built (both engines) — `error: selected PDF geometry fits only 56 payload characters; at least 60 are required` (geometry refusal, not an OCR result — excluded from the rate) |
+| lucida-sans-typewriter | base32g | 8pt | 60 | **0/2 (both engines)** — `local-font-gate-base32g-spotcheck-8pt-20260723.json` |
+| dejavu-sans-mono | base32g | 8pt | 60 | **0/2 (both engines)** — same file |
+| courier | base16g | 8pt | 60 | **2/2 (both engines)** — `local-font-gate-courier-base16g-sanity-20260723.json`, sanity control confirming the base32g failures above are codec-specific, not a broken harness/environment |
+
+**Findings:**
+- **Consolas is a genuinely new, viable base16g candidate** — restores
+  byte-identical at 6pt on both engines, and its character-grid numbers are
+  competitive with DejaVu across every size on base16g (strong AND
+  consistent, unlike e.g. OCR-B which is size-sensitive). Not yet measured
+  at other sizes/widths through the restore gate — this is one confirmed
+  cell, not a full envelope.
+- **Consolas base32g completely fails the restore gate at both 4pt and
+  6pt** despite scoring the BEST of all 8 fonts on the character-grid tool
+  at both sizes (7875 and 4667 usable bytes/page respectively — higher than
+  Courier's own diagnostic numbers at those sizes). This is the CER-is-a-liar
+  pattern from `.agents/kb/ocr_benchmarking.md` playing out again on a fresh
+  candidate: the diagnostic metric picked exactly the wrong font as "best,"
+  and only the real restore gate caught it.
+- **CORRECTION (same day): "base32g is Courier-only" does NOT hold on this
+  Tesseract 5.4.0 build.** Gating Courier itself at 8pt and 10pt/width-60 —
+  the exact cells `base32g-envelope-20260722.json` recorded as `OK` on the
+  VM's Tesseract 4.1.1 — both FAIL on this build (0/2, both engines; 12pt is
+  a geometry refusal, not an OCR result, at width 60). A base16g Courier 8pt
+  sanity control on the identical local setup restores fine (2/2), ruling out
+  a broken harness/environment — this is base32g specifically regressing
+  between Tesseract versions/builds, not a local setup problem. Two more
+  fonts spot-checked at 8pt (Lucida Sans Typewriter, DejaVu) also fail,
+  consistent with the rest of this session's base32g results. **Net: as of
+  2026-07-23, NO font has been confirmed to restore base32g on ANY locally
+  tested Tesseract 5.4.0 build, at any size 4-10pt/width 60.** The VM's
+  Courier-passes result stands only for Tesseract 4.1.1 specifically — do
+  not generalize "Courier fixes base32g" across Tesseract versions/builds
+  without re-gating. This is now the single most load-bearing correction in
+  this ledger: **base32g should not be recommended on stock OCR at all
+  pending a fresh, current-Tesseract-version confirmation that ANY
+  font/size/width combination restores it.** base16g remains unaffected
+  (sanity control above, and every base16g restore gate this session
+  passed).
+- **Open, not yet resolved**: no restore gate has been run for
+  `dejavu-sans-mono` (the current shipped default) at 4pt or for any font at
+  `--line-width max` on the current (post-nsym_line-fix, post-runt-line-fix)
+  format code. The `format_invariants.md` "Open question" note about
+  DejaVu's unverified small-size/max-width envelope is only PARTLY answered
+  by this sweep (6pt confirmed good for both DejaVu and Consolas on
+  base16g) — 4pt, 8-12pt, and any non-60 width remain unconfirmed for the
+  actual shipped default.
+- An older sweep (`ocr-e2e-denser-and-4pt-20260719.json`) recorded
+  `base16g @ 4pt width=max` restoring byte-identical on stock, but did not
+  record which font. This session's data shows font choice at 4pt is NOT
+  uniform — Courier's character-grid alphabet collapsed completely at 4pt on
+  this Tesseract 5.4.0 build, while DejaVu/Consolas/Lucida remained strong.
+  The 07-19 result is very likely NOT Courier given that collapse, but
+  which font it actually used is not recorded anywhere found so far — flag
+  as an open provenance gap rather than assume either way.
+
 ## Pending matrix
 
 - Repeat the constrained OCR-B restore gate through physical print/scan paths,

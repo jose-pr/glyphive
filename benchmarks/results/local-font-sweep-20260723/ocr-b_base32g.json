@@ -1,0 +1,3166 @@
+{
+  "results": [
+    {
+      "font_arg": "ocr-b",
+      "font_label": "OCR-B.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34EFGNUW2567?@!&+=",
+      "alphabet_len": 32,
+      "dpi": 300,
+      "size": 4.0,
+      "rows": 60,
+      "line_length": 152,
+      "chars_per_line": 152,
+      "lines_per_page": 150,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.7833333333333333,
+      "length_mismatches": 47,
+      "per_char": {
+        "A": {
+          "samples": 50,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 254,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "B": {
+          "samples": 71,
+          "errors": 4,
+          "error_rate": 0.056338028169014086,
+          "misreads": [
+            {
+              "target": "G",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "F",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "2",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 277,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "C": {
+          "samples": 52,
+          "errors": 1,
+          "error_rate": 0.019230769230769232,
+          "misreads": [
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 301,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "D": {
+          "samples": 73,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 282,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "H": {
+          "samples": 85,
+          "errors": 4,
+          "error_rate": 0.047058823529411764,
+          "misreads": [
+            {
+              "target": "U",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "G",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 325,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "K": {
+          "samples": 49,
+          "errors": 2,
+          "error_rate": 0.04081632653061224,
+          "misreads": [
+            {
+              "target": "&",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 281,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "L": {
+          "samples": 69,
+          "errors": 2,
+          "error_rate": 0.028985507246376812,
+          "misreads": [
+            {
+              "target": "X",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "?",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 314,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "M": {
+          "samples": 62,
+          "errors": 1,
+          "error_rate": 0.016129032258064516,
+          "misreads": [
+            {
+              "target": "7",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 266,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "P": {
+          "samples": 77,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 307,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "R": {
+          "samples": 62,
+          "errors": 1,
+          "error_rate": 0.016129032258064516,
+          "misreads": [
+            {
+              "target": "!",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 312,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "T": {
+          "samples": 56,
+          "errors": 1,
+          "error_rate": 0.017857142857142856,
+          "misreads": [
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 276,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "V": {
+          "samples": 57,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 267,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "X": {
+          "samples": 64,
+          "errors": 3,
+          "error_rate": 0.046875,
+          "misreads": [
+            {
+              "target": "=",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "E",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "@",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 282,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "Y": {
+          "samples": 73,
+          "errors": 1,
+          "error_rate": 0.0136986301369863,
+          "misreads": [
+            {
+              "target": "7",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 276,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "3": {
+          "samples": 48,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 280,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "4": {
+          "samples": 67,
+          "errors": 3,
+          "error_rate": 0.04477611940298507,
+          "misreads": [
+            {
+              "target": "+",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "G",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 285,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "E": {
+          "samples": 68,
+          "errors": 1,
+          "error_rate": 0.014705882352941176,
+          "misreads": [
+            {
+              "target": "2",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 286,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "F": {
+          "samples": 68,
+          "errors": 2,
+          "error_rate": 0.029411764705882353,
+          "misreads": [
+            {
+              "target": "H",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "U",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 311,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "G": {
+          "samples": 71,
+          "errors": 3,
+          "error_rate": 0.04225352112676056,
+          "misreads": [
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "&",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "+",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 293,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "N": {
+          "samples": 58,
+          "errors": 1,
+          "error_rate": 0.017241379310344827,
+          "misreads": [
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 272,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "U": {
+          "samples": 63,
+          "errors": 5,
+          "error_rate": 0.07936507936507936,
+          "misreads": [
+            {
+              "target": "X",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "4",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 294,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "W": {
+          "samples": 68,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 279,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "2": {
+          "samples": 57,
+          "errors": 3,
+          "error_rate": 0.05263157894736842,
+          "misreads": [
+            {
+              "target": "Z",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "5",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "!",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 287,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 7
+        },
+        "5": {
+          "samples": 55,
+          "errors": 7,
+          "error_rate": 0.12727272727272726,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 6,
+              "corrupting": false
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 279,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 6
+        },
+        "6": {
+          "samples": 50,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 254,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "7": {
+          "samples": 60,
+          "errors": 4,
+          "error_rate": 0.06666666666666667,
+          "misreads": [
+            {
+              "target": "?",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "G",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Z",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 298,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "?": {
+          "samples": 69,
+          "errors": 23,
+          "error_rate": 0.3333333333333333,
+          "misreads": [
+            {
+              "target": "2",
+              "count": 18,
+              "corrupting": true
+            },
+            {
+              "target": "7",
+              "count": 5,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 303,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 39
+        },
+        "@": {
+          "samples": 57,
+          "errors": 39,
+          "error_rate": 0.6842105263157895,
+          "misreads": [
+            {
+              "target": "Q",
+              "count": 12,
+              "corrupting": false
+            },
+            {
+              "target": "A",
+              "count": 12,
+              "corrupting": true
+            },
+            {
+              "target": "a",
+              "count": 6,
+              "corrupting": false
+            },
+            {
+              "target": "0",
+              "count": 4,
+              "corrupting": false
+            },
+            {
+              "target": "O",
+              "count": 2,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 281,
+          "deletions": 5,
+          "deletion_rate": 0.017793594306049824,
+          "insertion_adjacent": 9
+        },
+        "!": {
+          "samples": 55,
+          "errors": 2,
+          "error_rate": 0.03636363636363636,
+          "misreads": [
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "U",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 272,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "&": {
+          "samples": 52,
+          "errors": 4,
+          "error_rate": 0.07692307692307693,
+          "misreads": [
+            {
+              "target": "H",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "8",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "U",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 285,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "+": {
+          "samples": 54,
+          "errors": 2,
+          "error_rate": 0.037037037037037035,
+          "misreads": [
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "N",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 274,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 6
+        },
+        "=": {
+          "samples": 56,
+          "errors": 1,
+          "error_rate": 0.017857142857142856,
+          "misreads": [
+            {
+              "target": "L",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 267,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        }
+      },
+      "safe": "DPV3W6",
+      "safe_len": 6,
+      "usable_radix": 4,
+      "effective_bits": 2.0,
+      "nominal_bits": 5.0,
+      "efficiency": 0.4,
+      "corrupting_pairs": [
+        [
+          "B",
+          "G",
+          1
+        ],
+        [
+          "B",
+          "F",
+          1
+        ],
+        [
+          "B",
+          "2",
+          1
+        ],
+        [
+          "B",
+          "M",
+          1
+        ],
+        [
+          "C",
+          "K",
+          1
+        ],
+        [
+          "H",
+          "U",
+          2
+        ],
+        [
+          "H",
+          "G",
+          1
+        ],
+        [
+          "H",
+          "B",
+          1
+        ],
+        [
+          "K",
+          "&",
+          1
+        ],
+        [
+          "K",
+          "4",
+          1
+        ],
+        [
+          "L",
+          "X",
+          1
+        ],
+        [
+          "L",
+          "?",
+          1
+        ],
+        [
+          "M",
+          "7",
+          1
+        ],
+        [
+          "R",
+          "!",
+          1
+        ],
+        [
+          "T",
+          "B",
+          1
+        ],
+        [
+          "X",
+          "=",
+          1
+        ],
+        [
+          "X",
+          "E",
+          1
+        ],
+        [
+          "X",
+          "@",
+          1
+        ],
+        [
+          "Y",
+          "7",
+          1
+        ],
+        [
+          "4",
+          "+",
+          1
+        ],
+        [
+          "4",
+          "H",
+          1
+        ],
+        [
+          "4",
+          "G",
+          1
+        ],
+        [
+          "E",
+          "2",
+          1
+        ],
+        [
+          "F",
+          "H",
+          1
+        ],
+        [
+          "F",
+          "U",
+          1
+        ],
+        [
+          "G",
+          "T",
+          1
+        ],
+        [
+          "G",
+          "&",
+          1
+        ],
+        [
+          "G",
+          "+",
+          1
+        ],
+        [
+          "N",
+          "L",
+          1
+        ],
+        [
+          "U",
+          "X",
+          2
+        ],
+        [
+          "U",
+          "4",
+          1
+        ],
+        [
+          "U",
+          "R",
+          1
+        ],
+        [
+          "U",
+          "B",
+          1
+        ],
+        [
+          "2",
+          "5",
+          1
+        ],
+        [
+          "2",
+          "!",
+          1
+        ],
+        [
+          "5",
+          "K",
+          1
+        ],
+        [
+          "7",
+          "?",
+          1
+        ],
+        [
+          "7",
+          "Y",
+          1
+        ],
+        [
+          "7",
+          "G",
+          1
+        ],
+        [
+          "?",
+          "2",
+          18
+        ],
+        [
+          "?",
+          "7",
+          5
+        ],
+        [
+          "@",
+          "A",
+          12
+        ],
+        [
+          "!",
+          "B",
+          1
+        ],
+        [
+          "!",
+          "U",
+          1
+        ],
+        [
+          "&",
+          "H",
+          2
+        ],
+        [
+          "&",
+          "U",
+          1
+        ],
+        [
+          "+",
+          "C",
+          1
+        ],
+        [
+          "+",
+          "N",
+          1
+        ],
+        [
+          "=",
+          "L",
+          1
+        ]
+      ],
+      "drop_pairs": [
+        [
+          "@",
+          5,
+          0.017793594306049824
+        ]
+      ],
+      "chars_per_page": 22800,
+      "bytes_per_page": 5700.0,
+      "usable_bytes_per_page": 1235.0,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "ocr-b",
+      "font_label": "OCR-B.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34EFGNUW2567?@!&+=",
+      "alphabet_len": 32,
+      "dpi": 300,
+      "size": 6.0,
+      "rows": 60,
+      "line_length": 101,
+      "chars_per_line": 101,
+      "lines_per_page": 100,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.9166666666666666,
+      "length_mismatches": 55,
+      "per_char": {
+        "A": {
+          "samples": 18,
+          "errors": 2,
+          "error_rate": 0.1111111111111111,
+          "misreads": [
+            {
+              "target": "+",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 158,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "B": {
+          "samples": 23,
+          "errors": 2,
+          "error_rate": 0.08695652173913043,
+          "misreads": [
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "t",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 193,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 7
+        },
+        "C": {
+          "samples": 18,
+          "errors": 2,
+          "error_rate": 0.1111111111111111,
+          "misreads": [
+            {
+              "target": "F",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "W",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 215,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "D": {
+          "samples": 12,
+          "errors": 2,
+          "error_rate": 0.16666666666666666,
+          "misreads": [
+            {
+              "target": "W",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "U",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 188,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "H": {
+          "samples": 22,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 206,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "K": {
+          "samples": 15,
+          "errors": 3,
+          "error_rate": 0.2,
+          "misreads": [
+            {
+              "target": "3",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "W",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 192,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "L": {
+          "samples": 18,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 222,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "M": {
+          "samples": 14,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 178,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "P": {
+          "samples": 11,
+          "errors": 2,
+          "error_rate": 0.18181818181818182,
+          "misreads": [
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 199,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "R": {
+          "samples": 20,
+          "errors": 2,
+          "error_rate": 0.1,
+          "misreads": [
+            {
+              "target": "U",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "W",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 199,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "T": {
+          "samples": 10,
+          "errors": 1,
+          "error_rate": 0.1,
+          "misreads": [
+            {
+              "target": "2",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 173,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "V": {
+          "samples": 11,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 162,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "X": {
+          "samples": 16,
+          "errors": 3,
+          "error_rate": 0.1875,
+          "misreads": [
+            {
+              "target": "+",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "&",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 182,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "Y": {
+          "samples": 18,
+          "errors": 3,
+          "error_rate": 0.16666666666666666,
+          "misreads": [
+            {
+              "target": "G",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "F",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 176,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "3": {
+          "samples": 17,
+          "errors": 4,
+          "error_rate": 0.23529411764705882,
+          "misreads": [
+            {
+              "target": "D",
+              "count": 2,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Z",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 167,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 9
+        },
+        "4": {
+          "samples": 16,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 179,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "E": {
+          "samples": 11,
+          "errors": 1,
+          "error_rate": 0.09090909090909091,
+          "misreads": [
+            {
+              "target": "N",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 197,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "F": {
+          "samples": 24,
+          "errors": 3,
+          "error_rate": 0.125,
+          "misreads": [
+            {
+              "target": "E",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "&",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "K",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 215,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "G": {
+          "samples": 12,
+          "errors": 3,
+          "error_rate": 0.25,
+          "misreads": [
+            {
+              "target": "E",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "N",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 190,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "N": {
+          "samples": 16,
+          "errors": 2,
+          "error_rate": 0.125,
+          "misreads": [
+            {
+              "target": "T",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 173,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "U": {
+          "samples": 17,
+          "errors": 2,
+          "error_rate": 0.11764705882352941,
+          "misreads": [
+            {
+              "target": "C",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "?",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 206,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "W": {
+          "samples": 17,
+          "errors": 4,
+          "error_rate": 0.23529411764705882,
+          "misreads": [
+            {
+              "target": "B",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "G",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "R",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "X",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 170,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "2": {
+          "samples": 9,
+          "errors": 1,
+          "error_rate": 0.1111111111111111,
+          "misreads": [
+            {
+              "target": "3",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 179,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 7
+        },
+        "5": {
+          "samples": 12,
+          "errors": 1,
+          "error_rate": 0.08333333333333333,
+          "misreads": [
+            {
+              "target": "O",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 198,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 9
+        },
+        "6": {
+          "samples": 8,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 173,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 6
+        },
+        "7": {
+          "samples": 17,
+          "errors": 3,
+          "error_rate": 0.17647058823529413,
+          "misreads": [
+            {
+              "target": "?",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "/",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 210,
+          "deletions": 2,
+          "deletion_rate": 0.009523809523809525,
+          "insertion_adjacent": 5
+        },
+        "?": {
+          "samples": 19,
+          "errors": 8,
+          "error_rate": 0.42105263157894735,
+          "misreads": [
+            {
+              "target": "2",
+              "count": 7,
+              "corrupting": true
+            },
+            {
+              "target": "G",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 215,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 25
+        },
+        "@": {
+          "samples": 16,
+          "errors": 12,
+          "error_rate": 0.75,
+          "misreads": [
+            {
+              "target": "A",
+              "count": 5,
+              "corrupting": true
+            },
+            {
+              "target": "Q",
+              "count": 2,
+              "corrupting": false
+            },
+            {
+              "target": "0",
+              "count": 2,
+              "corrupting": false
+            },
+            {
+              "target": "O",
+              "count": 1,
+              "corrupting": false
+            },
+            {
+              "target": "M",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 198,
+          "deletions": 2,
+          "deletion_rate": 0.010101010101010102,
+          "insertion_adjacent": 11
+        },
+        "!": {
+          "samples": 16,
+          "errors": 1,
+          "error_rate": 0.0625,
+          "misreads": [
+            {
+              "target": "'",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 187,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "&": {
+          "samples": 21,
+          "errors": 2,
+          "error_rate": 0.09523809523809523,
+          "misreads": [
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 201,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 7
+        },
+        "+": {
+          "samples": 16,
+          "errors": 3,
+          "error_rate": 0.1875,
+          "misreads": [
+            {
+              "target": "X",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "Y",
+              "count": 1,
+              "corrupting": true
+            },
+            {
+              "target": "t",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 181,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 7
+        },
+        "=": {
+          "samples": 15,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 178,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        }
+      },
+      "safe": "HLV46=",
+      "safe_len": 6,
+      "usable_radix": 4,
+      "effective_bits": 2.0,
+      "nominal_bits": 5.0,
+      "efficiency": 0.4,
+      "corrupting_pairs": [
+        [
+          "A",
+          "+",
+          1
+        ],
+        [
+          "A",
+          "Y",
+          1
+        ],
+        [
+          "B",
+          "Y",
+          1
+        ],
+        [
+          "C",
+          "F",
+          1
+        ],
+        [
+          "C",
+          "W",
+          1
+        ],
+        [
+          "D",
+          "W",
+          1
+        ],
+        [
+          "D",
+          "U",
+          1
+        ],
+        [
+          "K",
+          "3",
+          2
+        ],
+        [
+          "K",
+          "W",
+          1
+        ],
+        [
+          "P",
+          "K",
+          1
+        ],
+        [
+          "P",
+          "B",
+          1
+        ],
+        [
+          "R",
+          "U",
+          1
+        ],
+        [
+          "R",
+          "W",
+          1
+        ],
+        [
+          "T",
+          "2",
+          1
+        ],
+        [
+          "X",
+          "+",
+          1
+        ],
+        [
+          "X",
+          "R",
+          1
+        ],
+        [
+          "X",
+          "&",
+          1
+        ],
+        [
+          "Y",
+          "G",
+          1
+        ],
+        [
+          "Y",
+          "F",
+          1
+        ],
+        [
+          "Y",
+          "P",
+          1
+        ],
+        [
+          "3",
+          "D",
+          2
+        ],
+        [
+          "3",
+          "K",
+          1
+        ],
+        [
+          "E",
+          "N",
+          1
+        ],
+        [
+          "F",
+          "E",
+          1
+        ],
+        [
+          "F",
+          "&",
+          1
+        ],
+        [
+          "F",
+          "K",
+          1
+        ],
+        [
+          "G",
+          "E",
+          1
+        ],
+        [
+          "G",
+          "C",
+          1
+        ],
+        [
+          "G",
+          "N",
+          1
+        ],
+        [
+          "N",
+          "T",
+          1
+        ],
+        [
+          "N",
+          "X",
+          1
+        ],
+        [
+          "U",
+          "C",
+          1
+        ],
+        [
+          "U",
+          "?",
+          1
+        ],
+        [
+          "W",
+          "B",
+          1
+        ],
+        [
+          "W",
+          "G",
+          1
+        ],
+        [
+          "W",
+          "R",
+          1
+        ],
+        [
+          "W",
+          "X",
+          1
+        ],
+        [
+          "2",
+          "3",
+          1
+        ],
+        [
+          "7",
+          "?",
+          1
+        ],
+        [
+          "7",
+          "A",
+          1
+        ],
+        [
+          "?",
+          "2",
+          7
+        ],
+        [
+          "?",
+          "G",
+          1
+        ],
+        [
+          "@",
+          "A",
+          5
+        ],
+        [
+          "@",
+          "M",
+          1
+        ],
+        [
+          "&",
+          "P",
+          1
+        ],
+        [
+          "&",
+          "A",
+          1
+        ],
+        [
+          "+",
+          "X",
+          1
+        ],
+        [
+          "+",
+          "Y",
+          1
+        ]
+      ],
+      "drop_pairs": [
+        [
+          "@",
+          2,
+          0.010101010101010102
+        ],
+        [
+          "7",
+          2,
+          0.009523809523809525
+        ]
+      ],
+      "chars_per_page": 10100,
+      "bytes_per_page": 2525.0,
+      "usable_bytes_per_page": 210.41666666666677,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "ocr-b",
+      "font_label": "OCR-B.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34EFGNUW2567?@!&+=",
+      "alphabet_len": 32,
+      "dpi": 300,
+      "size": 8.0,
+      "rows": 60,
+      "line_length": 76,
+      "chars_per_line": 76,
+      "lines_per_page": 75,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.7666666666666667,
+      "length_mismatches": 46,
+      "per_char": {
+        "A": {
+          "samples": 17,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 116,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "B": {
+          "samples": 42,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 153,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "C": {
+          "samples": 40,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 155,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "D": {
+          "samples": 29,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 134,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "H": {
+          "samples": 41,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 163,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "K": {
+          "samples": 28,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 143,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "L": {
+          "samples": 44,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 166,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "M": {
+          "samples": 31,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 128,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "P": {
+          "samples": 37,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 158,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "R": {
+          "samples": 47,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 145,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "T": {
+          "samples": 29,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 137,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "V": {
+          "samples": 26,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 128,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "X": {
+          "samples": 35,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 145,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "Y": {
+          "samples": 36,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 112,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "3": {
+          "samples": 22,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 123,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "4": {
+          "samples": 31,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 142,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "E": {
+          "samples": 27,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 144,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "F": {
+          "samples": 50,
+          "errors": 1,
+          "error_rate": 0.02,
+          "misreads": [
+            {
+              "target": "E",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 170,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "G": {
+          "samples": 33,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 137,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "N": {
+          "samples": 35,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 143,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "U": {
+          "samples": 31,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 154,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "W": {
+          "samples": 30,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 137,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "2": {
+          "samples": 36,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 137,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "5": {
+          "samples": 31,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 146,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "6": {
+          "samples": 27,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 125,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "7": {
+          "samples": 32,
+          "errors": 2,
+          "error_rate": 0.0625,
+          "misreads": [
+            {
+              "target": "/",
+              "count": 2,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 152,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "?": {
+          "samples": 37,
+          "errors": 7,
+          "error_rate": 0.1891891891891892,
+          "misreads": [
+            {
+              "target": "2",
+              "count": 6,
+              "corrupting": true
+            },
+            {
+              "target": "7",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 165,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 11
+        },
+        "@": {
+          "samples": 28,
+          "errors": 24,
+          "error_rate": 0.8571428571428571,
+          "misreads": [
+            {
+              "target": "Q",
+              "count": 6,
+              "corrupting": false
+            },
+            {
+              "target": "A",
+              "count": 6,
+              "corrupting": true
+            },
+            {
+              "target": "0",
+              "count": 4,
+              "corrupting": false
+            },
+            {
+              "target": "a",
+              "count": 4,
+              "corrupting": false
+            },
+            {
+              "target": "O",
+              "count": 3,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 133,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 21
+        },
+        "!": {
+          "samples": 35,
+          "errors": 1,
+          "error_rate": 0.02857142857142857,
+          "misreads": [
+            {
+              "target": "'",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 137,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "&": {
+          "samples": 39,
+          "errors": 3,
+          "error_rate": 0.07692307692307693,
+          "misreads": [
+            {
+              "target": "8",
+              "count": 3,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 155,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "+": {
+          "samples": 21,
+          "errors": 3,
+          "error_rate": 0.14285714285714285,
+          "misreads": [
+            {
+              "target": "t",
+              "count": 3,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 135,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "=": {
+          "samples": 37,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 142,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        }
+      },
+      "safe": "BCDHKLMPRTVXY34GNUW56=",
+      "safe_len": 22,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 5.0,
+      "efficiency": 0.8,
+      "corrupting_pairs": [
+        [
+          "F",
+          "E",
+          1
+        ],
+        [
+          "?",
+          "2",
+          6
+        ],
+        [
+          "?",
+          "7",
+          1
+        ],
+        [
+          "@",
+          "A",
+          6
+        ]
+      ],
+      "drop_pairs": [],
+      "chars_per_page": 5700,
+      "bytes_per_page": 2850.0,
+      "usable_bytes_per_page": 664.9999999999999,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "ocr-b",
+      "font_label": "OCR-B.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34EFGNUW2567?@!&+=",
+      "alphabet_len": 32,
+      "dpi": 300,
+      "size": 10.0,
+      "rows": 60,
+      "line_length": 61,
+      "chars_per_line": 61,
+      "lines_per_page": 60,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.8333333333333334,
+      "length_mismatches": 50,
+      "per_char": {
+        "A": {
+          "samples": 22,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 91,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "B": {
+          "samples": 29,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 123,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "C": {
+          "samples": 23,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 129,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "D": {
+          "samples": 18,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 105,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "H": {
+          "samples": 26,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 132,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "K": {
+          "samples": 25,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 117,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "L": {
+          "samples": 18,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 136,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "M": {
+          "samples": 20,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 98,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "P": {
+          "samples": 18,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 133,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "R": {
+          "samples": 25,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 115,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "T": {
+          "samples": 16,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 110,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "V": {
+          "samples": 13,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 107,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "X": {
+          "samples": 26,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 117,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "Y": {
+          "samples": 15,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 88,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "3": {
+          "samples": 19,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 99,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "4": {
+          "samples": 25,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 112,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "E": {
+          "samples": 12,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 115,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "F": {
+          "samples": 23,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 130,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "G": {
+          "samples": 22,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 110,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "N": {
+          "samples": 21,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 125,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "U": {
+          "samples": 16,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 123,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "W": {
+          "samples": 22,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 113,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "2": {
+          "samples": 19,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 107,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "5": {
+          "samples": 10,
+          "errors": 1,
+          "error_rate": 0.1,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 115,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 7
+        },
+        "6": {
+          "samples": 10,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 95,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "7": {
+          "samples": 15,
+          "errors": 4,
+          "error_rate": 0.26666666666666666,
+          "misreads": [
+            {
+              "target": "/",
+              "count": 3,
+              "corrupting": false
+            },
+            {
+              "target": "P",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 114,
+          "deletions": 1,
+          "deletion_rate": 0.008771929824561403,
+          "insertion_adjacent": 3
+        },
+        "?": {
+          "samples": 18,
+          "errors": 1,
+          "error_rate": 0.05555555555555555,
+          "misreads": [
+            {
+              "target": "2",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 133,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 16
+        },
+        "@": {
+          "samples": 11,
+          "errors": 9,
+          "error_rate": 0.8181818181818182,
+          "misreads": [
+            {
+              "target": "a",
+              "count": 3,
+              "corrupting": false
+            },
+            {
+              "target": "A",
+              "count": 3,
+              "corrupting": true
+            },
+            {
+              "target": "0",
+              "count": 2,
+              "corrupting": false
+            },
+            {
+              "target": "Q",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 110,
+          "deletions": 1,
+          "deletion_rate": 0.00909090909090909,
+          "insertion_adjacent": 13
+        },
+        "!": {
+          "samples": 16,
+          "errors": 1,
+          "error_rate": 0.0625,
+          "misreads": [
+            {
+              "target": "'",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 112,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "&": {
+          "samples": 24,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 124,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "+": {
+          "samples": 18,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 111,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 7
+        },
+        "=": {
+          "samples": 15,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 111,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        }
+      },
+      "safe": "BCDHKLMRTVXY34EFGNUW6&+=",
+      "safe_len": 24,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 5.0,
+      "efficiency": 0.8,
+      "corrupting_pairs": [
+        [
+          "7",
+          "P",
+          1
+        ],
+        [
+          "?",
+          "2",
+          1
+        ],
+        [
+          "@",
+          "A",
+          3
+        ]
+      ],
+      "drop_pairs": [
+        [
+          "@",
+          1,
+          0.00909090909090909
+        ],
+        [
+          "7",
+          1,
+          0.008771929824561403
+        ]
+      ],
+      "chars_per_page": 3660,
+      "bytes_per_page": 1830.0,
+      "usable_bytes_per_page": 304.99999999999994,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    },
+    {
+      "font_arg": "ocr-b",
+      "font_label": "OCR-B.ttf (bundled)",
+      "engine": "tesseract",
+      "alphabet": "ABCDHKLMPRTVXY34EFGNUW2567?@!&+=",
+      "alphabet_len": 32,
+      "dpi": 300,
+      "size": 12.0,
+      "rows": 60,
+      "line_length": 50,
+      "chars_per_line": 50,
+      "lines_per_page": 50,
+      "seed": 1234,
+      "wraps": false,
+      "tesseract_constrained": false,
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "line_insert_rate": 0.85,
+      "length_mismatches": 51,
+      "per_char": {
+        "A": {
+          "samples": 10,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 72,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "B": {
+          "samples": 20,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 105,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "C": {
+          "samples": 9,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 102,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "D": {
+          "samples": 17,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 94,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "H": {
+          "samples": 19,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 106,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "K": {
+          "samples": 11,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 90,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "L": {
+          "samples": 18,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 109,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "M": {
+          "samples": 16,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 75,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "P": {
+          "samples": 25,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 107,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "R": {
+          "samples": 23,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 99,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "T": {
+          "samples": 15,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 93,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 5
+        },
+        "V": {
+          "samples": 14,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 93,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "X": {
+          "samples": 16,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 95,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "Y": {
+          "samples": 8,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 72,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "3": {
+          "samples": 13,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 68,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "4": {
+          "samples": 14,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 90,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "E": {
+          "samples": 10,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 97,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "F": {
+          "samples": 18,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 102,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 2
+        },
+        "G": {
+          "samples": 12,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 90,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "N": {
+          "samples": 14,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 105,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 4
+        },
+        "U": {
+          "samples": 9,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 101,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 1
+        },
+        "W": {
+          "samples": 11,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 94,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 0
+        },
+        "2": {
+          "samples": 17,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 98,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "5": {
+          "samples": 13,
+          "errors": 2,
+          "error_rate": 0.15384615384615385,
+          "misreads": [
+            {
+              "target": "S",
+              "count": 2,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 100,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 10
+        },
+        "6": {
+          "samples": 14,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 79,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 6
+        },
+        "7": {
+          "samples": 8,
+          "errors": 3,
+          "error_rate": 0.375,
+          "misreads": [
+            {
+              "target": "/",
+              "count": 3,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 101,
+          "deletions": 2,
+          "deletion_rate": 0.019801980198019802,
+          "insertion_adjacent": 7
+        },
+        "?": {
+          "samples": 13,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 105,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 13
+        },
+        "@": {
+          "samples": 10,
+          "errors": 8,
+          "error_rate": 0.8,
+          "misreads": [
+            {
+              "target": "a",
+              "count": 3,
+              "corrupting": false
+            },
+            {
+              "target": "O",
+              "count": 2,
+              "corrupting": false
+            },
+            {
+              "target": "Q",
+              "count": 2,
+              "corrupting": false
+            },
+            {
+              "target": "A",
+              "count": 1,
+              "corrupting": true
+            }
+          ],
+          "deletion_samples": 91,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 10
+        },
+        "!": {
+          "samples": 18,
+          "errors": 1,
+          "error_rate": 0.05555555555555555,
+          "misreads": [
+            {
+              "target": "'",
+              "count": 1,
+              "corrupting": false
+            }
+          ],
+          "deletion_samples": 96,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "&": {
+          "samples": 11,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 97,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        },
+        "+": {
+          "samples": 7,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 86,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 6
+        },
+        "=": {
+          "samples": 17,
+          "errors": 0,
+          "error_rate": 0.0,
+          "misreads": [],
+          "deletion_samples": 88,
+          "deletions": 0,
+          "deletion_rate": 0.0,
+          "insertion_adjacent": 3
+        }
+      },
+      "safe": "BCDHKLMPRTVXY34EFGNUW26?&+=",
+      "safe_len": 27,
+      "usable_radix": 16,
+      "effective_bits": 4.0,
+      "nominal_bits": 5.0,
+      "efficiency": 0.8,
+      "corrupting_pairs": [
+        [
+          "@",
+          "A",
+          1
+        ]
+      ],
+      "drop_pairs": [
+        [
+          "7",
+          2,
+          0.019801980198019802
+        ]
+      ],
+      "chars_per_page": 2500,
+      "bytes_per_page": 1250.0,
+      "usable_bytes_per_page": 187.50000000000003,
+      "charset_label": "custom",
+      "engine_version": "v5.4.0.20240606"
+    }
+  ],
+  "presets": {
+    "engines_present": [
+      "tesseract"
+    ],
+    "dense": {
+      "font": "OCR-B.ttf (bundled)",
+      "size": 4.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "DPV3W6",
+      "safe_len": 6,
+      "usable_radix": 4,
+      "bytes_per_page": 5700.0,
+      "usable_bytes_per_page": 1235.0,
+      "line_insert_rate": 0.7833333333333333,
+      "note": "commits the document to this engine class; human-retype fallback still works"
+    },
+    "safe": {
+      "font": "OCR-B.ttf (bundled)",
+      "size": 4.0,
+      "charset": "custom",
+      "engines": [
+        "tesseract"
+      ],
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "36DPVW",
+      "safe_len": 6,
+      "usable_radix": 4,
+      "bytes_per_page": 5700.0,
+      "usable_bytes_per_page": 1235.0,
+      "line_insert_rate": 0.7833333333333333
+    },
+    "retype": {
+      "font": "OCR-B.ttf (bundled)",
+      "size": 12.0,
+      "charset": "custom",
+      "engine": "tesseract",
+      "horizontal_alignment": "left",
+      "character_spacing_pt": 0.0,
+      "safe": "BCDHKLMPRTVXY34EFGNUW26?&+=",
+      "safe_len": 27,
+      "note": "heuristic: largest size, most visually-distinct safe set; not a bytes_per_page ranking"
+    }
+  }
+}
