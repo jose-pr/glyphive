@@ -32,7 +32,7 @@ explicitly still overrides just that one field from the mode's preset.
 regular margins) reproduces the pre-existing safety-capped behavior aside
 from the font-size default; `--mode max` is `standard`'s codec/font/size/width
 with `--minimal-margins` for the smallest page count. See the
-[create guide](docs/guides/create.md#--mode-measured-codecfontsizewidthmargin-presets)
+[create guide](https://github.com/jose-pr/glyphive/blob/master/docs/guides/create.md#--mode-measured-codecfontsizewidthmargin-presets)
 for the full preset table and rationale.
 
 **Breaking (pre-1.0, no compatibility shim):** `extract --from-images` is
