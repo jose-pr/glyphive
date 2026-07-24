@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.0] - 2026-07-23
+
+Font-robustness and CLI-ergonomics release. A footer-hash bug that had been
+silently attributed to "normal OCR noise" for weeks turned out to be a real
+canonical-form mismatch; fixing it, plus a first real local (non-VM) font
+sweep with a real blur-tolerance stress test, reshaped the default `create`
+geometry and retracted a codec recommendation from 0.2.0.
 
 **Breaking (pre-1.0, no compatibility shim): `create`'s default output
 geometry changed via a new `--mode` preset system.** `create` now takes
@@ -29,6 +35,12 @@ with `--minimal-margins` for the smallest page count. See the
 [create guide](docs/guides/create.md#--mode-measured-codecfontsizewidthmargin-presets)
 for the full preset table and rationale.
 
+**Breaking (pre-1.0, no compatibility shim):** `extract --from-images` is
+removed. It added no capability over the default (no-flag) path, which
+already auto-detects images/PDF/DOCX/text by magic bytes and extension, and
+only existed as a narrower, crash-prone alias. Drop the flag; `-f` alone
+already does the right thing for image input.
+
 **Guidance retraction: `base32g` is no longer recommended, pending
 re-verification.** 0.2.0's "Highlights" claimed `base32g` needs no trained
 OCR model and named it Courier-only-but-viable, based on a 2026-07-22 VM
@@ -42,11 +54,22 @@ current Tesseract build. `base16g` (the default codec) is unaffected. See
 `benchmarks/results/FONT_CANDIDATES.md` "Local font/size sweep (2026-07-23)"
 for the full data. Use `base16g` until this is re-resolved.
 
-**Breaking (pre-1.0, no compatibility shim):** `extract --from-images` is
-removed. It added no capability over the default (no-flag) path, which
-already auto-detects images/PDF/DOCX/text by magic bytes and extension, and
-only existed as a narrower, crash-prone alias. Drop the flag; `-f` alone
-already does the right thing for image input.
+### Added
+
+- **`glyphive info`** — lists what this install can actually do: registered
+  vs. available codecs, compression methods, render formats, and OCR
+  engines, plus an optional `--font <name>` check for whether a font would
+  resolve for PDF output. Every registry already exposed this
+  programmatically; nothing surfaced it via the CLI before. `--json` for
+  scripting.
+- **`--font` (PDF) resolves an installed system font by its TRUE family
+  name, not just its filename.** Previously `--font Consolas` failed on
+  Windows because the installed file is `consola.ttf` (filename stem
+  `consola` != `"consolas"`), even though the font is present. Now falls
+  back to reading each candidate's `name` table via `fontTools` — already a
+  hard `fpdf2` dependency, so this costs nothing new — when the fast
+  filename-stem match finds nothing. `tools/ocr_font_report.py` gets the
+  same resolution for free.
 
 ### Fixed
 
