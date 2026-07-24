@@ -2,6 +2,9 @@ name: Release
 
 # Runs when a version tag (e.g. v1.0.0, v1.0.0-rc.1) is pushed. Not wired to
 # push/PR events on branches -- this is a release gate, not general CI.
+# Docs build/deploy live in docs.yml (their own workflow, triggered on
+# main pushes to docs-relevant paths) so a docs-only fix never needs a
+# version tag to redeploy, and a docs failure never affects PyPI publish.
 on:
   push:
     tags:
@@ -83,42 +86,6 @@ jobs:
         with:
           name: standalone-pyz
           path: dist/glyphive.pyz
-
-  docs-build:
-    name: Build documentation site
-    needs: test
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - uses: actions/configure-pages@v5
-      - name: Install package with docs tooling
-        run: python -m pip install -e ".[all,dev,docs]"
-      - name: Build docs
-        run: mkdocs build --strict
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site/
-
-  docs-deploy:
-    name: Deploy documentation to GitHub Pages
-    needs: [build, docs-build]
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
 
   github-release:
     name: Create GitHub Release

@@ -1,0 +1,58 @@
+name: Docs
+
+# Builds and deploys the documentation site independently of a release tag,
+# so a docs-only fix (e.g. a broken link) doesn't need a version bump to
+# redeploy. Runs on pushes to main that touch docs-relevant paths, and can
+# be triggered manually for any other reason (e.g. re-running after an
+# upstream Pages outage).
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "CHANGELOG.md"
+      - "README.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
+
+jobs:
+  docs-build:
+    name: Build documentation site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - uses: actions/configure-pages@v5
+      - name: Install package with docs tooling
+        run: python -m pip install -e ".[all,dev,docs]"
+      - name: Build docs
+        run: mkdocs build --strict
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+  docs-deploy:
+    name: Deploy documentation to GitHub Pages
+    needs: docs-build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
