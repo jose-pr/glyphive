@@ -16,7 +16,7 @@ directory (not this script itself). Page images live in the ``pages/``
 subdirectory (not this directory directly) so ``extract`` can point at a
 directory containing only images (auto-detected by magic bytes) --
 ``_input_files`` treats every direct-child file of an image directory as a
-candidate page. After regenerating, re-run the Phase 2 gate test in
+candidate page. After regenerating, re-run the restore-gate test in
 ``tests/test_ocr_transcripts.py`` (with Tesseract on PATH) to confirm the
 fixture still restores byte-for-byte before committing.
 

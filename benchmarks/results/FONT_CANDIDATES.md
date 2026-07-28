@@ -186,9 +186,8 @@ on its synthetic training samples.
 
 ## Local font/size sweep (2026-07-23, local machine, stock Tesseract 5.4.0)
 
-First sweep run on `gungnir` (see `~/.agents/AGENTS.local.md`) rather than the
-VM: real Tesseract 5.4.0 turned out to already be installed locally, just not
-on PATH (`~/.agents/AGENTS.local.md` records this). Adds 5 new candidates
+First sweep run locally rather than the VM: real Tesseract 5.4.0 turned out to
+already be installed locally, just not on PATH. Adds 5 new candidates
 never measured before (4 system fonts by filename path + the fifth,
 `ocr-a-extended`, mostly as a negative control since OCR-A was already
 rejected in the ledger above under different files) alongside the 3 already-
@@ -261,9 +260,9 @@ extract → byte-diff`, `benchmarks/e2e_grid.py`, 2 documents/cell:**
   6pt** despite scoring the BEST of all 8 fonts on the character-grid tool
   at both sizes (7875 and 4667 usable bytes/page respectively — higher than
   Courier's own diagnostic numbers at those sizes). This is the CER-is-a-liar
-  pattern from `.agents/kb/ocr_benchmarking.md` playing out again on a fresh
-  candidate: the diagnostic metric picked exactly the wrong font as "best,"
-  and only the real restore gate caught it.
+  pattern playing out again on a fresh candidate: the diagnostic metric
+  picked exactly the wrong font as "best," and only the real restore gate
+  caught it.
 - **CORRECTION (same day): "base32g is Courier-only" does NOT hold on this
   Tesseract 5.4.0 build.** Gating Courier itself at 8pt and 10pt/width-60 —
   the exact cells `base32g-envelope-20260722.json` recorded as `OK` on the

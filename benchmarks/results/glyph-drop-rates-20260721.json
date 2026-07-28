@@ -19,7 +19,7 @@
     "clean52": {
       "alphabet": "347djAEFJNR#%&()*/<=>?@[\\]^{}8acfhkprwxy+269m\"-5u,01",
       "alphabet_len": 52,
-      "source": "alphabet_confusion_ceiling.md clean-52 candidate set"
+      "source": "confusion-ceiling analysis clean-52 candidate set"
     },
     "basemaxg43_control": {
       "alphabet": "!&-012345689;ABCDGIKLMNPRSUVWXY`abdehknrt|~",
