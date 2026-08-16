@@ -61,6 +61,20 @@ glyphive extract -f backup.txt -C restored
 glyphive info                           # what codecs/OCR engines/fonts are available
 ```
 
+`create` picks its page geometry from a measured preset, `--mode
+{conservative,standard,max}`. **`standard` is the default**: the
+`base16g-crc16-rs` codec, the bundled `dejavu-sans-mono` font, 6pt,
+`--line-width max`, and regular margins — the most blur-tolerant combination
+measured on a real create → rasterize → OCR → extract → diff restore gate.
+`conservative` backs off to 8pt with `--line-width auto` (the OCR-measured-safe
+cap, ≤ 60 characters); `max` keeps `standard`'s settings but uses minimal
+margins for the smallest page count. Any of
+`--codec`/`--font`/`--font-size`/`--line-width`/`--minimal-margins` passed
+explicitly overrides just that one field of the preset. Documents created
+before 0.3.0 used 11pt and `--line-width auto`, so their geometry differs from
+what a bare `create` produces now. Full table and the measurements behind it:
+[the create guide's preset section](https://github.com/jose-pr/glyphive/blob/main/docs/guides/create.md#--mode-measured-codecfontsizewidthmargin-presets).
+
 Restore or inspect an already-generated GQ1 QR image set explicitly with
 `glyphive extract -f qr-pages/ --from-qr -C restored` or
 `glyphive list -f qr-pages/ --from-qr`. Ordinary image input continues through
