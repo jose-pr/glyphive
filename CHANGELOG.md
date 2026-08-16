@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-08-16
+
+Dependency maintenance only. No behaviour, format, or API change: the wire
+format, the codec names, and the CLI surface are byte-for-byte what 0.3.1
+shipped.
+
+### Changed
+
+- Require `pathlib_next>=0.9.0,<0.10` and `duho>=0.5.0,<0.6`, raised from
+  `pathlib_next>=0.8.1` and `duho>=0.2.0`. Each dependency is now scoped to a
+  single minor series rather than floored at a bare version: pre-1.0, a minor
+  bump is where these projects are allowed to break their documented API, so
+  an open-ended floor let a resolver pull a future incompatible release into
+  an install that had never been tested against it. The floor names the first
+  release of the series because that is the version actually exercised —
+  glyphive uses nothing added in a later patch of either.
+- The supported range is tested at both edges. The full suite passes on
+  `pathlib_next` 0.9.0 with `duho` 0.5.0 and again on `pathlib_next` 0.9.2
+  with `duho` 0.5.4, and every CLI subcommand builds its parser under both.
+- The two places that kept their own copy of these constraints now assert the
+  same contract. `package.py`'s `RUNTIME_DEPENDENCIES` — the list pip installs
+  into the zipapp staging directory — pinned `duho>=0.2.0` and left
+  `pathlib_next` unconstrained entirely, and the release workflow's standalone
+  build step installed `duho>=0.2.0` on its own account. A second, independent
+  floor for the same dependency is a duplicate that drifts silently: both sat
+  three minor series behind `pyproject.toml`, and nothing would ever have
+  flagged it, because pip resolves to the newest version a constraint allows
+  regardless of how old the floor is. The `package.py` copy is the
+  consequential one — it decides which version is vendored into the shipped
+  `glyphive.pyz`, so the standalone artifact could have bundled a release the
+  package itself declares incompatible. `pyproject.toml` stays the authority;
+  the copies now mirror it.
+
 ## [0.3.1] - 2026-08-16
 
 Follow-up release to 0.3.0. Two `create` flags did not behave the way the
@@ -599,7 +632,8 @@ OCR-friendly printable pages and back to a verified tree.
   Reed-Solomon-corrected.
 - QR-code output is not implemented.
 
-[Unreleased]: https://github.com/jose-pr/glyphive/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/jose-pr/glyphive/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/jose-pr/glyphive/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/jose-pr/glyphive/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jose-pr/glyphive/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jose-pr/glyphive/compare/v0.1.0...v0.2.0

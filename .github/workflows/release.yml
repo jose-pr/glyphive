@@ -76,7 +76,7 @@ jobs:
         with:
           python-version: "3.x"
       - name: Install zipapp build dependency
-        run: python -m pip install "duho>=0.2.0"
+        run: python -m pip install "duho>=0.5.0,<0.6"
       - name: Build standalone pyz
         run: python package.py --out dist/glyphive.pyz
       - name: Smoke test standalone pyz

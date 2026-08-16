@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "glyphive"
-version = "0.3.1"
+version = "0.3.2"
 authors = [{ name = "Jose A." }]
 description = "Archive file trees to compact, OCR-friendly printable pages (text/PDF/docx) and restore them from scans."
 readme = "README.md"
@@ -34,8 +34,8 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "pathlib_next>=0.8.1",
-    "duho>=0.2.0",
+    "pathlib_next>=0.9.0,<0.10",
+    "duho>=0.5.0,<0.6",
     "pathspec",
     "reedsolo",
 ]
