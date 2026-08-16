@@ -133,7 +133,11 @@ class Create(LoggingArgs):
     "the same codec/font/size/width as 'standard' but --minimal-margins for the "
     "smallest page count -- same measured OCR robustness, less paper. Any of "
     "--codec/--font/--font-size/--line-width/--minimal-margins passed "
-    "explicitly overrides just that one field from the mode's preset."
+    "explicitly overrides just that one field from the mode's preset. "
+    "--minimal-margins is a store-true flag, so it can only be turned ON over "
+    "a preset that leaves it off: to get regular margins, choose "
+    "--mode standard (or conservative) rather than --mode max -- there is no "
+    "--regular-margins negation."
     ("--mode",)
 
     metadata: "_ty.Literal['none', 'basic']" = "none"
@@ -180,8 +184,11 @@ class Create(LoggingArgs):
     "font-family name, e.g. Consolas) or an explicit .ttf/.otf path."
     ("--font",)
 
-    font_size: float = 11.0
-    "Font size in points for pdf/docx output."
+    font_size: "_ty.Optional[float]" = None
+    "Font size in points; the default comes from --mode (standard/max 6pt, "
+    "conservative 8pt) for pdf/docx output. Passing this flag overrides just "
+    "that one field of the preset -- including when the value you pass happens "
+    "to equal a preset's own, or the pre-0.3.0 default of 11."
     ("--font-size",)
 
     minimal_margins: bool = False
@@ -293,9 +300,25 @@ class Create(LoggingArgs):
 
     def _apply_mode(self) -> None:
         """Fill in codec/font/font_size/line_width/minimal_margins from
-        --mode, for whichever of those fields is still at its own bare
-        class default (i.e. was not explicitly passed) -- an explicit flag
-        always wins over the mode's preset for that one field.
+        --mode, for whichever of those fields was not explicitly passed --
+        an explicit flag always wins over the mode's preset for that one
+        field.
+
+        ``font``/``font_size``/``line_width`` use a ``None`` sentinel, so
+        "not passed" is structurally distinct from any value a user could
+        type. ``font_size`` in particular: a value test would make
+        ``--font-size 11`` (the pre-0.3.0 documented default, which a
+        returning user may deliberately re-request) indistinguishable from
+        an omitted flag and silently coerce it to the preset's 6pt.
+
+        ``codec``/``minimal_margins`` still compare against the class
+        default, which is exact for ``codec`` (every preset's codec IS the
+        class default today, so the two branches agree) but one-directional
+        for the ``minimal_margins`` store-true flag: it can be turned on
+        over a preset that leaves it off, never off over ``max``'s True.
+        Choosing a different ``--mode`` is the documented way back (see the
+        ``--mode`` help and the create guide) -- deliberately no
+        ``--regular-margins`` negation.
         """
         codec, font, font_size, line_width, minimal_margins = self._MODE_PRESETS[
             self.mode
@@ -304,7 +327,7 @@ class Create(LoggingArgs):
             self.codec = codec
         if self.font is None:
             self.font = font
-        if self.font_size == type(self).font_size:
+        if self.font_size is None:
             self.font_size = font_size
         if self.line_width is None:
             self.line_width = line_width

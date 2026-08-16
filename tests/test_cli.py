@@ -153,12 +153,9 @@ def test_create_with_gf216_parity_pages_survives_deleted_page_blocks(tmp_path):
             "create",
             "-f", str(archive_file),
             "-C", str(src),
-            # Pin a stable page geometry (width=auto; font-size 10, distinct
-            # from both the class default 11 and mode presets' 6/8, so the
-            # explicit override actually takes -- see Create._apply_mode's
-            # "still at class default" sentinel check) -- this test's whole
-            # point is triggering the GF(2^16) 255-block threshold with a
-            # specific page count, not exercising --mode.
+            # Pin a stable page geometry (width=auto, font-size 10) -- this
+            # test's whole point is triggering the GF(2^16) 255-block
+            # threshold with a specific page count, not exercising --mode.
             "--mode", "conservative",
             "--font-size", "10",
             "--parity-pages", "5",
@@ -556,6 +553,49 @@ def test_create_mode_lets_explicit_flags_override_individual_fields(tmp_path):
     # ...but codec/line_width (not overridden) still come from the mode.
     assert c.codec == "base16g-crc16-rs"
     assert c.line_width == "max"
+
+
+def test_create_font_size_override_survives_the_pre_0_3_0_default_value():
+    """`--font-size 11` must NOT be coerced to a preset's 6pt.
+
+    11.0 was the class default before 0.3.0 and is a value a returning user may
+    deliberately re-request. Detecting "was this flag passed?" by comparing
+    against that class default could not tell the two apart, so an explicit
+    `--font-size 11` silently rendered at the standard preset's 6pt. The field
+    now uses a ``None`` sentinel, which no typed value can collide with.
+    """
+    from glyphive.cli.create import Create
+
+    bare = Create(file="x.txt", paths=["."], mode="standard")
+    assert bare.font_size is None  # "not passed" is structurally distinct
+    bare._apply_mode()
+    assert bare.font_size == 6.0
+
+    explicit = Create(file="x.txt", paths=["."], mode="standard", font_size=11.0)
+    explicit._apply_mode()
+    assert explicit.font_size == 11.0
+
+
+def test_create_cli_font_size_11_reaches_the_render_unchanged(tmp_path, monkeypatch):
+    """End-to-end through the real parser: `--font-size 11` renders at 11pt."""
+    from glyphive.render.formats import pdf as _pdf
+
+    pytest.importorskip("fpdf")
+    src = _make_srcdir(tmp_path)
+    seen = {}
+    original = _pdf.PdfRenderFormat.render
+
+    def spy(self, pages, destination, **kwargs):
+        seen["font_size"] = kwargs.get("font_size")
+        return original(self, pages, destination, **kwargs)
+
+    monkeypatch.setattr(_pdf.PdfRenderFormat, "render", spy)
+
+    assert cli.run(
+        ["create", "-f", str(tmp_path / "doc.pdf"), "-C", str(src),
+         "--mode", "standard", "--font-size", "11", "--compression", "none", "."]
+    ) == 0
+    assert seen["font_size"] == 11.0
 
 
 def test_create_mode_line_width_max_degrades_to_auto_on_text(tmp_path):
@@ -958,10 +998,9 @@ def test_inspect_reports_recovery_headroom_and_strict_exit(tmp_path, capsys):
     (src / "d.txt").write_text("delta " * 400, encoding="utf-8")
     archive = tmp_path / "doc.txt"
     assert cli.run(
-        # Pin a stable page geometry (width=auto; font-size 12, distinct from
-        # both the class default 11 and mode presets' 6/8 so the explicit
-        # override actually takes, and dense enough -- fewer lines/page than
-        # 11pt -- to keep this test's >= 3 data-page requirement).
+        # Pin a stable page geometry (width=auto, font-size 12 -- dense enough,
+        # fewer lines/page than 11pt, to keep this test's >= 3 data-page
+        # requirement).
         ["create", "-f", str(archive), "-C", str(src),
          "--mode", "conservative", "--font-size", "12",
          "--compression", "none", "--parity-pages", "1", ".",]

@@ -21,7 +21,10 @@ to hand-pick each one. **`standard` is the default** (omitting `--mode` is the
 same as `--mode standard`). Any of `--codec`/`--font`/`--font-size`/
 `--line-width`/`--minimal-margins` passed explicitly overrides just that one
 field from the preset — e.g. `--mode max --font-size 8` keeps `max`'s codec,
-font, width, and margins but uses 8pt instead of its default 6pt.
+font, width, and margins but uses 8pt instead of its default 6pt. That holds
+for *any* value you pass, including one that happens to equal a preset's own
+or the pre-0.3.0 default of 11: `--font-size 11` renders at 11pt, it is not
+folded back into the preset.
 
 | Mode | Codec | Font | Size | Width | Margins | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -37,6 +40,11 @@ for the full data, including why Consolas (which looks strong on a clean
 scan) was *not* chosen: it fails at a lower blur radius than DejaVu on both
 engines, with a non-monotonic pass/fail pattern that indicates an unstable
 margin, not a real safety margin.
+
+One direction is not expressible: `--minimal-margins` is a store-true flag, so
+it can be turned **on** over a preset that leaves it off, but there is no
+`--regular-margins` to turn `max`'s minimal margins back off. Choose
+`--mode standard` (or `conservative`) instead — the two differ in nothing else.
 
 `--line-width max` on a format with no physical font metrics (text/docx/qr)
 would normally be a hard error — but when `max` comes from a `--mode` preset
