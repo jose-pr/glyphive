@@ -48,6 +48,13 @@ engine and dependency versions — and never what identifies the particular box
 it ran on: no hostname, no IP address, no `user@host`, no per-user filesystem
 path.
 
+`benchmarks/e2e_grid.py` enforces this at the writing end: it records
+`provenance.machine` from `machine_class()`, has no code path that can reach a
+hostname API, and redacts any address an operator puts in `--host-label`.
+`tests/test_benchmark_provenance.py` enforces it at both ends — the harness
+output *and* every file already in this directory, including the hand-written
+analysis records, which is where the leak actually came from.
+
 **Redaction, 2026-08-16.** Seven committed records were rewritten: the
 `environment.host` string in `base32g-envelope-20260722`,
 `fourpt-runt-line-20260721`, `ocr-training-base16c-ocrb-20260718`,

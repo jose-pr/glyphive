@@ -23,6 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   omitted flag. `--font-size` now defaults to a `None` sentinel that no typed
   value can collide with; the effective default still comes from `--mode`.
 
+- Benchmark provenance no longer records the identity of the machine a run
+  executed on. `benchmarks/e2e_grid.py` writes a `provenance.machine` block
+  describing the machine *class* (OS, kernel release, architecture, CPU count)
+  plus an optional generic `--host-label`, and has no code path that can reach
+  a hostname API; any address in an operator-supplied label is redacted before
+  it is written. Seven previously committed records that named a lab VM by
+  hostname, IP address, or absolute scratch path were redacted in place — the
+  measurements themselves are unchanged, and the redaction is recorded in
+  `benchmarks/results/PROVENANCE.md`.
+
 ### Changed
 
 - A missing-page warning on a document created without `--parity-pages` now

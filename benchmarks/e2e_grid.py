@@ -39,7 +39,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import platform
+import re
 import statistics
 import subprocess
 import sys
@@ -526,6 +528,60 @@ def git_metadata() -> "ty.Dict[str, ty.Any]":
     return {"commit": commit, "dirty": None if status is None else bool(status)}
 
 
+#: Label written into a result's provenance when the operator does not pass
+#: ``--host-label``. Deliberately generic: a result file is committed evidence,
+#: and a machine's *name* is not evidence.
+DEFAULT_HOST_LABEL = "benchmark-host"
+
+#: Substrings that identify a particular machine (or account) rather than a
+#: class of machine. ``user@host.tld`` requires a dotted right-hand side so
+#: alphabet strings like ``34@ABCDKLMPRTVXY`` are not mistaken for addresses.
+_IDENTITY_PATTERNS = (
+    re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b"),
+    re.compile(r"\b[A-Za-z0-9_.-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+"),
+)
+
+REDACTED = "<redacted>"
+
+
+def redact_identity(text: "ty.Optional[str]") -> "ty.Optional[str]":
+    """Replace machine-identifying substrings (IPv4, ``user@host.tld``).
+
+    Returns ``text`` unchanged when it names nothing identifying, so a label
+    like ``"benchmark-vm"`` survives while ``"benchmark-vm 10.0.0.1"`` becomes
+    ``"benchmark-vm <redacted>"``.
+    """
+    if not text:
+        return text
+    for pattern in _IDENTITY_PATTERNS:
+        text = pattern.sub(REDACTED, text)
+    return text
+
+
+def machine_class(label: str = DEFAULT_HOST_LABEL) -> "ty.Dict[str, ty.Any]":
+    """Describe the machine a run executed on by CLASS, never by identity.
+
+    Records OS / kernel release / architecture / CPU count -- what a reader
+    needs in order to judge whether a measurement transfers to their own
+    machine -- and nothing that names this particular one.
+
+    This harness has no code path that can emit a hostname or an address: it
+    never calls ``platform.node()``, ``socket.gethostname()`` or
+    ``socket.getfqdn()``, and the operator-supplied ``label`` is passed through
+    :func:`redact_identity` first. That matters because a result file is
+    committed: an address written here is re-added by *every* future run, and
+    six checked-in records had to be redacted after exactly that happened
+    (see ``benchmarks/results/PROVENANCE.md``).
+    """
+    return {
+        "label": redact_identity(label) or DEFAULT_HOST_LABEL,
+        "system": platform.system(),
+        "release": platform.release(),
+        "arch": platform.machine(),
+        "cpu_count": os.cpu_count(),
+    }
+
+
 def tesseract_version() -> "ty.Optional[str]":
     """Best-effort Tesseract version string, or None if unresolvable.
 
@@ -567,6 +623,7 @@ def build_result(
     *,
     repeat: int,
     corpus: "ty.Sequence[Path]",
+    host_label: str = DEFAULT_HOST_LABEL,
 ) -> "ty.Dict[str, ty.Any]":
     return {
         "schema_version": 1,
@@ -578,6 +635,7 @@ def build_result(
         "platform": platform.platform(),
         "git": git_metadata(),
         "provenance": {
+            "machine": machine_class(host_label),
             "tesseract_version": tesseract_version(),
             "corpus": corpus_digest(corpus),
         },
@@ -649,6 +707,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--name", default=None, help="result name (default: e2e-grid-<timestamp>)"
+    )
+    parser.add_argument(
+        "--host-label",
+        default=DEFAULT_HOST_LABEL,
+        help="generic name for the machine class in the saved provenance "
+        f"(default: {DEFAULT_HOST_LABEL!r}). Results are committed evidence, "
+        "so any hostname or IP address in this label is redacted before it is "
+        "written; OS/arch/CPU-count are recorded automatically.",
     )
     parser.add_argument(
         "--temp-dir",
@@ -730,7 +796,13 @@ def main(argv: "ty.Optional[ty.Sequence[str]]" = None) -> int:
 
     if args.save:
         name = args.name or f"e2e-grid-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
-        result = build_result(name, summaries, repeat=args.repeat, corpus=documents)
+        result = build_result(
+            name,
+            summaries,
+            repeat=args.repeat,
+            corpus=documents,
+            host_label=args.host_label,
+        )
         RESULTS_DIR.mkdir(parents=True, exist_ok=True)
         output = RESULTS_DIR / f"{name}.json"
         output.write_text(
