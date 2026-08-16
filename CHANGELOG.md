@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- `create --no-header` PDFs keep the direct text-layer restore path. Detection
+  of a usable embedded text layer keyed on the display-only `#!glyphive`
+  line, which `--no-header` omits by design, so those documents silently fell
+  back to rasterize+OCR — slower and less reliable at exactly the small font
+  sizes `--no-header` users are optimizing toward. A valid CRC-protected `H`
+  machine frame (what restore actually reads its metadata from) is now
+  accepted as the authoritative signal.
+- `create --font-size 11` is no longer coerced to the `--mode` preset's 6pt.
+  Whether a field had been passed explicitly was detected by comparing it
+  against the class default, so the pre-0.3.0 default value of 11 — which a
+  returning user may deliberately re-request — was indistinguishable from an
+  omitted flag. `--font-size` now defaults to a `None` sentinel that no typed
+  value can collide with; the effective default still comes from `--mode`.
+
+### Changed
+
+- A missing-page warning on a document created without `--parity-pages` now
+  says so, instead of reading like an in-progress page reconstruction: with
+  K=0 there is no page-parity layer, and recovery depends entirely on the
+  document-level parity budget.
+- Documented that `--minimal-margins` is a store-true flag and therefore only
+  overrides a preset in one direction: choose `--mode standard` rather than
+  `--mode max` to get regular margins back. No `--regular-margins` negation
+  was added.
+- The README now summarizes the `--mode` presets and links the create guide;
+  `create`'s `--font-size` help states that its effective default comes from
+  `--mode`.
+- Corrected seven `blob/master` documentation links to `blob/main`, the
+  repository's actual default branch — including the one in 0.3.0's entry
+  below, which 404'd from the day it was written.
+- Refreshed the footer-hash docstrings and comments, which still carried the
+  rationale from before the 0.3.0 canonical-line hash fix ("fires on
+  essentially every OCR restore"). A mismatch is now rare and meaningful — an
+  RS-corrected line, a page rebuilt from page-parity, or genuine damage — and
+  the notes stay at INFO because the page still decoded.
+
 ## [0.3.0] - 2026-07-23
 
 Font-robustness and CLI-ergonomics release. A footer-hash bug that had been
