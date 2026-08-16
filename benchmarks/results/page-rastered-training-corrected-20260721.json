@@ -4,7 +4,7 @@
   "question": "With verified-clean training data, does page-rastered (row-sliced) training beat the psm-7 synthetic model and stock Tesseract on byte-restore for base32g?",
   "verdict": "NO. The corrected page-rastered model FAILS the byte-restore gate clean and blurred, while the psm-7 synthetic control and stock Tesseract both restore byte-identical. The hypothesis is refuted on its merits this time: the data defects that voided the first attempt were fixed and verified, and the approach still loses.",
   "environment": {
-    "host": "benchmark-vm 198.51.100.75",
+    "host": "Rocky 9 Linux VM (host identity redacted)",
     "tesseract": "5.4.1 (source build, /usr/local/bin)",
     "base_model": "tessdata_best/eng",
     "font": "courier (Nimbus Mono PS on the VM)",

@@ -3,7 +3,7 @@
   "date": "2026-07-18",
   "question": "Does the held-out-gated fine-tune beat stock eng across fonts AND survive real-scan-style degradation, not just the single clean OCR-B cell?",
   "environment": {
-    "host": "root@198.51.100.75 (Rocky 9)",
+    "host": "Rocky 9 Linux VM (host identity redacted)",
     "tesseract": "5.x local build (/usr/local/bin), tessdata_best/eng base",
     "alphabet": "base16c ABCDHKLMPRTVXY34 (shipped channel)",
     "driver": "benchmarks/training/measure_sweep.py"

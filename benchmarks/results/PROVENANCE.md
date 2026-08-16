@@ -38,3 +38,23 @@ Raw OCR reports predate embedding engine versions in the report schema; the
 versions above come from the captured VM environment. Results describe only
 this measured channel and should not be generalized across fonts, sizes,
 renderers, scanners, or OCR releases.
+
+## Provenance names a machine CLASS, never a machine
+
+A result file is committed evidence, and a machine's *name* is not evidence.
+Provenance records what a reader needs in order to judge whether a measurement
+transfers to their own machine — OS, kernel release, architecture, CPU count,
+engine and dependency versions — and never what identifies the particular box
+it ran on: no hostname, no IP address, no `user@host`, no per-user filesystem
+path.
+
+**Redaction, 2026-08-16.** Seven committed records were rewritten: the
+`environment.host` string in `base32g-envelope-20260722`,
+`fourpt-runt-line-20260721`, `ocr-training-base16c-ocrb-20260718`,
+`ocr-training-sweep-20260718`, `page-rastered-training-20260721` and
+`page-rastered-training-corrected-20260721` named a lab VM by hostname and IP
+and now reads `Rocky 9 Linux VM (host identity redacted)`; the `json` field in
+`local-font-sweep-20260723/sweep_manifest.json` held an absolute scratch path
+on the operating machine and now names the per-cell result file beside it,
+which is the same reference. **No measurement, count, verdict, or timing was
+changed** — only the strings that named a machine.

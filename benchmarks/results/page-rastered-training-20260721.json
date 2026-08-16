@@ -3,7 +3,7 @@
   "question": "Does training on page-rastered rows (real 300 DPI page renders sliced into lines) beat training on text2image single-line images (psm 7 synthetic), so that reported eval error and real byte-restore finally agree in direction?",
   "verdict": "NO \u2014 the page-rastered model is WORSE. It fails the byte-restore gate in both cells while the psm-7 synthetic control and stock Tesseract both restore byte-identical. Recorded as a negative result; the plan's hypothesis is refuted as executed. CAVEAT (added after review against the official Tesseract 5 training doc): the experiment is CONFOUNDED \u2014 see why_it_failed.CONFOUND_FOUND_AFTER_THE_FACT. The negative result stands as 'this pipeline as executed failed', not as 'page-level training does not work'. FURTHER CAVEAT: a data-integrity bug (mismatched .lstmf/.gt.txt pairs, 35% silent skip) was found afterwards - see why_it_failed. This result should be treated as VOID pending a rerun on regenerated, pair-verified data, not as evidence about page-level training.",
   "environment": {
-    "host": "benchmark-vm 198.51.100.75",
+    "host": "Rocky 9 Linux VM (host identity redacted)",
     "tesseract": "5.4.1 (source build, /usr/local/bin)",
     "base_model": "tessdata_best/eng",
     "font": "courier (Nimbus Mono PS on the VM)",

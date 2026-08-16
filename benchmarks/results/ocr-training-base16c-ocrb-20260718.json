@@ -3,7 +3,7 @@
   "date": "2026-07-18",
   "question": "Does a font-specific fine-tuned Tesseract LSTM beat stock eng on the glyphive channel, measured on held-out data?",
   "environment": {
-    "host": "root@198.51.100.75 (Rocky 9)",
+    "host": "Rocky 9 Linux VM (host identity redacted)",
     "tesseract": "5.x local build (/usr/local/bin), tessdata_best/eng base",
     "font": "OCR-B (/usr/share/fonts/glyphive/OCR-B.ttf)",
     "channel": "base16c alphabet ABCDHKLMPRTVXY34"

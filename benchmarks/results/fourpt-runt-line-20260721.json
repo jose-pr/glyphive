@@ -2,7 +2,7 @@
   "name": "fourpt-runt-line-20260721",
   "question": "Why does 4pt/max (142 cols) fail restore where 3pt/max (194 cols) succeeds on the same corpus?",
   "environment": {
-    "host": "benchmark-vm 198.51.100.75",
+    "host": "Rocky 9 Linux VM (host identity redacted)",
     "glyphive_commit": "dc6ecb9",
     "tesseract": "5.4.1 (source build, /usr/local/bin), stock eng, whitelist-constrained, --psm 6",
     "font": "ocr-b",

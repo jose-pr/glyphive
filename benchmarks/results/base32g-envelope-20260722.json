@@ -2,7 +2,7 @@
   "name": "base32g-envelope-20260722",
   "question": "Resolve the base32g-on-stock contradiction (2026-07-19 FAIL vs 2026-07-21 OK), and map the real font x size x width envelope.",
   "environment": {
-    "host": "benchmark-vm 198.51.100.75",
+    "host": "Rocky 9 Linux VM (host identity redacted)",
     "tesseract": "5.4.1 stock eng, whitelist-constrained, --psm 6",
     "dpi": 300,
     "codec": "base32g-crc16-rs",
