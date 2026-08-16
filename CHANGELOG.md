@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-16
+
+Follow-up release to 0.3.0. Two `create` flags did not behave the way the
+0.3.0 documentation described — `--no-header` quietly gave up the PDF
+text-layer restore path, and `--font-size 11` was overridden by the new
+`--mode` preset — and a warning about missing pages described recovery work
+that a document created without `--parity-pages` never had available. The
+benchmark records also stop naming the machine a run executed on.
+
 ### Fixed
 
 - `create --no-header` PDFs keep the direct text-layer restore path. Detection
@@ -22,7 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   returning user may deliberately re-request — was indistinguishable from an
   omitted flag. `--font-size` now defaults to a `None` sentinel that no typed
   value can collide with; the effective default still comes from `--mode`.
-
 - Benchmark provenance no longer records the identity of the machine a run
   executed on. `benchmarks/e2e_grid.py` writes a `provenance.machine` block
   describing the machine *class* (OS, kernel release, architecture, CPU count)
@@ -591,5 +599,8 @@ OCR-friendly printable pages and back to a verified tree.
   Reed-Solomon-corrected.
 - QR-code output is not implemented.
 
-[Unreleased]: https://github.com/jose-pr/glyphive/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jose-pr/glyphive/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/jose-pr/glyphive/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/jose-pr/glyphive/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/jose-pr/glyphive/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jose-pr/glyphive/releases/tag/v0.1.0
