@@ -126,6 +126,59 @@ def test_parity_pages_zero_is_byte_identical_to_no_parity_pages():
     assert restored == b"golden regression check" * 10
 
 
+def _paginated(data, *, parity_pages=0):
+    meta = {
+        "codec": "base16g-crc16-rs",
+        "comp": "none",
+        "meta": "none",
+        "files": 1,
+        "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+    return layout.paginate(
+        codec.get("base16g-crc16-rs").encode(data),
+        meta,
+        lines_per_page=13,
+        parity_pages=parity_pages,
+    )
+
+
+def test_missing_page_warning_names_the_k0_ceiling():
+    """A missing page with K=0 must not read like an in-progress recovery.
+
+    With no page-parity pages there is no layer that can rebuild a page which
+    was never captured: only the document-wide per-line Reed-Solomon budget can
+    absorb it, as one long erasure burst, and often it cannot. The bare
+    "relying on codec Reed-Solomon to recover them" wording read as though a
+    reconstruction were underway and misled a real recovery session
+    (2026-07-22), so the K=0 case states the limitation plainly.
+    """
+    pages = _paginated(b"k zero missing page wording probe" * 60)
+    assert len(pages) >= 3
+    # Page 1 must survive: it is the only page carrying the H machine frames.
+    lines = [line for page in pages if page.number != 2 for line in page.text_lines]
+
+    meta, _encoded = layout.read_pages(lines)
+    warning = next(w for w in meta["_page_warnings"] if w.startswith("missing page"))
+    assert "no parity pages (--parity-pages 0)" in warning
+    assert "may not be possible" in warning
+
+
+def test_missing_page_warning_omits_the_k0_clause_when_parity_pages_exist():
+    """K>0 beyond its budget keeps the plain wording -- the clause is K=0 only."""
+    pages = _paginated(b"k positive missing page wording probe" * 60, parity_pages=1)
+    assert len(pages) >= 5  # >= 4 data pages, so two may be dropped
+    dropped = {2, 3}
+    lines = [
+        line for page in pages if page.number not in dropped
+        for line in page.text_lines
+    ]
+
+    meta, _encoded = layout.read_pages(lines)
+    warning = next(w for w in meta["_page_warnings"] if w.startswith("missing page"))
+    assert "no parity pages" not in warning
+
+
 def test_parity_pages_positive_paginates_to_data_plus_parity_and_round_trips():
     data = b"page parity round trip content" * 30
     encoded = codec.get("base16g-crc16-rs").encode(data)

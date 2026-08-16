@@ -1086,7 +1086,10 @@ def read_pages(
     ``all_text_lines`` is every text line of a scanned/typed document — pages may
     be concatenated in any order and may repeat blank lines or OCR noise. This:
 
-    1. Finds and parses the ``#!glyphive`` header (raises if none is present).
+    1. Finds and decodes the CRC-protected ``H`` machine frames — the
+       authoritative header (raises if none is present or they do not decode).
+       The display-only ``#!glyphive`` line is optional (``create --no-header``
+       omits it) and is never trusted by restore.
     2. Reads every ``PAGE n/total`` footer, using them to detect a *missing*
        page (raises :class:`MissingPageError` naming the absent page numbers) and
        to verify each page's data-block hash.
@@ -1094,19 +1097,22 @@ def read_pages(
        order — codec.decode re-sorts by embedded index, so order does not matter).
 
     Page-footer hash *mismatches* are advisory and collected separately in
-    ``meta["_footer_hash_notes"]`` (they fire on essentially every OCR restore,
-    because OCR-inserted spaces change the page-text hash while the L/P lines
-    still decode via CRC/RS). They do NOT raise. Genuine page-integrity issues
-    (reconstructed/missing pages) go in ``meta["_page_warnings"]``. A missing
-    header raises, and a whole missing page raises only when it is unrecoverable
-    (beyond the page-parity budget and no surviving lines).
+    ``meta["_footer_hash_notes"]``. They do NOT raise. Since the footer hashes
+    the same CRC-validated canonical reconstruction the per-line CRC trusts
+    (:func:`_canonical_encoded_line`), a clean OCR restore AGREES and stays
+    silent: a mismatch is rare and means something real — a line the per-line
+    RS had to correct, a page rebuilt from page-parity, or genuine damage.
+    Genuine page-integrity issues (reconstructed/missing pages) go in
+    ``meta["_page_warnings"]``. A missing header raises, and a whole missing
+    page raises only when it is unrecoverable (beyond the page-parity budget
+    and no surviving lines).
 
     The returned ``meta`` is the parsed header dict plus:
 
     - ``meta["_page_warnings"]``     : real page-integrity warnings (missing/
       reconstructed pages) — worth surfacing at WARNING.
     - ``meta["_footer_hash_notes"]`` : advisory per-page footer-hash mismatches —
-      expected on OCR input, surfaced quietly.
+      rare, and surfaced quietly because the page still decoded.
     - ``meta["_pages_seen"]``        : sorted list of page numbers found.
     """
     spool = io.BytesIO()
@@ -1177,11 +1183,14 @@ def read_pages_to_spool(
     # encoded entirely in the measured-safe bootstrap alphabet.
     header_frames: _ty.List[_ParsedMachineFrame] = []
     warnings: _ty.List[str] = []
-    # Footer-hash mismatches are ADVISORY and fire on essentially every OCR
-    # restore (OCR inserts interior spaces that change the page-text hash while
-    # the L/P lines still decode byte-for-byte via CRC/RS). They are kept
-    # separate from real page-integrity warnings so the CLI can log them quietly
-    # instead of crying wolf on a clean restore.
+    # Footer-hash mismatches are ADVISORY. The footer hashes the same
+    # CRC-validated canonical reconstruction the per-line CRC trusts (see
+    # ``_canonical_encoded_line``), so OCR's inserted interior spaces and other
+    # cosmetic damage no longer move the hash: a clean restore agrees and stays
+    # silent. A mismatch therefore means a line the per-line RS had to correct,
+    # a page rebuilt from page-parity, or genuine damage. They are kept separate
+    # from real page-integrity warnings because the page still decoded, so the
+    # CLI can surface them quietly rather than as a failure.
     footer_hash_notes: _ty.List[str] = []
     pages_seen: _ty.Dict[int, int] = {}
     block_hash = hashlib.sha256()
@@ -1381,10 +1390,23 @@ def read_pages_to_spool(
         # own named CodecError. Only when NO codec lines survived at all is the
         # transcript genuinely unrecoverable at this layer.
         joined = ", ".join(str(n) for n in still_missing_data)
-        warnings.append(
+        message = (
             f"missing page(s) {joined} of {data_total}: relying on codec "
             "Reed-Solomon to recover them from the surviving pages"
         )
+        if not parity_budget:
+            # K=0: no page-parity pages exist, so nothing reconstructs a page
+            # that was never captured -- the only budget left is the
+            # document-wide per-line RS, which recovers a lost page's lines
+            # only as one long erasure burst within that budget. Say so
+            # plainly; the bare message above reads like an in-progress page
+            # reconstruction and misled a real recovery session (2026-07-22).
+            message += (
+                "; this document has no parity pages (--parity-pages 0), so "
+                "recovery depends entirely on the document-level parity budget "
+                "and may not be possible"
+            )
+        warnings.append(message)
 
     # --- Write the encoded-line spool in page order (1..D), skipping parity
     # pages (D+1..D+K) entirely -- they never reach codec.decode. Writing in

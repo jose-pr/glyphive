@@ -478,19 +478,18 @@ def warn_page_integrity(logger: _ty.Any, meta: _ty.Mapping[str, _ty.Any]) -> Non
     itself, before decode can fail, so they surface even on an RS-budget error.)
 
     Real page-integrity warnings (missing/reconstructed pages) log at WARNING.
-    Footer-hash mismatches are advisory -- they fire on essentially every OCR
-    restore because OCR-inserted spaces change the page-text hash while the
-    L/P lines still decode via CRC/RS -- so they log at INFO (quiet by default,
-    visible with -v), to avoid crying wolf on a clean restore.
+    Footer-hash mismatches are advisory and log at INFO (quiet by default,
+    visible with -v). They are rare: the footer hashes the same CRC-validated
+    canonical reconstruction the per-line CRC trusts, so a clean OCR restore
+    agrees and logs nothing. A mismatch means a line the per-line RS had to
+    correct, a page rebuilt from page-parity, or genuine damage -- real signal,
+    but INFO rather than WARNING because the page still decoded and the
+    WARNING-worthy cases already arrive via ``_page_warnings``.
     """
     for warning in meta.get("_page_warnings", []) or []:
         logger.warning("page integrity warning: %s", warning)
     for note in meta.get("_footer_hash_notes", []) or []:
-        logger.info(
-            "footer hash differs (expected on OCR-recovered pages; the page "
-            "still decoded): %s",
-            note,
-        )
+        logger.info("footer hash differs (the page still decoded): %s", note)
 
 
 def progress_logger(
