@@ -97,7 +97,7 @@ not be assumed to improve OCR separation. Treat an OCR-B file, a coding font, a
 different weight, or a trained language model as a new channel:
 record the exact font file and license, renderer, size, DPI, engine and model
 versions, then run the alphabet sweep and a byte-for-byte restore gate. See
-the [font candidate ledger](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/FONT_CANDIDATES.md)
+the [font candidate ledger](https://github.com/jose-pr/glyphive/blob/main/benchmarks/results/FONT_CANDIDATES.md)
 for the exact artifacts, ISO stroke/style distinctions, and evidence currently
 available.
 

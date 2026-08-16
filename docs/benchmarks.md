@@ -76,7 +76,7 @@ still needs bounded-output streaming validation. Already-compressed input was
 The current recommendation remains zstd: add no new built-in until a larger CI
 corpus and decompression-safety gate justify the permanent recovery surface.
 The exact environment, sizes, page counts, timings, and determinism record are
-in the [raw compression result](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/compression-candidates-20260716.json).
+in the [raw compression result](https://github.com/jose-pr/glyphive/blob/main/benchmarks/results/compression-candidates-20260716.json).
 
 ## OCR density
 
@@ -151,7 +151,7 @@ yielded 5,050 usable bytes/page. Centering without spacing lost two symbols;
 Justification did not beat the left-aligned result and sometimes increased
 erasures. These are constrained character-grid diagnostics, not CI performance
 evidence. See the public
-[font candidate ledger](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/FONT_CANDIDATES.md)
+[font candidate ledger](https://github.com/jose-pr/glyphive/blob/main/benchmarks/results/FONT_CANDIDATES.md)
 for exact files, model pins, measurements, and pending stroke/style tests.
 
 An external Tsukurimashou 0.3.1 follow-up measured its regular OCR-B at 6.8 pt
@@ -176,5 +176,5 @@ A table may move from raw reports into release notes only when it includes:
 - a matched previous/current comparison; and
 - an end-to-end restore check for any proposed wire-format or alphabet change.
 
-See the [raw-result provenance](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/PROVENANCE.md) and
+See the [raw-result provenance](https://github.com/jose-pr/glyphive/blob/main/benchmarks/results/PROVENANCE.md) and
 [OCR guide](guides/ocr.md) for evidence and runnable alphabet-sweep commands.

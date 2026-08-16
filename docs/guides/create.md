@@ -31,7 +31,7 @@ font, width, and margins but uses 8pt instead of its default 6pt.
 
 These are real `create → rasterize → OCR → extract → diff` restore-gate
 measurements, not guesses — see
-[`benchmarks/results/FONT_CANDIDATES.md`](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/FONT_CANDIDATES.md)
+[`benchmarks/results/FONT_CANDIDATES.md`](https://github.com/jose-pr/glyphive/blob/main/benchmarks/results/FONT_CANDIDATES.md)
 ("Local font/size sweep" and "Blur-tolerance stress test", both 2026-07-23)
 for the full data, including why Consolas (which looks strong on a clean
 scan) was *not* chosen: it fails at a lower blur radius than DejaVu on both
@@ -101,7 +101,7 @@ default, but `--font ocr-b --font-size 6` is a measured
 `dense` preset: 5,050 usable bytes/page versus Courier 8pt's 4,125, and it
 measured safe (0% character error, 0% line-insertion) on both Tesseract and
 PaddleOCR with the project's `base16g-crc16-rs` alphabet — see
-[`benchmarks/results/FONT_CANDIDATES.md`](https://github.com/jose-pr/glyphive/blob/master/benchmarks/results/FONT_CANDIDATES.md)
+[`benchmarks/results/FONT_CANDIDATES.md`](https://github.com/jose-pr/glyphive/blob/main/benchmarks/results/FONT_CANDIDATES.md)
 for the full matrix. Any other font must still be measured with the intended
 OCR model before relying on it: a smaller font fits more characters on a
 page, but it must be validated on the intended printer, scanner, resolution,
