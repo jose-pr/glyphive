@@ -84,12 +84,21 @@ def read_pdf_text_lines(source: _ty.Union[str, "Path"]) -> _ty.List[str]:
     A PDF glyphive itself created (the ``fpdf2``/``pdf`` render extra) embeds
     real text glyphs, not just their rasterized appearance -- pypdfium2 can
     read that layer back verbatim, byte-for-byte, which is both cheaper and
-    more reliable than rasterizing every page and running OCR over it. Raises
-    ``ValueError`` if the PDF carries no ``#!glyphive`` header line on any
-    page's extracted text -- the caller's signal that this PDF likely has no
-    usable text layer (e.g. a photographed/scanned document with only a
-    picture of text) and should fall back to :func:`render_document_images`
-    + OCR instead of trusting this function's output.
+    more reliable than rasterizing every page and running OCR over it.
+
+    A usable text layer is recognized by either signal: the display-only
+    ``#!glyphive`` header line (cheap prefix test, tried first), or any line
+    that parses as a valid ``H`` machine frame. The second is what restore
+    actually trusts, and it is the only one present when the document was
+    created with ``--no-header`` -- which omits the human line by design, so
+    keying on that line alone silently sent those documents down the
+    rasterize+OCR path despite a perfect embedded text layer.
+
+    Raises ``ValueError`` when neither signal appears -- the caller's signal
+    that this PDF likely has no usable text layer (e.g. a
+    photographed/scanned document with only a picture of text) and should
+    fall back to :func:`render_document_images` + OCR instead of trusting
+    this function's output.
     """
     try:
         import pypdfium2
@@ -113,13 +122,34 @@ def read_pdf_text_lines(source: _ty.Union[str, "Path"]) -> _ty.List[str]:
             page.close()
     finally:
         document.close()
-    if not any(line.startswith(HEADER_PREFIX) for line in lines):
+    if not _has_glyphive_text_layer(lines):
         raise ValueError(
-            f"{source} has no readable {HEADER_PREFIX!r} header in its PDF "
-            "text layer; likely a scanned/photographed document with no "
-            "usable embedded text -- rasterize and OCR it instead"
+            f"{source} has neither a readable {HEADER_PREFIX!r} header nor a "
+            "valid 'H' machine frame in its PDF text layer; likely a "
+            "scanned/photographed document with no usable embedded text -- "
+            "rasterize and OCR it instead"
         )
     return lines
+
+
+def _has_glyphive_text_layer(lines: _ty.Sequence[str]) -> bool:
+    """True if ``lines`` carry either glyphive text-layer signal.
+
+    The ``#!glyphive`` prefix is checked first because it is a bare string
+    compare. The ``H`` machine-frame parse (CRC-checked, and where restore
+    actually reads its metadata from) is the authoritative second test: it is
+    the only signal a ``--no-header`` document has, since that flag omits the
+    human line by design.
+    """
+    from .. import layout as _layout
+
+    if any(line.startswith(_layout.HEADER_PREFIX) for line in lines):
+        return True
+    for line in lines:
+        frame = _layout._parse_machine_frame(line, "H")
+        if frame is not None and frame.ok:
+            return True
+    return False
 
 
 def read_docx_lines(source: _ty.Union[str, "Path"]) -> _ty.List[str]:

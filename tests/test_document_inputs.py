@@ -266,7 +266,7 @@ def test_docx_transcript_is_read_directly_and_diagnostic_pages_render(tmp_path):
     assert all(path.read_bytes().startswith(b"\x89PNG") for path in outputs)
 
 
-def _write_glyphive_pdf(path, data: bytes):
+def _write_glyphive_pdf(path, data: bytes, *, emit_human_header: bool = True):
     import hashlib
 
     from glyphive import codec, layout
@@ -278,7 +278,11 @@ def _write_glyphive_pdf(path, data: bytes):
         "files": 1, "bytes": len(data),
         "sha256": hashlib.sha256(data).hexdigest(),
     }
-    pages = list(layout.paginate(encoded, meta, lines_per_page=14))
+    pages = list(
+        layout.paginate(
+            encoded, meta, lines_per_page=14, emit_human_header=emit_human_header
+        )
+    )
     PdfRenderFormat().render(pages, str(path))
 
 
@@ -301,6 +305,44 @@ def test_pdf_text_layer_is_read_directly_without_ocr(tmp_path, monkeypatch):
     monkeypatch.setattr(ocr, "ocr_pages", fail_if_called)
 
     from glyphive import layout as _layout
+
+    lines = load_input_lines(source)
+    meta, encoded_lines = _layout.read_pages(lines)
+    assert codec.get(meta["codec"]).decode(encoded_lines) == data
+
+
+def test_no_header_pdf_still_uses_the_text_layer(tmp_path, monkeypatch):
+    """``create --no-header`` PDFs must keep the direct text-layer path.
+
+    ``--no-header`` omits the display-only ``#!glyphive`` line by design, but
+    the CRC-protected ``H`` machine frames -- which is where restore actually
+    reads its metadata -- are still printed. Keying text-layer detection on the
+    human line alone sent these documents through rasterize+OCR instead:
+    slower, and strictly less reliable at the small font sizes ``--no-header``
+    users are optimizing toward.
+    """
+    from glyphive import codec
+    from glyphive import layout as _layout
+    from glyphive.cli._common import load_input_lines
+    from glyphive.restore import ocr
+    from glyphive.restore.document_images import read_pdf_text_lines
+
+    data = b"no header pdf keeps the text layer " * 10
+    source = tmp_path / "no-header.pdf"
+    _write_glyphive_pdf(source, data, emit_human_header=False)
+
+    # Precondition: the human line really is absent, so the H-frame signal is
+    # the only thing that can be detecting this text layer.
+    raw_lines = read_pdf_text_lines(source)
+    assert not any(line.startswith(_layout.HEADER_PREFIX) for line in raw_lines)
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("rasterize+OCR must not run on a readable text layer")
+
+    monkeypatch.setattr(
+        "glyphive.restore.document_images.render_document_images", fail_if_called
+    )
+    monkeypatch.setattr(ocr, "ocr_pages", fail_if_called)
 
     lines = load_input_lines(source)
     meta, encoded_lines = _layout.read_pages(lines)
