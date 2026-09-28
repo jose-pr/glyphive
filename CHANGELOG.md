@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-09-28
+
 ### Changed
 
 - Require `duho>=0.6.0,<0.7`, raised from `duho>=0.5.0,<0.6`. No code change
@@ -640,7 +642,8 @@ OCR-friendly printable pages and back to a verified tree.
   Reed-Solomon-corrected.
 - QR-code output is not implemented.
 
-[Unreleased]: https://github.com/jose-pr/glyphive/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/jose-pr/glyphive/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/jose-pr/glyphive/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/jose-pr/glyphive/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/jose-pr/glyphive/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jose-pr/glyphive/compare/v0.2.0...v0.3.0
