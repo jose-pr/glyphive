@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Require `duho>=0.6.0,<0.7`, raised from `duho>=0.5.0,<0.6`. No code change
+  was needed: glyphive's duho usage surface (`LoggingArgs`, `NS(conflicts=...)`,
+  `duho.AUTO`, `duho.main`, `_parsername_`/`_parseraliases_`) is unaffected by
+  0.6.0's fixes and additions, and the full test suite is unchanged against
+  the release.
+
 ## [0.3.2] - 2026-08-16
 
 Dependency maintenance only. No behaviour, format, or API change: the wire
