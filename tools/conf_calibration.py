@@ -1,4 +1,4 @@
-"""Calibrate the plan-3 OCR confidence threshold against measured Tesseract data.
+"""Calibrate the OCR confidence threshold against measured Tesseract data.
 
 Reports, for a sweep of candidate thresholds ``t`` in ``0.50..0.95``:
 
@@ -12,7 +12,7 @@ Reports, for a sweep of candidate thresholds ``t`` in ``0.50..0.95``:
 :mod:`glyphive.codec.engine`'s ``decode_spool`` uses a low-confidence
 character only to choose ERASURE POSITIONS for a line that has already
 failed its CRC -- it is a hint, never an acceptance criterion (the CRC/RS/
-SHA-256 gates are unchanged). The calibration goal per plan 3 is a threshold
+SHA-256 gates are unchanged). The calibration goal is a threshold
 with >=90% recall of wrong characters -- missing a genuinely bad character
 means it enters the document-level Reed-Solomon stream as an unmarked
 "blind" error (costing 2x the RS budget of a marked erasure, and only
@@ -25,14 +25,14 @@ Ground truth comes from one of two sources:
 1. ``--corpus DIR`` -- a directory of REAL scanned images, each with a
    sibling ``<image>.txt`` ground-truth transcript (one printed line per
    text line, in reading order, using glyphive's own safe alphabet). This is
-   the "benchmark scans" corpus the plan describes; none ships in this repo
+   the "benchmark scans" corpus described above; none ships in this repo
    today (see the module docstring on why), so this path is exercised once
    a corpus is captured.
 2. The default, corpus-free mode: reuses ``tools/ocr_font_report.py``'s
    render/rasterize harness to print known-random lines of glyphive's own
    measured-safe alphabet at a chosen font/size/dpi, so ground truth is
    exact by construction. This is the "``tools/ocr_font_report.py`` harness"
-   alternative the plan names explicitly.
+   alternative described above.
 
 Degrades cleanly (prints a clear message, exits 0, writes nothing) when
 Tesseract is not installed on this machine -- this tool must never fabricate
@@ -214,7 +214,7 @@ def recommend_threshold(rows: list) -> "float | None":
     """Smallest threshold reaching >= 90% recall (fewer erasure-hint bytes
     flagged for the same catch rate); ``None`` if no measured threshold
     reaches it (report the best-recall one instead -- never silently pick
-    a threshold that misses the plan's own bar)."""
+    a threshold that misses this target)."""
     candidates = [
         r["threshold"] for r in rows
         if r["recall"] is not None and r["recall"] >= _RECALL_TARGET
