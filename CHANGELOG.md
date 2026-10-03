@@ -296,8 +296,8 @@ intend to keep.
 
 ### Added (earlier in this cycle)
 
-- **OCR per-character confidence drives char-level erasure marking (plan
-  3).** A CRC-failed line used to erase its ENTIRE byte span for the
+- **OCR per-character confidence drives char-level erasure marking.** A
+  CRC-failed line used to erase its ENTIRE byte span for the
   document-level Reed-Solomon tier, even though the typical cause is one or
   two misread characters — the erasure budget was consumed far faster than
   the true error mass. `OcrProvider.ocr_image` now returns

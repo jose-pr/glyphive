@@ -65,7 +65,7 @@ times are medians. This is local/VM diagnostic evidence, not CI performance
 evidence.
 
 Against zstd-9, XZ-6 reduced a 61-page source case to 55 pages and a 64-page
-mixed case to 58, but missed the plan's 10% page-reduction threshold and was
+mixed case to 58, but missed the targeted 10% page-reduction threshold and was
 roughly 14 times slower to restore. Bzip2-9 reached 54 source pages but had
 roughly 24 times the zstd-9 restore time. Brotli-11 reached 54 source, 14 text,
 and 56 mixed pages, but compression took 496, 80, and 464 ms respectively,

@@ -75,7 +75,7 @@
   },
   {
     "run": 2,
-    "note": "DEFINITIVE: E2E-gate-only rerun (no retraining, same trained models as run 1) after the _group_decode overflow fix (commit abe1dd1, applied on the VM checkout via /root/gd_overflow_fix.patch, not yet on origin). Answers the plan's real question.",
+    "note": "DEFINITIVE: E2E-gate-only rerun (no retraining, same trained models as run 1) after the _group_decode overflow fix (commit abe1dd1, applied on the VM checkout via /root/gd_overflow_fix.patch, not yet on origin). Gives the real basemaxg-vs-base32g byte-restore-gate verdict, not a crash artifact.",
     "codec": "basemaxg-crc16-rs",
     "glyphs": 43,
     "packing": "group",
@@ -91,7 +91,7 @@
   },
   {
     "run": 2,
-    "note": "DEFINITIVE: E2E-gate-only rerun (no retraining, same trained models as run 1) after the _group_decode overflow fix (commit abe1dd1, applied on the VM checkout via /root/gd_overflow_fix.patch, not yet on origin). Answers the plan's real question.",
+    "note": "DEFINITIVE: E2E-gate-only rerun (no retraining, same trained models as run 1) after the _group_decode overflow fix (commit abe1dd1, applied on the VM checkout via /root/gd_overflow_fix.patch, not yet on origin). Gives the real basemaxg-vs-base32g byte-restore-gate verdict, not a crash artifact.",
     "codec": "basemaxg-crc16-rs",
     "glyphs": 43,
     "packing": "group",

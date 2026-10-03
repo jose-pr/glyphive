@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase-4 closure sweep: held-out-gated fine-tune vs stock, across fonts, with
+"""Held-out-gated fine-tune closure sweep: fine-tune vs stock, across fonts, with
 a clean AND a blurred (real-scan-proxy) held-out eval.
 
 Reuses the validated recipe (--psm 6, train/eval split, lstmeval CER gate).
@@ -8,7 +8,7 @@ For each font on the shipped base16c alphabet:
   - build a SECOND eval set that is the same 40 lines rendered then Gaussian-
     blurred (sigma 0.8) to proxy scanner/camera degradation
   - measure stock eng CER and fine-tuned CER on BOTH eval sets
-Emits one JSON with every cell so the plan can close on data, not a single cell.
+Emits one JSON with every cell so this question can close on data, not a single cell.
 """
 import json
 import os
