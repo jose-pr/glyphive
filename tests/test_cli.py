@@ -117,7 +117,7 @@ def test_create_with_parity_pages_survives_deleted_page_blocks(tmp_path):
 
 
 def test_create_no_longer_rejects_parity_pages_exceeding_the_old_255_page_cap(tmp_path):
-    """Plan 5: page-parity switched to a GF(2^16) field past 255 total
+    """GF(2^16) page parity: page-parity switched to a GF(2^16) field past 255 total
     blocks, raising the cap to 65535 -- this used to be a create-time error.
     """
     src = _make_srcdir(tmp_path)

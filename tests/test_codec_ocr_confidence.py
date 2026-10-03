@@ -1,4 +1,4 @@
-"""Tests for plan 3 -- OCR-confidence-assisted char-level erasure marking.
+"""Tests for OCR-confidence-assisted char-level erasure marking.
 
 Covers, at the codec layer:
 
@@ -12,7 +12,7 @@ Covers, at the codec layer:
   because a block that fails with the narrow erasure set is retried with
   the touching soft line(s) promoted to a full-span erasure -- today's
   behaviour -- before giving up.
-- Gate 2 (the plan's own acceptance criterion): a ~30 KB document at ~1%
+- Gate 2 (this feature's own acceptance criterion): a ~30 KB document at ~1%
   character error where the TRUE wrong positions are supplied as low
   confidence decodes correctly; the identical corruption WITHOUT confidence
   (today's whole-line erasure marking) fails outright.
@@ -148,19 +148,20 @@ def _conf_for(line: str, low_positions) -> list:
 
 
 # --------------------------------------------------------------------------- #
-# Gate 2: the plan's own acceptance criterion
+# Gate 2: this feature's own acceptance criterion
 # --------------------------------------------------------------------------- #
 def test_gate2_char_level_marking_succeeds_where_whole_line_marking_fails():
     """~30 KB document, deterministic ~1%-scale corruption (every 6th data
-    line, 2 payload chars each -- unfixable by the plan-1 CRC-repair tier,
+    line, 2 payload chars each -- unfixable by the decode-hardening CRC-repair tier,
     which only tries single-character substitutions): supplying the TRUE
     corrupted positions as low confidence decodes successfully and byte-
     identically; the SAME corrupted transcript decoded with today's
     whole-line erasure marking (no confidence) fails outright. Both
-    directions asserted in one test, per the plan's acceptance criterion.
+    directions asserted in one test, per this feature's acceptance criterion.
 
-    Uses ``_decode_hardened_spool`` directly (bypassing the plan-1 CRC-
-    repair pre-pass) so the comparison isolates plan 3's mechanism: a
+    Uses ``_decode_hardened_spool`` directly (bypassing the decode-hardening
+    CRC-repair pre-pass) so the comparison isolates the char-level-confidence
+    mechanism: a
     2-corrupted-char line can occasionally (~1.5% per line, an accepted,
     documented, PRE-EXISTING risk of ``repair_line``'s CRC-guided single-
     substitution search) be "repaired" to a spuriously-CRC-matching wrong

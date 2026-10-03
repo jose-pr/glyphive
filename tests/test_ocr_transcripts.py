@@ -255,7 +255,7 @@ def test_physical_scan_fixture_restores_byte_for_byte(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# Layer 3 (plan 3): real Tesseract per-character confidence
+# Layer 3 (OCR-confidence-assisted erasure marking): real Tesseract per-character confidence
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize("engine", ["tesseract", "tesseract-glyphive"])
 def test_real_tesseract_ocr_image_returns_per_character_confidence(tmp_path, engine):
@@ -263,7 +263,7 @@ def test_real_tesseract_ocr_image_returns_per_character_confidence(tmp_path, eng
     ``char_conf`` list of the right length and plausible (0..1) values for
     at least one recognized line. Skips cleanly when Tesseract is not
     installed on this runner (same pattern as the layer-2 gate above) --
-    the plan explicitly does not require this test to run everywhere.
+    this test is explicitly not required to run everywhere.
     """
     if not _engine_available(engine):
         pytest.skip(f"OCR engine {engine!r} is not installed on this runner")

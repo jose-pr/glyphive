@@ -137,7 +137,7 @@ def test_page_parity_exceeding_k_fails_to_restore():
 
     ``missing_count (3) > K (2)`` so :func:`read_pages` does not attempt
     page-level reconstruction (``_reconstructed_pages`` stays empty) and falls
-    back to Phase-0 behavior: record the gap and let the codec's own
+    back to the pre-page-parity behavior: record the gap and let the codec's own
     document-wide Reed-Solomon try. With this much missing, the codec's RS
     correction budget is also exceeded, so decode raises its own named
     ``CodecError`` rather than silently returning wrong bytes -- this is the
@@ -344,7 +344,7 @@ def test_unreadable_line_is_logged_even_when_decode_subsequently_fails(
 ):
     """The unreadable-index diagnostic surfaces before an RS-budget failure.
 
-    Real-recovery finding #5: at no point did extract report which line broke
+    Found during real-scan recovery: at no point did extract report which line broke
     a restore -- every fix required hand-written bisection scripts. Corrupting
     a data line's index token on a tiny document (too little RS budget to
     survive losing that line) must still log which raw line was unreadable and

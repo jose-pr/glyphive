@@ -136,9 +136,9 @@ def test_max_total_blocks_helper():
 
 
 def test_gf216_large_case_encode_and_reconstruct_timing():
-    """Plan 5 acceptance criterion: measure (not just eyeball) the GF(2^16)
+    """GF(2^16) page parity acceptance criterion: measure (not just eyeball) the GF(2^16)
     wall-time for a realistic large case -- 1,000 pages x 3,000-byte block,
-    K=8 -- and keep it well inside the ~30s CI budget the plan calls out.
+    K=8 -- and keep it well inside the ~30s CI budget this feature targets.
     Comfortably fast in practice (a few seconds total on pure-python
     reedsolo), so this runs as a normal (not skipped/manual) test.
     """

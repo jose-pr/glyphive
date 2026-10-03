@@ -221,7 +221,7 @@ def test_parity_pages_positive_paginates_to_data_plus_parity_and_round_trips():
 
 
 def test_parity_pages_selects_gf216_field_past_255_total_blocks_and_round_trips():
-    """Plan 5: data_total + K > 255 must switch to the GF(2^16) page-parity
+    """GF(2^16) page parity: data_total + K > 255 must switch to the GF(2^16) page-parity
     field automatically (instead of raising), and restore must round-trip.
     """
     data = os.urandom(90000)
@@ -291,7 +291,7 @@ def test_parity_pages_exceeding_65535_total_blocks_raises():
 
 
 def test_parity_row_payload_never_wider_than_data_or_safe_cap():
-    """Q parity payloads must be <= the widest data payload and <= 60 (F1).
+    """Q parity payloads must be <= the widest data payload and <= 60.
 
     Regression for a units bug: parity row width was measured from the full
     framed-line length (~73) and passed as the *payload* width, so Q rows
@@ -544,7 +544,7 @@ def test_page_footer_verifier_rejects_damaged_protected_footer():
 def test_unreadable_index_token_is_surfaced_not_silently_dropped():
     """A frame-shaped line with a corrupted label surfaces in _unreadable_lines.
 
-    Real-recovery findings #1/#2: a stray inserted/leading character corrupts a
+    Found during real-scan recovery: a stray inserted/leading character corrupts a
     line's index token so ``decode_index`` rejects it. Previously the line
     vanished from ``read_pages`` with no signal, only surfacing much later as an
     opaque RS-parameter error. It must now be reported with page + raw text.
@@ -584,9 +584,10 @@ def test_unreadable_index_token_is_surfaced_not_silently_dropped():
 
 def test_conflicting_index_collision_degrades_to_erasure_not_fatal():
     """Two CRC-valid lines claiming one index with different payloads must NOT
-    abort the whole decode (plan-1 Fix 3).
+    abort the whole decode.
 
-    Real-recovery finding #3 (the most dangerous class): a corrupted label that
+    The most dangerous class of this kind of failure, found during real-scan
+    recovery: a corrupted label that
     decodes to a real-but-wrong index. The old behavior raised a fatal
     ``CodecError``; a single such collision is far better handled by degrading
     that index to an erasure and letting Reed-Solomon rebuild it -- an erasure at

@@ -1,4 +1,4 @@
-"""Tests for ``tools/conf_calibration.py`` -- the plan-3 threshold calibration tool.
+"""Tests for ``tools/conf_calibration.py`` -- the OCR-confidence threshold calibration tool.
 
 This machine has no Tesseract binary, so the meaningful thing to verify here
 is that the tool DEGRADES CLEANLY (never fabricates numbers, never crashes,

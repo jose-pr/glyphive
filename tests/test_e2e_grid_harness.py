@@ -174,7 +174,7 @@ def test_summary_string_format_n_of_m_testable_k_not_built(tmp_path):
         doc.write_text("hello\n")
 
     # 4 restored, 2 not-built -- the exact 4/4-testable-(2-not-built) scenario
-    # named in the plan (never reported as "4/6").
+    # this harness exists to report correctly (never reported as "4/6").
     outcomes = iter(
         [e2e_grid.STATUS_RESTORED] * 4 + [e2e_grid.STATUS_NOT_BUILT] * 2
     )

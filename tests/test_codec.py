@@ -191,7 +191,7 @@ def test_single_char_error_self_heals():
 
 
 # --------------------------------------------------------------------------- #
-# Plan 1 — decode hardening (geometry poisoning, repair, kind-flip, collisions)
+# Decode hardening (geometry poisoning, repair, kind-flip, collisions)
 # --------------------------------------------------------------------------- #
 def _corrupt_index_token(line):
     """Change one character of a line's 5-char index token (poisons geometry:
@@ -406,7 +406,7 @@ def _pad_payload(line, extra):
 
     Widens the line beyond the modal width and (because the check no longer
     matches) breaks its CRC -- exactly the OCR class where a substitution also
-    merged/duplicated a character (real-recovery finding #4).
+    merged/duplicated a character.
     """
     label, payload, line_parity, check = _split_line(line)
     return _join_line(label, payload + ALPHABET[0] * extra, line_parity, check)
@@ -421,7 +421,7 @@ def _truncate_payload(line, fewer):
 def test_wrong_length_line_does_not_poison_global_byte_width():
     """One over/under-length line must not change bytes_per_line for the rest.
 
-    Real-recovery finding #4: ``decode`` derived the stream-wide byte width from
+    Found during real-scan recovery: ``decode`` derived the stream-wide byte width from
     ``max()`` over every parsed line, so a single OCR-corrupted line whose
     payload came out a couple of characters too long widened the geometry for
     every other, perfectly good line and broke the whole RS decode. The width
@@ -443,7 +443,7 @@ def test_wrong_length_line_does_not_poison_global_byte_width():
 
 
 def test_wrong_width_line_with_valid_crc_still_decodes(monkeypatch):
-    """A longer-than-modal line whose CRC coincidentally passes still decodes (F3).
+    """A longer-than-modal line whose CRC coincidentally passes still decodes.
 
     The modal-width check forces such a line's stored index entry to ``ok=False``
     (`_assemble_to_spool` now honors that stored flag, not just the re-parsed

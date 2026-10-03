@@ -126,9 +126,9 @@ def test_pdf_overflowing_frame_line_fails_loud_but_header_may_shrink(tmp_path):
 
 
 def test_pdf_parity_document_renders_and_q_frame_overflow_fails_loud(tmp_path):
-    """A K>0 PDF renders (Q rows now within width), and an over-wide Q raises (F2).
+    """A K>0 PDF renders (Q rows now within width), and an over-wide Q raises.
 
-    F2 regression: ``_FRAME_KINDS`` omitted ``Q``, so an overflowing parity
+    Regression: ``_FRAME_KINDS`` omitted ``Q``, so an overflowing parity
     frame silently shrank instead of failing loud, and Q was excluded from the
     fixed-width glyph max.
     """
@@ -146,7 +146,7 @@ def test_pdf_parity_document_renders_and_q_frame_overflow_fails_loud(tmp_path):
     parity_pages = layout.paginate(
         encoded, meta, lines_per_page=lines_per_page_for(11.0), parity_pages=2
     )
-    # After F1, Q rows fit within the safe width, so a normal-size render works.
+    # With the parity-row-width fix, Q rows fit within the safe width, so a normal-size render works.
     render(parity_pages, tmp_path / "parity.pdf", "pdf")
     assert (tmp_path / "parity.pdf").exists()
 
