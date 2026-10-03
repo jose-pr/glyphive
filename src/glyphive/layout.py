@@ -1061,8 +1061,8 @@ def _looks_like_encoded(line: str, spec=None) -> bool:
 def _is_frame_shaped_but_unreadable(line: str, spec=None) -> bool:
     """True if ``line`` has the ``L``/``P``+``#check`` shape but a bad index token.
 
-    This is exactly the OCR class (real-recovery findings #1/#2) where a stray
-    inserted/leading character corrupts the *label* so ``decode_index`` rejects
+    This is exactly the OCR failure class, found during real-scan recovery,
+    where a stray inserted/leading character corrupts the *label* so ``decode_index`` rejects
     it. Such a line is NOT noise -- it is a real, addressable data/parity line
     the reader should be told about, not silently dropped.
     """
@@ -1163,7 +1163,8 @@ def read_pages_to_spool(
 ) -> _ty.Tuple[_ty.Dict[str, _ty.Any], int]:
     """Parse a transcript once and spool normalized codec lines sequentially.
 
-    ``line_conf`` (plan 3, optional): raw per-character OCR confidence,
+    ``line_conf`` (OCR-confidence-assisted erasure marking, optional): raw
+    per-character OCR confidence,
     ONE ENTRY PER ELEMENT OF ``all_text_lines`` in the same order (``None``
     for a line with no confidence -- e.g. plain-text input, or a shorter
     ``line_conf`` than ``all_text_lines``, padded with ``None``). Only the
@@ -1202,12 +1203,13 @@ def read_pages_to_spool(
     # (the pre-parity-pages behavior) cannot do that, since a page might need
     # to be rebuilt only after every page has been seen.
     # ``page_lines``/``current_page_lines`` carry ``(stripped_text, conf)``
-    # pairs, not bare strings, so a survivor's raw OCR confidence (plan 3)
+    # pairs, not bare strings, so a survivor's raw OCR confidence
     # rides along through page reordering/reconstruction. ``conf`` is ``None``
     # unless ``line_conf`` was supplied.
     page_lines: "_ty.Dict[int, _ty.List[_ty.Tuple[str, _ty.Optional[_ty.Sequence[float]]]]]" = {}
     current_page_lines: "_ty.List[_ty.Tuple[str, _ty.Optional[_ty.Sequence[float]]]]" = []
-    # Frame-shaped lines whose index token is unreadable (findings #1/#2): buffer
+    # Frame-shaped lines whose index token is unreadable (the same
+    # real-scan-recovery failure class as above): buffer
     # them for the current page block and flush to that page's number on its
     # footer, so the reader gets ``{page, raw}`` detail instead of a silent drop.
     unreadable_lines: _ty.List[_ty.Dict[str, _ty.Any]] = []

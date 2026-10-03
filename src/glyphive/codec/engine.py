@@ -196,7 +196,8 @@ __all__ = [
     "DEFAULT_MAX_SUSPECTS",
 ]
 
-#: Default OCR confidence threshold (plan 3): a payload character below this
+#: Default OCR confidence threshold (OCR-confidence-assisted erasure marking):
+#: a payload character below this
 #: is treated as suspect. Chosen conservatively pending a calibration run
 #: (see ``tools/conf_calibration.py``); it only affects which bytes decode
 #: marks as erasures, never whether a correction is accepted.
@@ -2448,7 +2449,8 @@ class RadixCodec(Codec):
         removes that guess entirely. When ``None``, the heuristic is used (the
         raw-codec path, where there is no layout header to consult).
 
-        ``char_conf`` (plan 3, optional): per-line OCR character confidence,
+        ``char_conf`` (OCR-confidence-assisted erasure marking, optional):
+        per-line OCR character confidence,
         keyed by PHYSICAL LINE ORDER within ``encoded_source`` (``char_conf[i]``
         is the raw per-character confidence of the i-th line as read from the
         spool, or ``None``) -- never by printed index, which may itself be
@@ -2457,7 +2459,7 @@ class RadixCodec(Codec):
         docstring's "OCR-confidence erasure hint" section for exactly what
         this does and does not change about acceptance.
         """
-        # Plan-1 decode-hardening pre-pass: repair single-char errors, and stop
+        # Decode-hardening pre-pass: repair single-char errors, and stop
         # CRC-failed lines with poisoned index tokens from destroying the stream
         # geometry. Runs into a temp spool only when it actually changes lines;
         # a clean transcript pays one streaming scan and reuses the original.
@@ -2507,7 +2509,7 @@ class RadixCodec(Codec):
         data_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
         parity_lines: _ty.Dict[int, _ty.Tuple[int, bool, int]] = {}
         # Per-index payload seen for a CRC-passing line, to detect a *conflicting*
-        # collision (finding #3): a corrupted label that decodes to a real but
+        # collision: a corrupted label that decodes to a real but
         # wrong index would silently overwrite a different genuine line under
         # blind last-write-wins. Track (payload) so we can distinguish a benign
         # duplicate (same bytes re-read) from a true conflict.
@@ -2595,7 +2597,7 @@ class RadixCodec(Codec):
         # Derive the line width from the MODAL payload length, not max(): a single
         # OCR-corrupted line whose length is off by a couple of characters must not
         # widen bytes_per_line for every other, perfectly good line on the stream
-        # (real-recovery finding #4 — 3 bad lines out of ~3500 broke an otherwise
+        # (found during real-scan recovery -- 3 bad lines out of ~3500 broke an otherwise
         # successful 72-page RS decode). Any non-last line whose length disagrees
         # with the modal width is itself evidence of corruption and is forced into
         # an erasure below, exactly as a CRC failure would be. The last line of each
@@ -2718,7 +2720,8 @@ class RadixCodec(Codec):
                 for nsym in candidates:
                     nblocks = _num_blocks(data_len, nsym)
                     expected_parity_len = nblocks * nsym
-                    # Two-pass safety valve bookkeeping (plan 3): which
+                    # Two-pass safety valve bookkeeping (OCR-confidence-assisted
+                    # erasure marking): which
                     # interleaved block(s) each char-level-marked ("soft") line
                     # span touches, FOR THIS nblocks -- a block whose erasures
                     # are all char-level and still fails RS is retried once

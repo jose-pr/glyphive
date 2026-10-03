@@ -168,7 +168,8 @@ def _merge_ocr_lines(
     erasure. Non-frame lines (headers/footers/noise) pass through de-duplicated
     by exact text, since layout parses those structurally.
 
-    Text-only sibling of :func:`_merge_ocr_conf_lines` (plan 3): kept as its
+    Text-only sibling of :func:`_merge_ocr_conf_lines` (OCR-confidence-assisted
+    erasure marking): kept as its
     own function, unchanged, because it is directly unit-tested against plain
     strings -- see that function for the OCR-confidence-preserving version
     used by the conf-aware loaders.
@@ -213,7 +214,7 @@ def _as_ocr_line(entry: "_ty.Any") -> "_ty.Any":
     A real provider now returns ``OcrLine`` (text + optional per-character
     confidence); a plain string (e.g. from a test's mocked ``ocr_pages``, or
     any legacy caller) is wrapped as ``OcrLine(text, None)`` -- "no confidence
-    available" -- per the plan-3 design note that non-OCR/text paths always
+    available" -- per the design rule that non-OCR/text paths always
     carry a ``None`` confidence.
     """
     from ..restore.ocr import OcrLine
@@ -288,7 +289,7 @@ def _input_ocr_passes(
     :func:`load_input_lines_with_conf`. Returns one flat
     :class:`~glyphive.restore.ocr.OcrLine` list in document order; a plain
     text/DOCX line is wrapped ``OcrLine(text, None)`` (no confidence for a
-    non-OCR source, per the plan-3 design note), an OCR'd line keeps
+    non-OCR source, per that same design rule), an OCR'd line keeps
     whatever confidence :func:`_merge_ocr_conf_lines` chose for it.
 
     ``spine``, if given, is an already-computed pass (e.g. the sharp 0.0 pass
@@ -414,7 +415,8 @@ def load_input_lines_with_conf(
     character confidence of ``lines[i]`` (same length as that line's text,
     spaces included, or ``None`` if unavailable) -- see
     :mod:`glyphive.codec.engine`'s "OCR-confidence erasure hint" section for
-    how a downstream decode uses it (plan 3). Text/DOCX lines always carry
+    how a downstream decode uses it for OCR-confidence-assisted erasure
+    marking. Text/DOCX lines always carry
     ``None`` (no OCR was involved). Shares the exact dispatch/OCR/merge
     pipeline with :func:`load_input_lines` (:func:`_input_ocr_passes`), so
     ``load_input_lines_with_conf(...)[0] == load_input_lines(...)`` always.

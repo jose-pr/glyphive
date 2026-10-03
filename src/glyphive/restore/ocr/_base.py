@@ -12,7 +12,7 @@ class OcrLine(_ty.NamedTuple):
 
     ``char_conf`` is ``None`` when the provider (or a non-OCR text/QR path)
     has no per-character confidence to offer -- callers MUST keep tolerating
-    that (plan 3: OCR-confidence-assisted char-level erasures is an
+    that (OCR-confidence-assisted char-level erasure marking is an
     optimization, never a requirement). When present, ``char_conf`` has
     exactly ``len(text)`` entries, one per character of ``text`` (spaces
     included -- a provider gives whitespace a confidence of ``1.0``), each

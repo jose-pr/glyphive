@@ -114,7 +114,8 @@ def decode_document(
        expected and observed digests and returns nothing — corrupt bytes are
        never handed back — no silent corruption.
 
-    ``char_conf`` (plan 3, optional): per-line RAW OCR character confidence,
+    ``char_conf`` (OCR-confidence-assisted erasure marking, optional):
+    per-line RAW OCR character confidence,
     one entry per element of ``text_lines`` in the same order (``None`` for
     a line with no confidence) -- see :func:`decode_document_to_spool` and
     the module docstring's "OCR-confidence erasure hint" section in
@@ -163,7 +164,8 @@ def decode_document_to_spool(
 ) -> _ty.Dict[str, _ty.Any]:
     """Decode and stream-decompress a document into a seekable quarantine spool.
 
-    ``char_conf`` (plan 3, optional): raw per-character OCR confidence, one
+    ``char_conf`` (OCR-confidence-assisted erasure marking, optional): raw
+    per-character OCR confidence, one
     entry per element of ``text_lines`` in the same order (``None`` for a
     line with no confidence, e.g. plain-text/DOCX input -- see
     :class:`glyphive.restore.ocr.OcrLine`). Threaded through
@@ -187,8 +189,9 @@ def decode_document_to_spool(
         spool_conf = meta.pop("_line_conf", None)
 
         # Surface unreadable-index diagnostics NOW, before decode can fail on an
-        # RS-budget error -- otherwise finding #5's whole point (tell the reader
-        # *which* line broke the restore) is lost when decode raises first.
+        # RS-budget error -- otherwise the whole point of this diagnostic (tell
+        # the reader *which* line broke the restore) is lost when decode raises
+        # first.
         for entry in meta.get("_unreadable_lines", []) or []:
             where = (
                 f"page {entry['page']}" if entry.get("page") is not None
