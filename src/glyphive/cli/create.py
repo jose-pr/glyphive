@@ -7,7 +7,7 @@ import inspect as _inspect
 import tempfile as _tempfile
 import typing as _ty
 
-from duho import NS, LoggingArgs
+from duho import LoggingArgs, Meta
 from pathlib_next import Path
 
 from .. import archive as _archive
@@ -152,15 +152,15 @@ class Create(LoggingArgs):
     "Output format name; QR/hybrid must be explicit because both write PDF."
     ("--format",)
 
-    gzip: "_ty.Annotated[bool, NS(conflicts='legacy_compression')]" = False
+    gzip: "_ty.Annotated[bool, Meta(conflicts='legacy_compression')]" = False
     "Compress with gzip."
     ("-z", "--gzip")
 
-    zstd: "_ty.Annotated[bool, NS(conflicts='legacy_compression')]" = False
+    zstd: "_ty.Annotated[bool, Meta(conflicts='legacy_compression')]" = False
     "Compress with zstd (needs glyphive[zstd])."
     ("--zstd",)
 
-    none: "_ty.Annotated[bool, NS(conflicts='legacy_compression')]" = False
+    none: "_ty.Annotated[bool, Meta(conflicts='legacy_compression')]" = False
     "Do not compress."
     ("--none",)
 
