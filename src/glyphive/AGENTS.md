@@ -269,7 +269,9 @@ process-wide, and never runs during a normal `glyphive` import.
   `glyphive.plugins.discover()` and prints non-fatal plugin errors to
   stderr), then dispatches via `duho.main`.
 - **`Glyphive`** — the `duho` CLI root (`LoggingArgs` mixin: `-v`/`-q`/
-  `--loglevel`); subcommands `Create`, `Extract`, `Inspect`, `List`.
+  `--loglevel`); subcommands `Create`, `Extract`, `Inspect`, `List`. Every
+  subcommand logs under the application's name, `glyphive`, so
+  `--loglevel glyphive:DEBUG` is the logger selector.
 - `create` selects via `--codec`, `--compression`, `--format`, `--metadata
   none|basic`; without `--format` the output filename picks text/PDF/DOCX.
   `extract`/`list` classify direct-child input by magic, then extension,

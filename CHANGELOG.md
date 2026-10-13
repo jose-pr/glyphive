@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   options that conflict with `--compression` use `Meta(conflicts=...)`, which
   replaces the removed `NS(...)`; flags, defaults and exit statuses are
   unchanged.
+- Log records from every subcommand now carry the logger name `glyphive`, the
+  application's name, instead of the subcommand's name (`create`, `extract`).
+  `--loglevel glyphive:DEBUG` raises all of them; `--loglevel create:DEBUG` no
+  longer selects anything.
 
 ## [0.3.3] - 2026-09-28
 
