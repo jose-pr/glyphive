@@ -72,7 +72,11 @@ class Glyphive(LoggingArgs):
 
 
 def run(argv=None) -> int:
-    """Console-script / ``python -m glyphive`` entry point."""
+    """Console-script / ``python -m glyphive`` entry point.
+
+    Returns the status; ``--help``, ``--version`` and a usage error raise
+    ``SystemExit``.
+    """
     return duho.run(
-        Glyphive, _discover_plugins(_expand_mode_flag(argv)), exit=False
+        Glyphive, _discover_plugins(_expand_mode_flag(argv)), exit="parse"
     )

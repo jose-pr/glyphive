@@ -267,9 +267,9 @@ process-wide, and never runs during a normal `glyphive` import.
   point. Expands a leading tar-style `-c`/`-x`/`-t` into `create`/
   `extract`/`list`, consumes a global `--plugins` flag (calls
   `glyphive.plugins.discover()` and prints non-fatal plugin errors to
-  stderr), then runs `duho.run(Glyphive, argv, exit=False)`, so it always
-  returns the status (a `--help` or an argument error is `0` or `2`, never a
-  raised `SystemExit`). An error a command ends with is a `duho.CommandError`
+  stderr), then runs `duho.run(Glyphive, argv, exit="parse")`, so it returns
+  the status of a run and `--help`, `--version` and a usage error raise
+  `SystemExit`, as `duho.main` does. An error a command ends with is a `duho.CommandError`
   (status 1), printed as `error: MESSAGE` on stderr by `Glyphive`'s
   `_report_error_`.
 - **`Glyphive`** — the `duho` CLI root (`LoggingArgs` mixin: `-v`/`-q`/

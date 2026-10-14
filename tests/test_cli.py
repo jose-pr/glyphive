@@ -638,11 +638,11 @@ def test_create_mode_max_roundtrips_on_text(tmp_path):
 
 def test_create_rejects_unknown_mode(tmp_path):
     src = _make_srcdir(tmp_path)
-    rc = cli.run(
-        ["create", "-f", str(tmp_path / "x.txt"), "-C", str(src),
-         "--mode", "not-a-real-mode", "."]
-    )
-    assert rc == 2
+    with pytest.raises(SystemExit):
+        cli.run(
+            ["create", "-f", str(tmp_path / "x.txt"), "-C", str(src),
+             "--mode", "not-a-real-mode", "."]
+        )
 
 
 def test_generic_codec_and_compression_selectors_roundtrip(tmp_path):
@@ -962,18 +962,19 @@ def test_empty_input_directory_fails_clearly(tmp_path):
 def test_mutually_exclusive_compression_guard(tmp_path):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "a.txt"
-    assert cli.run(
-        [
-            "create",
-            "-f",
-            str(archive_file),
-            "-C",
-            str(src),
-            "--gzip",
-            "--zstd",
-            ".",
-        ]
-    ) == 2
+    with pytest.raises(SystemExit):
+        cli.run(
+            [
+                "create",
+                "-f",
+                str(archive_file),
+                "-C",
+                str(src),
+                "--gzip",
+                "--zstd",
+                ".",
+            ]
+        )
 
 
 def test_multiple_paths_rejected(tmp_path, capsys):

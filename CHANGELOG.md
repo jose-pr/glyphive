@@ -9,21 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- Require `duho>=0.7.4,<0.8`, raised from `duho>=0.6.0,<0.7`. The `create`
+- Require `duho>=0.7.5,<0.8`, raised from `duho>=0.6.0,<0.7`. The `create`
   options that conflict with `--compression` use `Meta(conflicts=...)`, which
   replaces the removed `NS(...)`; flags, defaults and exit statuses are
   unchanged.
-- `glyphive.cli.run` now goes through `duho.run(..., exit=False)`. It always
-  returns the exit status as an `int`: `--help`, `--version` and an argument
-  error no longer raise `SystemExit` out of `run`. Ctrl-C now ends with status
+- `glyphive.cli.run` now goes through `duho.run(..., exit="parse")`. It returns
+  the exit status as an `int`, and `--help`, `--version` and an argument error
+  still raise `SystemExit` out of `run`, as before. Ctrl-C now ends with status
   130 and no traceback, and a closed pipe on standard output ends with status 1,
   quietly. The console script and `python -m glyphive` behave as before.
 - The errors `create` rejects its options with (`--line-width`,
   `--parity-ratio`, `--line-parity`, a conflicting `--compression`, several
   input paths, and the rest) are raised as `duho.CommandError` and printed by
   the application as `error: MESSAGE` on standard error, with status 1: the same
-  text, stream and status as before. With `DUHO_TRACEBACK` set they now raise
-  with a traceback instead.
+  text, stream and status as before. With `DUHO_TRACEBACK` set the traceback is
+  also printed to standard error before the `error:` line.
 - Log records from every subcommand now carry the logger name `glyphive`, the
   application's name, instead of the subcommand's name (`create`, `extract`).
   `--loglevel glyphive:DEBUG` raises all of them; `--loglevel create:DEBUG` no
