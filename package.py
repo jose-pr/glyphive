@@ -33,7 +33,7 @@ DEFAULT_INTERPRETER = "/usr/bin/env python3"
 # duho, and left pathlib_next unconstrained entirely, until 0.3.2).
 RUNTIME_DEPENDENCIES = (
     "pathlib_next>=0.9.0,<0.10",
-    "duho>=0.7.4,<0.8",
+    "duho>=0.7.5,<0.8",
     "pathspec",
     "reedsolo",
 )

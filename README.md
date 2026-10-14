@@ -47,7 +47,7 @@ Optional features:
 | `qr` | `segno`, `zxing-cpp`, `Pillow` | QR envelope generation and image decoding without OpenCV |
 | `all` | all packages above | All lightweight integrations |
 
-Glyphive requires `pathlib_next>=0.9.0,<0.10`, `duho>=0.7.4,<0.8`, and Python
+Glyphive requires `pathlib_next>=0.9.0,<0.10`, `duho>=0.7.5,<0.8`, and Python
 3.9 or newer.
 
 ## Quick start
