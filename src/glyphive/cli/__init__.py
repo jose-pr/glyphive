@@ -48,6 +48,11 @@ def _discover_plugins(args):
     return args
 
 
+def _report_error(message, code):
+    """Print a command's error as ``error: MESSAGE`` on standard error."""
+    print(f"error: {message}", file=sys.stderr)
+
+
 class Glyphive(LoggingArgs):
     """Archive trees to printable pages and restore them.
 
@@ -59,6 +64,7 @@ class Glyphive(LoggingArgs):
 
     _version_ = duho.AUTO
     _subcommands_ = [Create, Extract, Info, Inspect, List, Train]
+    _report_error_ = staticmethod(_report_error)
 
     plugins: bool = False
     "Discover trusted installed glyphive plugins before dispatch."
@@ -67,4 +73,6 @@ class Glyphive(LoggingArgs):
 
 def run(argv=None) -> int:
     """Console-script / ``python -m glyphive`` entry point."""
-    return duho.main(Glyphive, _discover_plugins(_expand_mode_flag(argv)))
+    return duho.run(
+        Glyphive, _discover_plugins(_expand_mode_flag(argv)), exit=False
+    )

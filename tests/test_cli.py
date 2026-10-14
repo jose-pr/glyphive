@@ -444,13 +444,14 @@ def test_create_line_width_reaches_denser_codecs(tmp_path, codec):
     assert max(map(len, payloads)) == 100
 
 
-def test_create_rejects_too_small_line_width(tmp_path):
+def test_create_rejects_too_small_line_width(tmp_path, capsys):
     src = _make_srcdir(tmp_path)
-    with pytest.raises(SystemExit, match="line-width must be at least 2"):
-        cli.run(
-            ["create", "-f", str(tmp_path / "bad.txt"), "-C", str(src),
-             "--line-width", "1", "."]
-        )
+    rc = cli.run(
+        ["create", "-f", str(tmp_path / "bad.txt"), "-C", str(src),
+         "--line-width", "1", "."]
+    )
+    assert rc == 1
+    assert capsys.readouterr().err == "error: --line-width must be at least 2\n"
 
 
 @pytest.mark.parametrize("spelling", ["auto", "max"])
@@ -470,16 +471,18 @@ def test_create_line_width_auto_and_max_on_pdf(tmp_path, spelling):
     assert out.exists()
 
 
-def test_create_line_width_max_on_text_errors(tmp_path):
+def test_create_line_width_max_on_text_errors(tmp_path, capsys):
     src = _make_srcdir(tmp_path)
-    with pytest.raises(SystemExit, match="max needs a format with physical font"):
-        cli.run(
-            ["create", "-f", str(tmp_path / "t.txt"), "--format", "text",
-             "--line-width", "max", "-C", str(src), "."]
-        )
+    rc = cli.run(
+        ["create", "-f", str(tmp_path / "t.txt"), "--format", "text",
+         "--line-width", "max", "-C", str(src), "."]
+    )
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert err.startswith("error: --line-width max needs a format with physical font")
 
 
-def test_create_line_width_above_safe_cap_needs_force(tmp_path):
+def test_create_line_width_above_safe_cap_needs_force(tmp_path, capsys):
     pytest.importorskip("fpdf")
     src = _make_srcdir(tmp_path)
 
@@ -493,13 +496,13 @@ def test_create_line_width_above_safe_cap_needs_force(tmp_path):
         )
 
     # 80 > safe cap 60 for ocr-b 6pt -> rejected without --force.
-    with pytest.raises(SystemExit, match="exceeds the OCR-measured-safe"):
-        run("--line-width", "80")
+    assert run("--line-width", "80") == 1
+    assert "exceeds the OCR-measured-safe" in capsys.readouterr().err
     # With --force it is accepted (80 <= geometric fit ~90).
     assert run("--line-width", "80", "--force") == 0
     # Above the geometric fit it is rejected even with --force.
-    with pytest.raises(SystemExit, match="exceeds even the geometric fit"):
-        run("--line-width", "999", "--force")
+    assert run("--line-width", "999", "--force") == 1
+    assert "exceeds even the geometric fit" in capsys.readouterr().err
 
 
 def test_create_mode_defaults_to_standard(tmp_path):
@@ -635,11 +638,11 @@ def test_create_mode_max_roundtrips_on_text(tmp_path):
 
 def test_create_rejects_unknown_mode(tmp_path):
     src = _make_srcdir(tmp_path)
-    with pytest.raises(SystemExit):
-        cli.run(
-            ["create", "-f", str(tmp_path / "x.txt"), "-C", str(src),
-             "--mode", "not-a-real-mode", "."]
-        )
+    rc = cli.run(
+        ["create", "-f", str(tmp_path / "x.txt"), "-C", str(src),
+         "--mode", "not-a-real-mode", "."]
+    )
+    assert rc == 2
 
 
 def test_generic_codec_and_compression_selectors_roundtrip(tmp_path):
@@ -696,23 +699,24 @@ def test_generic_codec_and_compression_selectors_roundtrip(tmp_path):
         compression.CompressionMethod._registry.update(saved_compressions)
 
 
-def test_generic_and_legacy_compression_disagreement_rejected(tmp_path):
+def test_generic_and_legacy_compression_disagreement_rejected(tmp_path, capsys):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "a.txt"
-    with pytest.raises(SystemExit, match="disagrees"):
-        cli.run(
-            [
-                "create",
-                "-f",
-                str(archive_file),
-                "-C",
-                str(src),
-                "--compression",
-                "none",
-                "--gzip",
-                ".",
-            ]
-        )
+    rc = cli.run(
+        [
+            "create",
+            "-f",
+            str(archive_file),
+            "-C",
+            str(src),
+            "--compression",
+            "none",
+            "--gzip",
+            ".",
+        ]
+    )
+    assert rc == 1
+    assert capsys.readouterr().err == "error: --compression none disagrees with --gzip\n"
     assert not archive_file.exists()
 
 
@@ -958,36 +962,36 @@ def test_empty_input_directory_fails_clearly(tmp_path):
 def test_mutually_exclusive_compression_guard(tmp_path):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "a.txt"
-    with pytest.raises(SystemExit):
-        cli.run(
-            [
-                "create",
-                "-f",
-                str(archive_file),
-                "-C",
-                str(src),
-                "--gzip",
-                "--zstd",
-                ".",
-            ]
-        )
+    assert cli.run(
+        [
+            "create",
+            "-f",
+            str(archive_file),
+            "-C",
+            str(src),
+            "--gzip",
+            "--zstd",
+            ".",
+        ]
+    ) == 2
 
 
-def test_multiple_paths_rejected(tmp_path):
+def test_multiple_paths_rejected(tmp_path, capsys):
     src = _make_srcdir(tmp_path)
     archive_file = tmp_path / "a.txt"
-    with pytest.raises(SystemExit):
-        cli.run(
-            [
-                "create",
-                "-f",
-                str(archive_file),
-                "-C",
-                str(src),
-                "a.txt",
-                "b.txt",
-            ]
-        )
+    rc = cli.run(
+        [
+            "create",
+            "-f",
+            str(archive_file),
+            "-C",
+            str(src),
+            "a.txt",
+            "b.txt",
+        ]
+    )
+    assert rc == 1
+    assert capsys.readouterr().err.startswith("error: v1 archives a single path")
 
 
 def test_inspect_reports_recovery_headroom_and_strict_exit(tmp_path, capsys):

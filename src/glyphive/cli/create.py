@@ -7,7 +7,7 @@ import inspect as _inspect
 import tempfile as _tempfile
 import typing as _ty
 
-from duho import LoggingArgs, Meta
+from duho import CommandError, LoggingArgs, Meta
 from pathlib_next import Path
 
 from .. import archive as _archive
@@ -273,8 +273,8 @@ class Create(LoggingArgs):
     def _compression_selection(self) -> _ty.Tuple[str, _ty.Any]:
         legacy = self._legacy_compression()
         if self.compression and legacy and self.compression != legacy:
-            raise SystemExit(
-                "error: --compression %s disagrees with --%s"
+            raise CommandError(
+                "--compression %s disagrees with --%s"
                 % (self.compression, legacy)
             )
         name = self.compression or legacy or _compression.default()
@@ -339,14 +339,14 @@ class Create(LoggingArgs):
 
     def _parity_ratio_selection(self) -> float:
         if self.simple and self.parity_ratio != 0.12:
-            raise SystemExit(
-                "error: --simple disagrees with an explicit --parity-ratio "
+            raise CommandError(
+                "--simple disagrees with an explicit --parity-ratio "
                 "%.4g; pass only one" % self.parity_ratio
             )
         if self.simple:
             return self._SIMPLE_PARITY_RATIO
         if not 0 < self.parity_ratio < 1:
-            raise SystemExit("error: --parity-ratio must be in (0, 1)")
+            raise CommandError("--parity-ratio must be in (0, 1)")
         return self.parity_ratio
 
     def _resolve_line_width(
@@ -378,8 +378,8 @@ class Create(LoggingArgs):
             if geometric is None:
                 if self._line_width_from_mode:
                     return measured_capacity or 60
-                raise SystemExit(
-                    "error: --line-width max needs a format with physical font "
+                raise CommandError(
+                    "--line-width max needs a format with physical font "
                     "metrics (PDF); use 'auto' or an explicit integer for "
                     "text/docx/qr output"
                 )
@@ -387,17 +387,17 @@ class Create(LoggingArgs):
         try:
             width = int(raw)
         except ValueError:
-            raise SystemExit(
-                "error: --line-width must be 'auto', 'max', or an integer, "
+            raise CommandError(
+                "--line-width must be 'auto', 'max', or an integer, "
                 "got %r" % raw
             ) from None
         if width < 2:
-            raise SystemExit("error: --line-width must be at least 2")
+            raise CommandError("--line-width must be at least 2")
         safe_cap = measured_capacity  # None on non-PDF (no cap enforced)
         if safe_cap is not None and width > safe_cap:
             if not self.force:
-                raise SystemExit(
-                    "error: --line-width %d exceeds the OCR-measured-safe "
+                raise CommandError(
+                    "--line-width %d exceeds the OCR-measured-safe "
                     "capacity %d; pass --force to use an unmeasured width up to "
                     "the geometric fit, or --line-width max" % (width, safe_cap)
                 )
@@ -409,8 +409,8 @@ class Create(LoggingArgs):
                 nsym_line=self.line_parity,
             )
             if geometric is not None and width > geometric:
-                raise SystemExit(
-                    "error: --line-width %d exceeds even the geometric fit %d "
+                raise CommandError(
+                    "--line-width %d exceeds even the geometric fit %d "
                     "(it would overflow the page)" % (width, geometric)
                 )
         return width
@@ -436,17 +436,17 @@ class Create(LoggingArgs):
         base = resolve_destination(self.directory)
         roots = [base / path for path in self.paths]
         if len(roots) != 1:
-            raise SystemExit(
-                "error: v1 archives a single path (a directory or '.'); "
+            raise CommandError(
+                "v1 archives a single path (a directory or '.'); "
                 "got %d — wrap multiple inputs in a directory" % len(roots)
             )
         root = roots[0]
 
         paths = _archive.list_paths(root, use_ignore=not self.no_ignore)
         if self.chunk_size <= 0:
-            raise SystemExit("error: --chunk-size must be a positive integer")
+            raise CommandError("--chunk-size must be a positive integer")
         if self.line_parity not in (0, 2, 4):
-            raise SystemExit("error: --line-parity must be 0, 2, or 4")
+            raise CommandError("--line-parity must be 0, 2, or 4")
         page_margin_pt = (
             _render.MINIMAL_PAGE_MARGIN_PT
             if self.minimal_margins
@@ -463,8 +463,8 @@ class Create(LoggingArgs):
             nsym_line=self.line_parity,
         )
         if measured_capacity is not None and measured_capacity < 60:
-            raise SystemExit(
-                "error: selected PDF geometry fits only %d payload characters; "
+            raise CommandError(
+                "selected PDF geometry fits only %d payload characters; "
                 "at least 60 are required for protected header/footer frames"
                 % measured_capacity
             )
@@ -549,7 +549,7 @@ class Create(LoggingArgs):
                     line_parity=self.line_parity,
                 )
                 if self.parity_pages < 0:
-                    raise SystemExit("error: --parity-pages must be >= 0")
+                    raise CommandError("--parity-pages must be >= 0")
                 try:
                     pages = _layout.iter_paginate(
                         encoded,
@@ -563,7 +563,7 @@ class Create(LoggingArgs):
                         pages = list(pages)
                 except _layout.LayoutError as exc:
                     if "Reed-Solomon limit" in str(exc):
-                        raise SystemExit(f"error: {exc}") from None
+                        raise CommandError(str(exc)) from None
                     raise
                 renderer.render(
                     pages,
