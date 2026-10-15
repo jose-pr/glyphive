@@ -10,7 +10,7 @@ exists, so its failure modes are tested directly (see the module docstring in
 from __future__ import annotations
 
 import pytest
-from pathlib_next import Path
+from pathapi import Path
 
 from glyphive.training import (
     GroundTruthRow,

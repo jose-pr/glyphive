@@ -23,7 +23,7 @@ per-character-confidence case -- see each test's docstring.
 
 from __future__ import annotations
 
-from pathlib_next import Path
+from pathapi import Path
 
 import pytest
 

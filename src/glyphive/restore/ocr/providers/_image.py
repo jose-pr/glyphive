@@ -1,6 +1,6 @@
 """Lazy image loading shared by OCR providers."""
 
-from pathlib_next import Path
+from pathapi import Path
 
 
 def load_image(image_path):

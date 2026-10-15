@@ -6,7 +6,7 @@ import io
 import os as _os
 import typing as _ty
 
-from pathlib_next import Path
+from pathapi import Path
 
 from glyphive import layout as _layout
 from glyphive.layout import Page

@@ -30,7 +30,7 @@ import typing as ty
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 
-from pathlib_next import Path
+from pathapi import Path
 
 import glyphive
 from glyphive.codec import Base16GCodec
@@ -183,7 +183,7 @@ def build_result(
         "platform": platform.platform(),
         "processor": platform.processor() or platform.machine(),
         "dependencies": {
-            "pathlib_next": _distribution_version("pathlib_next"),
+            "pathapi": _distribution_version("pathapi"),
             "reedsolo": _distribution_version("reedsolo"),
         },
         "git": git_metadata(),

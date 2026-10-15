@@ -5,7 +5,7 @@ from __future__ import annotations
 import os as _os
 import typing as _ty
 
-from pathlib_next import Path
+from pathapi import Path
 
 from glyphive.layout import Page
 from glyphive.render._base import (

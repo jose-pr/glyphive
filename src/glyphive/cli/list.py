@@ -6,7 +6,7 @@ import typing as _ty
 import tempfile as _tempfile
 
 from duho import LoggingArgs
-from pathlib_next import Path
+from pathapi import Path
 
 from .. import archive as _archive
 from ._common import load_input_lines, load_qr_lines

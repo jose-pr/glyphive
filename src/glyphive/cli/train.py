@@ -7,7 +7,7 @@ import tempfile as _tempfile
 import typing as _ty
 
 from duho import LoggingArgs
-from pathlib_next import Path
+from pathapi import Path
 
 from ..training import (
     TrainingError,

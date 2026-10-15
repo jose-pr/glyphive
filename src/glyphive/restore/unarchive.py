@@ -4,7 +4,7 @@ This module is the write side of restore. It takes the verified archive byte
 stream from :func:`glyphive.restore.decode.decode_document`, parses it with the
 existing :func:`glyphive.archive.iter_records` (it does **not** re-implement the
 wire format), and materializes each record under a destination directory using
-``pathlib_next.Path`` for every filesystem operation.
+``pathapi.Path`` for every filesystem operation.
 
 Two safety rails enforcing "no silent
 corruption / no silent partial restore":
@@ -31,7 +31,7 @@ import shutil as _shutil
 import tempfile as _tempfile
 import typing as _ty
 
-from pathlib_next import Path
+from pathapi import Path
 
 from .. import archive
 from .decode import RestoreError
@@ -44,12 +44,12 @@ __all__ = [
     "unarchive_spool",
 ]
 
-# Types accepted for a destination: a pathlib_next Path, a str, or os.PathLike.
+# Types accepted for a destination: a pathapi Path, a str, or os.PathLike.
 DestLike = _ty.Union[str, "Path", "_os.PathLike[str]"]
 
 
 def _coerce_dest(dest: DestLike) -> "Path":
-    """Coerce ``str`` / ``os.PathLike`` / ``Path`` into a ``pathlib_next.Path``."""
+    """Coerce ``str`` / ``os.PathLike`` / ``Path`` into a ``pathapi.Path``."""
     if isinstance(dest, Path):
         return dest
     return Path(dest)

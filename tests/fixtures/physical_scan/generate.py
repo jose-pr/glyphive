@@ -37,7 +37,7 @@ tuned past what the auto-descan retry can recover.
 
 from __future__ import annotations
 
-from pathlib_next import Path
+from pathapi import Path
 
 BLUR_RADIUS = 0.6
 ROTATION_DEGREES = 0.7

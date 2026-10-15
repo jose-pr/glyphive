@@ -6,7 +6,7 @@ import io
 import typing as _ty
 import zipfile
 
-from pathlib_next import Path
+from pathapi import Path
 
 __all__ = [
     "format_selector_error",

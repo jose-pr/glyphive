@@ -4,7 +4,7 @@ This module is the core of the format. The alphabet is the **measured-safe**
 16-character set below, every line carries its own CRC check, and Reed-Solomon
 parity lets small OCR errors be corrected rather than silently propagating. It
 is pure: bytes in, list-of-str lines out (and back). No file I/O, no
-``pathlib_next``, no ``argparse`` here.
+``pathapi``, no ``argparse`` here.
 
 The alphabet
 ------------

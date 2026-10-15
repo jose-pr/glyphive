@@ -5,7 +5,7 @@ from __future__ import annotations
 import typing as _ty
 
 from duho import LoggingArgs
-from pathlib_next import Path
+from pathapi import Path
 
 from ._common import (
     load_input_lines_with_conf,

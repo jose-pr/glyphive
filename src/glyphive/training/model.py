@@ -10,7 +10,7 @@ from __future__ import annotations
 import shutil as _shutil
 import typing as _ty
 
-from pathlib_next import Path
+from pathapi import Path
 
 __all__ = [
     "ToolchainError",

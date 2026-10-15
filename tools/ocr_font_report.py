@@ -75,7 +75,7 @@ import tempfile
 from collections import Counter, defaultdict
 from importlib.metadata import PackageNotFoundError, version
 
-from pathlib_next import Path
+from pathapi import Path
 
 # --- standard alphabets, so results are comparable to known encodings -------
 

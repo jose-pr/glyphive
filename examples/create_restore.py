@@ -11,7 +11,7 @@ import sys
 import typing as _ty
 
 from glyphive.cli import run
-from pathlib_next import Path
+from pathapi import Path
 
 
 def main(argv: _ty.Optional[_ty.Sequence[str]] = None) -> int:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import typing as _ty
 import zipfile
 
-from pathlib_next import Path
+from pathapi import Path
 
 __all__ = ["read_docx_lines", "read_pdf_text_lines", "render_document_images"]
 

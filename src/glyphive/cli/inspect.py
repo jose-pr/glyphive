@@ -15,7 +15,7 @@ import json as _json
 import typing as _ty
 
 from duho import LoggingArgs
-from pathlib_next import Path
+from pathapi import Path
 
 from ._common import load_input_lines, load_qr_lines
 

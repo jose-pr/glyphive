@@ -21,7 +21,7 @@ from collections import Counter, defaultdict
 
 import pytest
 
-from pathlib_next import Path
+from pathapi import Path
 
 _TOOLS_DIR = Path(__file__).resolve().parent.parent / "tools"
 
@@ -204,7 +204,7 @@ def _patch_pipeline(monkeypatch, ofr, make_ocr_lines):
 
 
 def test_measure_reports_deletion_rate_per_glyph(ofr, monkeypatch, tmp_path):
-    from pathlib_next import Path as PPath
+    from pathapi import Path as PPath
 
     alphabet = "ABCD"
 
@@ -250,7 +250,7 @@ def test_measure_reports_deletion_rate_per_glyph(ofr, monkeypatch, tmp_path):
 
 
 def test_measure_backward_compatible_when_no_drops(ofr, monkeypatch, tmp_path):
-    from pathlib_next import Path as PPath
+    from pathapi import Path as PPath
 
     alphabet = "AB"
     captured: list[list[str]] = []
@@ -302,7 +302,7 @@ def test_measure_backward_compatible_when_no_drops(ofr, monkeypatch, tmp_path):
 
 
 def test_measure_length_mismatch_lines_now_feed_deletion_stats(ofr, monkeypatch, tmp_path):
-    from pathlib_next import Path as PPath
+    from pathapi import Path as PPath
 
     alphabet = "ABCDE"
     dropped_char_holder: list[str] = []

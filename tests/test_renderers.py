@@ -306,7 +306,7 @@ def test_pdf_accepts_explicit_font_file(tmp_path):
 def test_pdf_resolves_font_name_from_system_store(tmp_path, monkeypatch):
     """A bare family name is resolved against the OS font stores by file stem."""
     from glyphive.render.formats import pdf as pdf_mod
-    from pathlib_next import Path
+    from pathapi import Path
 
     # Fake system font dir holding a file named after the requested family.
     fake_store = tmp_path / "fake-fonts"
@@ -338,7 +338,7 @@ def test_pdf_resolves_font_name_from_true_family_name(tmp_path, monkeypatch):
     from fontTools.ttLib import TTFont
 
     from glyphive.render.formats import pdf as pdf_mod
-    from pathlib_next import Path
+    from pathapi import Path
 
     fake_store = tmp_path / "fake-fonts"
     fake_store.mkdir()

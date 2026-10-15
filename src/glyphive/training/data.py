@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import typing as _ty
 
-from pathlib_next import Path
+from pathapi import Path
 
 __all__ = [
     "GroundTruthRow",

@@ -10,7 +10,7 @@ the stream survives arbitrary bytes — including a file whose own content happe
 to contain the magic or any framing bytes — rather than relying on a text
 delimiter that a payload could collide with.
 
-All filesystem access goes through ``pathlib_next.Path`` (never ``os`` /
+All filesystem access goes through ``pathapi.Path`` (never ``os`` /
 ``pathlib`` directly).
 
 Wire format (the "archive stream")
@@ -89,7 +89,7 @@ import struct
 import io
 import typing as _ty
 
-from pathlib_next import Path
+from pathapi import Path
 
 __all__ = [
     "MAGIC",
@@ -186,7 +186,7 @@ _IGNORE_FILES = (".gitignore", ".ignore")
 
 
 def _coerce_root(root: PathLike) -> "Path":
-    """Coerce ``str`` / ``os.PathLike`` into a ``pathlib_next.Path``."""
+    """Coerce ``str`` / ``os.PathLike`` into a ``pathapi.Path``."""
     if isinstance(root, Path):
         return root
     return Path(root)
@@ -307,7 +307,7 @@ def _walk_entries(
                 continue
             _reject_link(child, rel)
             kept_dirs.append(name)
-        # Mutate the list in place so pathlib_next.walk honors the pruning.
+        # Mutate the list in place so pathapi.walk honors the pruning.
         dirnames[:] = kept_dirs
 
         emitted_file_here = False
@@ -471,7 +471,7 @@ def archive_tree(
 ) -> bytes:
     """Serialize the tree at ``root`` into one deterministic archive-stream ``bytes``.
 
-    ``root`` may be a ``pathlib_next.Path``, a ``str``, or any ``os.PathLike``
+    ``root`` may be a ``pathapi.Path``, a ``str``, or any ``os.PathLike``
     (coerced). The tree is walked with ``root.walk()``; the ignore filter and
     ``.git`` pruning follow the module docstring. Output is byte-for-byte
     deterministic for a given tree (records sorted by relpath).

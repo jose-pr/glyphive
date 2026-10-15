@@ -8,7 +8,7 @@ import tempfile as _tempfile
 import typing as _ty
 
 from duho import CommandError, LoggingArgs, Meta
-from pathlib_next import Path
+from pathapi import Path
 
 from .. import archive as _archive
 from .. import codec as _codec

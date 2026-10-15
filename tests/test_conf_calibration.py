@@ -14,7 +14,7 @@ import sys
 
 import pytest
 
-from pathlib_next import Path
+from pathapi import Path
 
 _TOOLS_DIR = Path(__file__).resolve().parent.parent / "tools"
 

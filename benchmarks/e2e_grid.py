@@ -50,7 +50,7 @@ import typing as ty
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from pathlib_next import Path
+from pathapi import Path
 
 import glyphive
 from glyphive import cli as _cli

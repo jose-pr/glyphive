@@ -29,10 +29,9 @@ DEFAULT_INTERPRETER = "/usr/bin/env python3"
 # Must mirror ``dependencies`` in pyproject.toml -- these are pip-installed
 # into the zipapp stage, so a looser constraint here vendors a version the
 # package itself forbids. pyproject.toml is the authority; this list is a
-# duplicate that only drifts silently (it sat three minor series behind for
-# duho, and left pathlib_next unconstrained entirely, until 0.3.2).
+# duplicate that drifts silently.
 RUNTIME_DEPENDENCIES = (
-    "pathlib_next>=0.9.0,<0.10",
+    "pathapi>=0.1.0,<0.2",
     "duho>=0.7.5,<0.8",
     "pathspec",
     "reedsolo",

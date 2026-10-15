@@ -1211,7 +1211,7 @@ def test_info_json_is_machine_readable(capsys):
 
 def test_info_font_lookup_resolves_core_bundled_and_missing(capsys, monkeypatch):
     from glyphive.render.formats import pdf as pdf_mod
-    from pathlib_next import Path
+    from pathapi import Path
 
     monkeypatch.setattr(pdf_mod, "_system_font_dirs", lambda: [])  # no system store
 
@@ -1235,7 +1235,7 @@ def test_info_font_lookup_resolves_system_font_by_true_family_name(
     from importlib import resources
 
     from glyphive.render.formats import pdf as pdf_mod
-    from pathlib_next import Path
+    from pathapi import Path
 
     fake_store = tmp_path / "fake-fonts"
     fake_store.mkdir()

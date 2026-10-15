@@ -22,7 +22,7 @@ import json as _json
 import subprocess as _subprocess
 import typing as _ty
 
-from pathlib_next import Path
+from pathapi import Path
 
 from .data import GroundTruthRow, build_training_rows, verify_pairs
 from .model import TrainingError, TrainingPlan

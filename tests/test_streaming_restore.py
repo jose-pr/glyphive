@@ -230,7 +230,7 @@ def test_overwrite_publication_failure_rolls_back_replaced_files(tmp_path, monke
     """
     import os as _os
 
-    from pathlib_next import Path as _Path
+    from pathapi import Path as _Path
 
     source = tmp_path / "source"
     source.mkdir()
@@ -277,7 +277,7 @@ def test_overwrite_publication_failure_removes_newly_created_files(tmp_path, mon
     """
     import os as _os
 
-    from pathlib_next import Path as _Path
+    from pathapi import Path as _Path
 
     source = tmp_path / "source"
     source.mkdir()

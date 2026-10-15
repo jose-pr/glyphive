@@ -25,7 +25,7 @@ import typing as _ty
 
 import duho
 from duho import LoggingArgs
-from pathlib_next import Path
+from pathapi import Path
 
 from glyphive import cli as _cli
 from glyphive.render import lines_per_page_for

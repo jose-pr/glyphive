@@ -45,3 +45,13 @@ def test_extra_ignore_excludes(tmp_path):
     # Without the extra pattern, both appear.
     unfiltered = archive.list_paths(tmp_path)
     assert "secret.key" in unfiltered
+
+
+def test_pruned_directory_is_not_descended(tmp_path):
+    # An empty directory below a pruned one is listed only if walk() descends.
+    (tmp_path / "keep.txt").write_text("keep\n", encoding="utf-8")
+    (tmp_path / ".git" / "objects").mkdir(parents=True)
+    (tmp_path / "skipped" / "inner").mkdir(parents=True)
+
+    listed = archive.list_paths(tmp_path, extra_ignore=["skipped/"])
+    assert listed == ["keep.txt"]

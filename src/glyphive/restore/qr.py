@@ -12,7 +12,7 @@ import struct
 import typing as _ty
 from dataclasses import dataclass
 
-from pathlib_next import Path
+from pathapi import Path
 
 
 _MAGIC = b"GQ1"
