@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Require `pathapi>=0.1.0,<0.2` instead of `pathlib_next>=0.9.0,<0.10`.
+  `pathlib-next` was renamed to `pathapi` and its last release is only a
+  deprecation shim over it. glyphive imports `Path` from `pathapi` and its own
+  behaviour, wire format, command line and Python API are unchanged; an
+  application that builds paths for glyphive with `pathlib_next` should
+  switch to `pathapi` (or pass a `str`), and one that lists `pathlib-next`
+  as a dependency only for glyphive can drop it.
 - Require `duho>=0.7.5,<0.8`, raised from `duho>=0.6.0,<0.7`. The `create`
   options that conflict with `--compression` use `Meta(conflicts=...)`, which
   replaces the removed `NS(...)`; flags, defaults and exit statuses are

@@ -10,7 +10,7 @@ Every optional renderer/OCR-engine import is gated inside functions:
 `import glyphive`, `glyphive.render`, and `glyphive.restore.ocr` all succeed
 with zero extras installed and only raise (naming the install hint) when the
 missing feature is actually used. All filesystem access goes through
-`pathlib_next.Path`, never `os`/`pathlib` directly.
+`pathapi.Path`, never `os`/`pathlib` directly.
 
 ## `glyphive`
 
