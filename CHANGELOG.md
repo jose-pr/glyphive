@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-15
+
 ### Changed
 
 - Require `pathapi>=0.1.0,<0.2` instead of `pathlib_next>=0.9.0,<0.10`.
@@ -671,7 +673,8 @@ OCR-friendly printable pages and back to a verified tree.
   Reed-Solomon-corrected.
 - QR-code output is not implemented.
 
-[Unreleased]: https://github.com/jose-pr/glyphive/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/jose-pr/glyphive/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/jose-pr/glyphive/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/jose-pr/glyphive/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/jose-pr/glyphive/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/jose-pr/glyphive/compare/v0.3.0...v0.3.1
