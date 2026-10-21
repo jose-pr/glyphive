@@ -32,7 +32,7 @@ DEFAULT_INTERPRETER = "/usr/bin/env python3"
 # duplicate that drifts silently.
 RUNTIME_DEPENDENCIES = (
     "pathapi>=0.1.0,<0.2",
-    "duho>=0.7.5,<0.8",
+    "duho>=0.7.8,<0.8",
     "pathspec",
     "reedsolo",
 )

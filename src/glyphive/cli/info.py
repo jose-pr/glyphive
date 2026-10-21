@@ -9,15 +9,14 @@ this install of glyphive do right now."
 
 from __future__ import annotations
 
-import json as _json
 import typing as _ty
 
-from duho import LoggingArgs
+from duho import LoggingArgs, OutputArgs
 
 __all__ = ["Info"]
 
 
-class Info(LoggingArgs):
+class Info(OutputArgs, LoggingArgs):
     """List available codecs, compression methods, render formats, OCR
     engines, and (optionally) a font's resolvability."""
 
@@ -27,10 +26,6 @@ class Info(LoggingArgs):
     "Check whether this font name would resolve for PDF output (core, "
     "bundled, or an OS-font-store match by filename or family name)."
     ("--font",)
-
-    json: bool = False
-    "Emit the report as a machine-readable JSON object instead of text."
-    ("--json",)
 
     def __call__(self) -> int:
         report = self._build_report()
@@ -114,9 +109,12 @@ class Info(LoggingArgs):
         return {"requested": font, "resolved": False}
 
     def _emit(self, report: "_ty.Dict[str, _ty.Any]") -> None:
-        if self.json:
-            print(_json.dumps(report, indent=2, default=str))
-            return
+        self._output_(report, text=self._render_text)
+
+    @staticmethod
+    def _render_text(report: "_ty.Dict[str, _ty.Any]") -> str:
+        lines: "_ty.List[str]" = []
+        out = lines.append
 
         def format_entries(section: "_ty.Dict[str, _ty.Any]") -> str:
             parts = []
@@ -128,27 +126,30 @@ class Info(LoggingArgs):
                 parts.append(label)
             return ", ".join(parts) if parts else "(none registered)"
 
-        print(f"codecs:      {format_entries(report['codecs'])}")
-        print(f"compression: {format_entries(report['compression'])}")
-        print(f"render:      {format_entries(report['render_formats'])}")
+        out(f"codecs:      {format_entries(report['codecs'])}")
+        out(f"compression: {format_entries(report['compression'])}")
+        out(f"render:      {format_entries(report['render_formats'])}")
         ocr_section = report["ocr_engines"]
-        print(f"ocr:         {format_entries(ocr_section)}")
+        out(f"ocr:         {format_entries(ocr_section)}")
         if ocr_section.get("preferred_order"):
-            print(f"  preferred order (first available wins): "
-                  f"{', '.join(ocr_section['preferred_order'])}")
+            out(
+                f"  preferred order (first available wins): "
+                f"{', '.join(ocr_section['preferred_order'])}"
+            )
         fonts = report["fonts"]
-        print(f"fonts:       core: {', '.join(fonts['core'])}")
-        print(f"             bundled: {', '.join(fonts['bundled'])}")
-        print(f"             {fonts['system_lookup']}")
+        out(f"fonts:       core: {', '.join(fonts['core'])}")
+        out(f"             bundled: {', '.join(fonts['bundled'])}")
+        out(f"             {fonts['system_lookup']}")
         if "font_lookup" in report:
             lookup = report["font_lookup"]
             if lookup["resolved"]:
                 where = f" ({lookup['kind']}" + (
                     f": {lookup['path']}" if "path" in lookup else ""
                 ) + ")"
-                print(f"font check:  {lookup['requested']!r} resolves{where}")
+                out(f"font check:  {lookup['requested']!r} resolves{where}")
             else:
-                print(
+                out(
                     f"font check:  {lookup['requested']!r} NOT found "
                     "(not core, not bundled, not in the OS font stores)"
                 )
+        return "\n".join(lines)

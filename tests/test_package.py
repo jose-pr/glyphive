@@ -12,7 +12,7 @@ import package
 def test_vendor_scope_contains_required_dependencies_only():
     assert package.RUNTIME_DEPENDENCIES == (
         "pathapi>=0.1.0,<0.2",
-        "duho>=0.7.5,<0.8",
+        "duho>=0.7.8,<0.8",
         "pathspec",
         "reedsolo",
     )

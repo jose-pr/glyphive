@@ -11,10 +11,9 @@ a partially damaged scan a normal restore would reject.
 
 from __future__ import annotations
 
-import json as _json
 import typing as _ty
 
-from duho import LoggingArgs
+from duho import LoggingArgs, OutputArgs
 from pathapi import Path
 
 from ._common import load_input_lines, load_qr_lines
@@ -22,7 +21,7 @@ from ._common import load_input_lines, load_qr_lines
 __all__ = ["Inspect"]
 
 
-class Inspect(LoggingArgs):
+class Inspect(OutputArgs, LoggingArgs):
     """Report a document's recovery headroom without extracting or verifying."""
 
     _parsername_ = "inspect"
@@ -38,10 +37,6 @@ class Inspect(LoggingArgs):
     from_qr: bool = False
     "Decode -f as GQ1 QR page images (requires glyphive[qr])."
     ("--from-qr",)
-
-    json: bool = False
-    "Emit the report as a machine-readable JSON object instead of text."
-    ("--json",)
 
     strict: bool = False
     "Exit non-zero when the document is already unrecoverable (missing data "
@@ -138,19 +133,22 @@ class Inspect(LoggingArgs):
         return 0
 
     def _emit(self, report: "_ty.Dict[str, _ty.Any]") -> None:
-        if self.json:
-            print(_json.dumps(report, indent=2, default=str))
-            return
+        self._output_(report, text=self._render_text)
+
+    @staticmethod
+    def _render_text(report: "_ty.Dict[str, _ty.Any]") -> str:
+        lines: "_ty.List[str]" = []
+        out = lines.append
         if not report.get("readable", False):
-            print(f"unreadable: {report.get('reason')}")
-            return
+            out(f"unreadable: {report.get('reason')}")
+            return "\n".join(lines)
         nsym = report["line_rs_nsym"]
         nsym_text = (
             f"{nsym} erasure(s)/block over {report['line_rs_blocks']} block(s)"
             if nsym is not None
             else "indeterminate (ambiguous line stream)"
         )
-        print(
+        out(
             "glyphive codec={codec} comp={comp} files={files} bytes={bytes}".format(
                 **report
             )
@@ -158,7 +156,7 @@ class Inspect(LoggingArgs):
         parity_field_text = (
             f" [GF(2^{report['parity_field']})]" if report["parity_pages"] else ""
         )
-        print(
+        out(
             (
                 "  pages: {data_pages} data + {parity_pages} parity"
                 + parity_field_text
@@ -166,24 +164,25 @@ class Inspect(LoggingArgs):
                 "page(s))"
             ).format(**report)
         )
-        print(f"  per-line Reed-Solomon budget: {nsym_text}")
+        out(f"  per-line Reed-Solomon budget: {nsym_text}")
         line_parity = report["line_parity_nsym"]
         line_parity_text = (
             f"{line_parity} parity byte(s)/line (in-line self-heal enabled)"
             if line_parity
             else "0 (in-line self-heal disabled for this document)"
         )
-        print(f"  per-line parity field: {line_parity_text}")
+        out(f"  per-line parity field: {line_parity_text}")
         if report["pages_missing"]:
-            print(f"  missing pages: {report['pages_missing']}")
+            out(f"  missing pages: {report['pages_missing']}")
         if report["pages_reconstructed"]:
-            print(f"  reconstructed from parity: {report['pages_reconstructed']}")
+            out(f"  reconstructed from parity: {report['pages_reconstructed']}")
         if report["pages_still_missing"]:
-            print(f"  STILL MISSING (unrecoverable): {report['pages_still_missing']}")
+            out(f"  STILL MISSING (unrecoverable): {report['pages_still_missing']}")
         for warning in report["page_warnings"]:
-            print(f"  warning: {warning}")
+            out(f"  warning: {warning}")
         if report["footer_hash_notes"]:
-            print(
+            out(
                 f"  footer-hash advisories: {len(report['footer_hash_notes'])} "
                 "page(s) (normal on OCR input; pages still decoded)"
             )
+        return "\n".join(lines)

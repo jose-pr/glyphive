@@ -32,7 +32,8 @@ It reads only the protected header and page footers, then reports the data and
 parity page counts (whole-page recovery headroom, i.e. how many wholly lost
 pages it can rebuild), the realized per-line Reed-Solomon budget (`nsym`
 erasures per block, for scattered OCR damage), and which pages are present,
-missing, or reconstructable. `--json` emits a machine-readable object.
+missing, or reconstructable. `--json` (or `--format json`) emits a machine-readable
+object, indented by two spaces.
 `--strict` exits non-zero when the document is already unrecoverable (more data
 pages missing than page-parity can rebuild); plain `inspect` always exits 0 on
 a readable header. It is read-only and creates no files.

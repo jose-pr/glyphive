@@ -1254,3 +1254,26 @@ def test_info_font_lookup_resolves_system_font_by_true_family_name(
     out = capsys.readouterr().out
     assert "resolves (system:" in out
     assert "totally-unrelated-filename.ttf" in out
+
+
+def test_format_json_is_the_same_as_json(tmp_path, capsys):
+    src = _make_srcdir(tmp_path)
+    archive = tmp_path / "f.txt"
+    assert cli.run(
+        ["create", "-f", str(archive), "-C", str(src), "--compression", "none", "."]
+    ) == 0
+    for argv in (["inspect", "-f", str(archive)], ["info"]):
+        capsys.readouterr()
+        assert cli.run(argv + ["--json"]) == 0
+        as_json = capsys.readouterr().out
+        assert cli.run(argv + ["--format", "json"]) == 0
+        assert capsys.readouterr().out == as_json
+        assert as_json.startswith("{\n  ")
+        assert cli.run(argv + ["--format", "text"]) == 0
+        assert not capsys.readouterr().out.startswith("{")
+
+
+def test_info_json_keeps_non_ascii_characters(capsys):
+    capsys.readouterr()
+    assert cli.run(["info", "--font", "Café Sans", "--json"]) == 0
+    assert "Café Sans" in capsys.readouterr().out

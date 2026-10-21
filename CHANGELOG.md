@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `package.py`, the zipapp builder, enters through `duho.run`: Ctrl-C ends with
   status 130 and no traceback, and a closed standard output ends with status 1
   and no output.
+- `info` and `inspect` take `--format text|json` as well as `--json`. Their JSON
+  now keeps non-ASCII characters as they are (it escaped them as `\uXXXX`); its
+  layout (two-space indent) and values and the text output are unchanged.
+- Requires `duho>=0.7.8,<0.8`.
 
 ## [0.4.0] - 2026-10-15
 
