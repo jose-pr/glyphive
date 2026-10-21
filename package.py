@@ -251,7 +251,7 @@ class Package(LoggingArgs):
 
 
 def main(argv: _ty.Optional[_ty.List[str]] = None) -> int:
-    return duho.main(Package, argv)
+    return duho.run(Package, argv, exit="parse")
 
 
 if __name__ == "__main__":

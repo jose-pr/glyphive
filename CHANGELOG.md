@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- `package.py`, the zipapp builder, enters through `duho.run`: Ctrl-C ends with
+  status 130 and no traceback, and a closed standard output ends with status 1
+  and no output.
+
 ## [0.4.0] - 2026-10-15
 
 ### Changed

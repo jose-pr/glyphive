@@ -144,3 +144,26 @@ def test_duho_cli_accepts_repeated_extras(monkeypatch, tmp_path):
         ["--extras", "all", "--extras", "zstd", "--out", str(output)]
     ) == 0
     assert received["extras"] == ["all", "zstd"]
+
+
+def test_ctrl_c_ends_with_130_and_a_closed_pipe_with_1(tmp_path, monkeypatch, capsys):
+    out = str(tmp_path / "glyphive.pyz")
+
+    def interrupted(*args, **kwargs):
+        raise KeyboardInterrupt
+
+    def closed(*args, **kwargs):
+        raise BrokenPipeError
+
+    monkeypatch.setattr(package, "build_pyz", interrupted)
+    assert package.main(["--out", out]) == 130
+    monkeypatch.setattr(package, "build_pyz", closed)
+    assert package.main(["--out", out]) == 1
+    assert capsys.readouterr().err == ""
+
+
+def test_help_and_a_usage_error_raise_system_exit():
+    for argv, status in ((["--help"], 0), (["--bogus"], 2)):
+        with pytest.raises(SystemExit) as raised:
+            package.main(argv)
+        assert raised.value.code == status
